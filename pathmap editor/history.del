@@ -1,0 +1,38 @@
+import 'main.del';
+
+Boolean CanUndo: historyPage > 0;
+Boolean CanRedo: historyPage < historyItems.Length;
+
+globalvar Number historyPage;
+globalvar HistoryCatalog[] historyItems = [];
+
+void Document(in HistoryCatalog catalogItem)
+{
+    // If we went back in time and something is documented,
+    // the future items are now stale.
+    // We can remove them.
+    while (historyItems.Length > historyPage)
+        historyItems.ModRemoveByIndex(historyPage);
+
+    catalogItem.Set();
+    historyItems += [catalogItem]; // TODO: append context
+    historyPage++;
+}
+
+struct HistoryCatalog
+{
+    public () => void Set;
+    public () => void Revert;
+}
+
+void Undo()
+{
+    historyPage--;
+    historyItems[historyPage].Revert();
+}
+
+void Redo()
+{
+    historyItems[historyPage].Set();
+    historyPage++;
+}

@@ -1,0 +1,140 @@
+import 'main.del';
+import 'cursor menu adapter.del';
+
+playervar Number freecamSwitchID!;
+playervar Number connectNodesID!;
+
+enum MenuAction
+{
+    Back = 1,
+    FreecamIncrement = 2,
+    FreecamDecrement = 3,
+    Undo = 4,
+    Redo = 5,
+    Connect = 6
+}
+
+rule: 'CM: Make buttons: Main'
+Event.OngoingPlayer
+{
+    createButton(
+        '← undo',
+        primaryAction: MenuAction.Undo,
+        scale: 2,
+        posX: -2.1,
+        posY: -1,
+        clickWidth: 0.4,
+        clickHeight: 0.3,
+        defaultColor: Color.Yellow,
+        hoverColor: Color.Orange);
+    createButton(
+        'redo →',
+        primaryAction: MenuAction.Redo,
+        scale: 2,
+        posX: -1.6,
+        posY: -1,
+        clickWidth: 0.4,
+        clickHeight: 0.3,
+        defaultColor: Color.Aqua,
+        hoverColor: Color.SkyBlue);
+    createButton(
+        'main',
+        scale: 2,
+        posX: 0,
+        posY: 1,
+        defaultColor: Color.Yellow,
+        interactable: false);
+    createButton(
+        'back',
+        primaryAction: MenuAction.Back,
+        scale: 2,
+        posX: -2,
+        posY: 1,
+        defaultColor: Color.Red);
+    
+    freecamSwitchID = createButton(
+        'freecam: off',
+        primaryAction: MenuAction.FreecamIncrement,
+        secondaryAction: MenuAction.FreecamDecrement,
+        scale: 2.5,
+        posX: -1.2,
+        posY: 0.6,
+        defaultColor: Color.Rose);
+    
+    createButton(
+        'back',
+        primaryAction: MenuAction.Back,
+        scale: 2,
+        posX: -2,
+        posY: 1,
+        defaultColor: Color.Red);
+    
+    connectNodesID = createButton(
+        label: 'connect nodes', 
+        posX: 0, 
+        posY: -0.5, 
+        primaryAction: MenuAction.Connect);
+}
+
+disabled rule: 'CM: Connect nodes enable'
+Event.OngoingPlayer
+if (AnyNodesSelected)
+{
+    SetColor(connectNodesID, Color.White);
+    SetInteractability(connectNodesID, true);
+}
+
+disabled rule: 'CM: Connect nodes disable'
+Event.OngoingPlayer
+if (!AnyNodesSelected)
+{
+    SetColor(connectNodesID, Color.Gray);
+    SetInteractability(connectNodesID, false);
+}
+
+rule: 'CM: Freecam increment'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.FreecamIncrement)
+{
+    cameraMode++;
+    if (cameraMode == 3) cameraMode = 0;
+    updateFreecamLabel();
+}
+
+rule: 'CM: Freecam decrement'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.FreecamDecrement)
+{
+    cameraMode--;
+    if (cameraMode == -1) cameraMode = 2;
+    updateFreecamLabel();
+}
+
+rule: 'CM: Undo'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.Undo)
+if (CanUndo)
+{
+    Undo();
+}
+
+rule: 'CM: Redo'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.Redo)
+if (CanRedo)
+{
+    Redo();
+}
+
+rule: 'CM: Path ocnnect'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.Connect)
+{
+    cm_isInMenu = false;
+    mode = WorldMode.ConnectingSegments;
+}
+
+void updateFreecamLabel() '(Subroutine) CM: Update freecam label'
+{
+    SetLabel(freecamSwitchID, ['freecam: off', 'freecam: on', 'freecam: gimbal'][cameraMode]);
+}

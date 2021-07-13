@@ -1,0 +1,56 @@
+import 'josbird cursor menu.del';
+
+Number createButton(
+    in String label,
+    in Any primaryAction = 0,
+    in Any secondaryAction = 0,
+    in Number scale = 1.75,
+    in Number posX,
+    in Number posY,
+    in Number clickWidth = 0.2,
+    in Number clickHeight = 0.2,
+    in Color defaultColor = Color.White,
+    in Color hoverColor = Color.Turquoise,
+    in Boolean useDefaultFont = true,
+    in Boolean interactable = true,
+    in Boolean visible = true
+)
+{
+    cm_newButton = [
+        label, // 0
+        primaryAction, // 1
+        secondaryAction, // 2
+        scale, // 3
+        posX, // 4
+        posY, // 5
+        clickWidth, // 6
+        clickHeight, // 7
+        defaultColor, // 8
+        hoverColor, // 9
+        useDefaultFont, // 10
+        interactable, // 11
+        visible]; // 12
+    createMenuButton();
+    return cm_lastMenuButtonID;
+}
+
+void DestroyButton(in Number buttonID)
+{
+    cm_destroyButtonID = buttonID;
+    destroyMenuButton();
+}
+
+void SetLabel(in Number buttonID, in String value)
+{
+    cm_buttons[buttonID][0] = value;
+}
+
+void SetInteractability(in Number buttonID, in Boolean value)
+{
+    cm_buttons[buttonID][11] = value;
+}
+
+void SetColor(in Number buttonID, in Color color)
+{
+    cm_buttons[buttonID][8] = color;
+}

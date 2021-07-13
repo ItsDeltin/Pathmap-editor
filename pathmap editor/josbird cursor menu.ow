@@ -1,0 +1,790 @@
+variables
+{
+	global:
+		124: _extendedGlobalCollection
+		125: _arrayBuilder
+		126: textBudget
+		127: exitButtonProperties
+
+	player:
+		117: _extendedPlayerCollection
+		118: getProperties
+		119: buttonModification
+		120: currActionID
+		121: destroyButtonID
+		122: lastMenuButtonID
+		123: buttons
+		124: newButton
+		125: menuOriginalFacing
+		126: menuFrame
+		127: isInMenu
+}
+
+subroutines
+{
+	118: createMenuButton
+	119: destroyMenuButton
+	120: modifyMenuButton
+	121: getButtonProperties
+	122: createCursor
+	123: createBorderCorners
+	124: createBorderEdges
+	125: createExitButton
+	126: doButtonUpdate
+	127: createClickAreas
+}
+
+rule("▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒【Josbird's Cursor Menu】▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+}
+
+rule("Global init")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	actions
+	{
+		Global.textBudget = 128;
+		If(Workshop Setting Toggle(Custom String("Extra"), Custom String("Server load hud"), False, 0));
+			Create HUD Text(Host Player, Server Load Average, Custom String("Server Load"), Null, Right, -1, Color(Turquoise), Color(White),
+				Color(White), Visible To and String, Default Visibility);
+			Global.textBudget -= 1;
+		End;
+		Create HUD Text(Filtered Array(All Players(All Teams), Current Array Element.isInMenu), Null, Null, Custom String(
+			"Cursor Menu created by Josbird {0} Code: GETVX", Ability Icon String(Hero(Mercy), Button(Ultimate))), Right, -100, Color(
+			White), Color(White), Color(Turquoise), Visible To and String, Default Visibility);
+		Global.textBudget -= 1;
+		If(Workshop Setting Toggle(Custom String("Josbird's Cursor Menu"), Custom String("Menu prompt hud"), True, 5));
+			Create HUD Text(Filtered Array(All Players(All Teams), !Current Array Element.isInMenu), Custom String("{0}", Custom String(
+				"Press Interact [{0}] to open menu", Input Binding String(Button(Interact)))), Null, Null, Top, 1, Color(Yellow), Color(White),
+				Color(White), Visible To and String, Default Visibility);
+			Global.textBudget -= 1;
+		End;
+		Global._extendedGlobalCollection[1] = Workshop Setting Real(Custom String("Josbird's Cursor Menu"), Custom String("Menu Width"), 5,
+			0, 10, 1);
+		Global._extendedGlobalCollection[2] = Workshop Setting Real(Custom String("Josbird's Cursor Menu"), Custom String("Menu Height"),
+			2.500, 0, 5, 2);
+		Global._extendedGlobalCollection[6] = Workshop Setting Toggle(Custom String("Josbird's Cursor Menu"), Custom String(
+			"Button click sounds"), True, 3);
+		Global._extendedGlobalCollection[5] = Workshop Setting Toggle(Custom String("Josbird's Cursor Menu"), Custom String(
+			"Debug mode (show button click areas)"), False, 4);
+		Global._extendedGlobalCollection[7] = Workshop Setting Toggle(Custom String("Josbird's Cursor Menu"), Custom String(
+			"Menu disables game hud"), True, 7);
+		Global._extendedGlobalCollection[3] = Custom String("━");
+		Global._extendedGlobalCollection[4] = Custom String("┃\n");
+		Global.exitButtonProperties = Array(Custom String("exit menu"), Global._extendedGlobalCollection[1] / 2 - 0.150,
+			Global._extendedGlobalCollection[2] / 2 - 0.150, 0.350);
+	}
+}
+
+rule("Create a menu button")
+{
+	event
+	{
+		Subroutine;
+		createMenuButton;
+	}
+
+	actions
+	{
+		If(Count Of(Event Player.newButton) != 13);
+			Log To Inspector(Custom String("[CursorMenu.createMenuButton] Error: incorrect number of arguments (got {0}, expected {1})",
+				Event Player.destroyButtonID, 13));
+		Else;
+			Event Player.lastMenuButtonID = Count Of(Event Player.buttons);
+			Event Player._extendedPlayerCollection[2] = 0;
+			While(Event Player._extendedPlayerCollection[2] < Count Of(Event Player.buttons));
+				If(Event Player.buttons[Event Player._extendedPlayerCollection[2]] == Null);
+					Event Player.lastMenuButtonID = Event Player._extendedPlayerCollection[2];
+					Event Player._extendedPlayerCollection[2] = Count Of(Event Player.buttons);
+				End;
+				Event Player._extendedPlayerCollection[2] += 1;
+			End;
+			Event Player.buttons[Event Player.lastMenuButtonID] = Event Player.newButton;
+		End;
+	}
+}
+
+rule("Destroy a menu button")
+{
+	event
+	{
+		Subroutine;
+		destroyMenuButton;
+	}
+
+	actions
+	{
+		If(Event Player.destroyButtonID >= Count Of(Event Player.buttons) || !Event Player.buttons[Event Player.destroyButtonID]);
+			Log To Inspector(Custom String("[CursorMenu.destroyMenuButton] Error: tried to destroy an invalid button ID ({0})",
+				Event Player.destroyButtonID));
+		Else;
+			Global._arrayBuilder = Event Player.buttons[Event Player.destroyButtonID];
+			Global._arrayBuilder[15] = True;
+			Event Player.buttons[Event Player.destroyButtonID] = Global._arrayBuilder;
+		End;
+	}
+}
+
+rule("Modify a menu button")
+{
+	event
+	{
+		Subroutine;
+		modifyMenuButton;
+	}
+
+	actions
+	{
+		If(Count Of(Event Player.buttonModification) % 2 == 0 || Count Of(Event Player.buttonModification) < 3);
+			Log To Inspector(Custom String("[CursorMenu.modifyMenuButton] Error: incorrect number of arguments ({0})", Count Of(First Of(
+				Event Player.buttonModification))));
+		Else If(First Of(Event Player.buttonModification) >= Count Of(Event Player.buttons) || !Event Player.buttons[First Of(
+				Event Player.buttonModification)]);
+			Log To Inspector(Custom String("[CursorMenu.modifyMenuButton] Error: tried to modify an invalid button ID ({0})", First Of(
+				Event Player.buttonModification)));
+		Else;
+			Event Player._extendedPlayerCollection[2] = 1;
+			While(Event Player._extendedPlayerCollection[2] < Count Of(Event Player.buttonModification));
+				If(
+					Event Player.buttonModification[Event Player._extendedPlayerCollection[2]] < 0 || Event Player.buttonModification[Event Player._extendedPlayerCollection[2]] >= 13);
+					Log To Inspector(Custom String("[CursorMenu.modifyMenuButton] Error: tried to modify an invalid property index ({0})", Count Of(
+						Event Player.buttonModification[Event Player._extendedPlayerCollection[2]])));
+				Else;
+					Global._arrayBuilder = Event Player.buttons[First Of(Event Player.buttonModification)];
+					Global._arrayBuilder[Event Player.buttonModification[Event Player._extendedPlayerCollection[2]]] = Event Player.buttonModification[Event Player._extendedPlayerCollection[2] + 1];
+					Event Player.buttons[First Of(Event Player.buttonModification)] = Global._arrayBuilder;
+				End;
+				Event Player._extendedPlayerCollection[2] += 2;
+			End;
+		End;
+	}
+}
+
+rule("Get properties of a menu button")
+{
+	event
+	{
+		Subroutine;
+		getButtonProperties;
+	}
+
+	actions
+	{
+		If(Event Player.getProperties >= Count Of(Event Player.buttons) || !Event Player.buttons[Event Player.getProperties]);
+			Log To Inspector(Custom String("[CursorMenu.getButtonProperties] Error: tried to access an invalid button ID ({0})",
+				Event Player.getProperties));
+		Else;
+			Event Player.getProperties = Array Slice(Event Player.buttons[Event Player.getProperties], 0, 13);
+		End;
+	}
+}
+
+rule("Toggle menu")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		!Is Dummy Bot(Event Player) == True;
+		Is Button Held(Event Player, Button(Interact)) == True;
+		!Is Communicating Any Emote(Event Player) == True;
+	}
+
+	actions
+	{
+		Event Player.isInMenu = !Event Player.isInMenu;
+	}
+}
+
+rule("Create menu cursor")
+{
+	event
+	{
+		Subroutine;
+		createCursor;
+	}
+
+	actions
+	{
+		Create In-World Text(Filtered Array(Event Player, Total Time Elapsed % 0.032 < 0.016), Custom String("▲"), Update Every Frame(
+			Eye Position(Event Player) + 100 * (Angle Difference(Horizontal Angle From Direction(Facing Direction Of(Event Player)),
+			Horizontal Angle From Direction(Event Player.menuOriginalFacing)) * Cross Product(Facing Direction Of(Event Player),
+			Direction From Angles(Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(
+			Facing Direction Of(Event Player)) - 90)) + (Angle Difference(Vertical Angle From Direction(Facing Direction Of(Event Player)),
+			Vertical Angle From Direction(Event Player.menuOriginalFacing)) - 0.200) * Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90) + 3 * Facing Direction Of(Event Player))), 3, Do Not Clip, Visible To Position String and Color, Color(
+			White), Default Visibility);
+		Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+		Global.textBudget -= 1;
+		Create In-World Text(Filtered Array(Event Player, Total Time Elapsed % 0.032 >= 0.016), Custom String("▲"), Update Every Frame(
+			Eye Position(Event Player) + 100 * (Angle Difference(Horizontal Angle From Direction(Facing Direction Of(Event Player)),
+			Horizontal Angle From Direction(Event Player.menuOriginalFacing)) * Cross Product(Facing Direction Of(Event Player),
+			Direction From Angles(Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(
+			Facing Direction Of(Event Player)) - 90)) + (Angle Difference(Vertical Angle From Direction(Facing Direction Of(Event Player)),
+			Vertical Angle From Direction(Event Player.menuOriginalFacing)) - 0.200) * Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90) + 3 * Facing Direction Of(Event Player))), 3, Do Not Clip, Visible To Position String and Color, Color(
+			White), Default Visibility);
+		Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+		Global.textBudget -= 1;
+	}
+}
+
+rule("Create menu border corners")
+{
+	event
+	{
+		Subroutine;
+		createBorderCorners;
+	}
+
+	actions
+	{
+		Create In-World Text(Event Player, Custom String("┌"), Update Every Frame(Eye Position(Event Player) + 100 * (
+			Global._extendedGlobalCollection[1] * -1 / 2 * Cross Product(Facing Direction Of(Event Player), Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90)) + (Global._extendedGlobalCollection[2] / 2 - 0.200) * Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90) + 3 * Facing Direction Of(Event Player))), 4, Do Not Clip, Visible To and Position, Color(White),
+			Default Visibility);
+		Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+		Global.textBudget -= 1;
+		Create In-World Text(Event Player, Custom String("┐"), Update Every Frame(Eye Position(Event Player) + 100 * (
+			Global._extendedGlobalCollection[1] / 2 * Cross Product(Facing Direction Of(Event Player), Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90)) + (Global._extendedGlobalCollection[2] / 2 - 0.200) * Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90) + 3 * Facing Direction Of(Event Player))), 4, Do Not Clip, Visible To and Position, Color(White),
+			Default Visibility);
+		Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+		Global.textBudget -= 1;
+		Create In-World Text(Event Player, Custom String("└"), Update Every Frame(Eye Position(Event Player) + 100 * (
+			Global._extendedGlobalCollection[1] * -1 / 2 * Cross Product(Facing Direction Of(Event Player), Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90)) + (Global._extendedGlobalCollection[2] * -1 / 2 - 0.200) * Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90) + 3 * Facing Direction Of(Event Player))), 4, Do Not Clip, Visible To and Position, Color(White),
+			Default Visibility);
+		Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+		Global.textBudget -= 1;
+		Create In-World Text(Event Player, Custom String("┘"), Update Every Frame(Eye Position(Event Player) + 100 * (
+			Global._extendedGlobalCollection[1] / 2 * Cross Product(Facing Direction Of(Event Player), Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90)) + (Global._extendedGlobalCollection[2] * -1 / 2 - 0.200) * Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90) + 3 * Facing Direction Of(Event Player))), 4, Do Not Clip, Visible To and Position, Color(White),
+			Default Visibility);
+		Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+		Global.textBudget -= 1;
+	}
+}
+
+rule("Create menu border edges")
+{
+	event
+	{
+		Subroutine;
+		createBorderEdges;
+	}
+
+	actions
+	{
+		Global._extendedGlobalCollection[8] = Custom String("");
+		Event Player._extendedPlayerCollection[2] = 0;
+		While(Event Player._extendedPlayerCollection[2] < 4.600 * Global._extendedGlobalCollection[1] - 1);
+			Global._extendedGlobalCollection[8] = Custom String("{0}{1}", Global._extendedGlobalCollection[8],
+				Global._extendedGlobalCollection[3]);
+			Event Player._extendedPlayerCollection[2] += 1;
+		End;
+		Create In-World Text(Event Player, Global._extendedGlobalCollection[8], Update Every Frame(Eye Position(Event Player) + 100 * ((
+			Global._extendedGlobalCollection[2] / 2 - 0.200) * Direction From Angles(Horizontal Angle From Direction(Facing Direction Of(
+			Event Player)), Vertical Angle From Direction(Facing Direction Of(Event Player)) - 90) + 3 * Facing Direction Of(
+			Event Player))), 4, Do Not Clip, Visible To and Position, Color(White), Default Visibility);
+		Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+		Global.textBudget -= 1;
+		Global._extendedGlobalCollection[9] = Custom String("");
+		Event Player._extendedPlayerCollection[2] = 0;
+		While(Event Player._extendedPlayerCollection[2] < 4.600 * Global._extendedGlobalCollection[1] - 1);
+			Global._extendedGlobalCollection[9] = Custom String("{0}{1}", Global._extendedGlobalCollection[9],
+				Global._extendedGlobalCollection[3]);
+			Event Player._extendedPlayerCollection[2] += 1;
+		End;
+		Create In-World Text(Event Player, Global._extendedGlobalCollection[9], Update Every Frame(Eye Position(Event Player) + 100 * ((
+			Global._extendedGlobalCollection[2] * -1 / 2 - 0.200) * Direction From Angles(Horizontal Angle From Direction(
+			Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(Event Player)) - 90)
+			+ 3 * Facing Direction Of(Event Player))), 4, Do Not Clip, Visible To and Position, Color(White), Default Visibility);
+		Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+		Global.textBudget -= 1;
+		Global._extendedGlobalCollection[10] = Custom String("");
+		Event Player._extendedPlayerCollection[2] = 0.300;
+		While(Event Player._extendedPlayerCollection[2] < Global._extendedGlobalCollection[2]);
+			Global._extendedGlobalCollection[10] = Custom String("{0}{1}", Global._extendedGlobalCollection[10],
+				Global._extendedGlobalCollection[4]);
+			Event Player._extendedPlayerCollection[2] += 0.300;
+		End;
+		Create In-World Text(Event Player, Global._extendedGlobalCollection[10], Update Every Frame(Eye Position(Event Player) + 100 * (
+			Global._extendedGlobalCollection[1] / 2 * Cross Product(Facing Direction Of(Event Player), Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90)) + (-0.095 * Round To Integer(Global._extendedGlobalCollection[2] / 0.300, Down) - 0.200)
+			* Direction From Angles(Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(
+			Facing Direction Of(Event Player)) - 90) + 3 * Facing Direction Of(Event Player))), 4, Do Not Clip, Visible To and Position,
+			Color(White), Default Visibility);
+		Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+		Global.textBudget -= 1;
+		Global._extendedGlobalCollection[11] = Custom String("");
+		Event Player._extendedPlayerCollection[2] = 0.300;
+		While(Event Player._extendedPlayerCollection[2] < Global._extendedGlobalCollection[2]);
+			Global._extendedGlobalCollection[11] = Custom String("{0}{1}", Global._extendedGlobalCollection[11],
+				Global._extendedGlobalCollection[4]);
+			Event Player._extendedPlayerCollection[2] += 0.300;
+		End;
+		Create In-World Text(Event Player, Global._extendedGlobalCollection[11], Update Every Frame(Eye Position(Event Player) + 100 * (
+			Global._extendedGlobalCollection[1] * -1 / 2 * Cross Product(Facing Direction Of(Event Player), Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+			Event Player)) - 90)) + (-0.095 * Round To Integer(Global._extendedGlobalCollection[2] / 0.300, Down) - 0.200)
+			* Direction From Angles(Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(
+			Facing Direction Of(Event Player)) - 90) + 3 * Facing Direction Of(Event Player))), 4, Do Not Clip, Visible To and Position,
+			Color(White), Default Visibility);
+		Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+		Global.textBudget -= 1;
+	}
+}
+
+rule("Create exit button")
+{
+	event
+	{
+		Subroutine;
+		createExitButton;
+	}
+
+	actions
+	{
+		Create Icon(Event Player, Update Every Frame(Eye Position(Event Player) + 100 * (Global.exitButtonProperties[1] * Cross Product(
+			Facing Direction Of(Event Player), Direction From Angles(Horizontal Angle From Direction(Facing Direction Of(Event Player)),
+			Vertical Angle From Direction(Facing Direction Of(Event Player)) - 90)) + (Global.exitButtonProperties[2] - 0.250)
+			* Direction From Angles(Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(
+			Facing Direction Of(Event Player)) - 90) + 3 * Facing Direction Of(Event Player))), X, Position and Color, Absolute Value(
+			Angle Difference(Horizontal Angle From Direction(Facing Direction Of(Event Player)), Horizontal Angle From Direction(
+			Event Player.menuOriginalFacing)) - Global.exitButtonProperties[1]) <= Global.exitButtonProperties[3] / 2 && Absolute Value(
+			Angle Difference(Vertical Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(
+			Event Player.menuOriginalFacing)) - Global.exitButtonProperties[2]) <= Global.exitButtonProperties[3] / 2 ? Color(Yellow)
+			: Color(Red), False);
+		Event Player._extendedPlayerCollection[0] = Last Created Entity;
+	}
+}
+
+rule("Do button update")
+{
+	event
+	{
+		Subroutine;
+		doButtonUpdate;
+	}
+
+	actions
+	{
+		Event Player._extendedPlayerCollection[2] = 0;
+		While(Event Player._extendedPlayerCollection[2] < Count Of(Event Player.buttons));
+			If(Event Player.buttons[Event Player._extendedPlayerCollection[2]]);
+				If(Event Player.buttons[Event Player._extendedPlayerCollection[2]][15]);
+					If(Event Player.buttons[Event Player._extendedPlayerCollection[2]][14]);
+						Destroy In-World Text(Event Player.buttons[Event Player._extendedPlayerCollection[2]][13]);
+					End;
+					Event Player.buttons[Event Player._extendedPlayerCollection[2]] = Null;
+				Else If((
+						!Event Player.buttons[Event Player._extendedPlayerCollection[2]][12] && Event Player.buttons[Event Player._extendedPlayerCollection[2]][14])
+						|| !Event Player.isInMenu);
+					Destroy In-World Text(Event Player.buttons[Event Player._extendedPlayerCollection[2]][13]);
+					Global.textBudget += 1;
+					Global._arrayBuilder = Event Player.buttons[Event Player._extendedPlayerCollection[2]];
+					Global._arrayBuilder[14] = False;
+					Event Player.buttons[Event Player._extendedPlayerCollection[2]] = Global._arrayBuilder;
+				Else If(
+						Event Player.buttons[Event Player._extendedPlayerCollection[2]][12] && !Event Player.buttons[Event Player._extendedPlayerCollection[2]][14]);
+					Create In-World Text(Event Player, Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])
+						][10] ? Custom String("{0}", First Of(Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])]))
+						: First Of(Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])]), Update Every Frame(Eye Position(
+						Event Player) + 100 * (Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][4] * Cross Product(
+						Facing Direction Of(Event Player), Direction From Angles(Horizontal Angle From Direction(Facing Direction Of(Event Player)),
+						Vertical Angle From Direction(Facing Direction Of(Event Player)) - 90)) + (Event Player.buttons[Evaluate Once(
+						Event Player._extendedPlayerCollection[2])][5] - 0.200) * Direction From Angles(Horizontal Angle From Direction(
+						Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(Event Player)) - 90)
+						+ 3 * Facing Direction Of(Event Player))), Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][3],
+						Do Not Clip, Visible To Position String and Color, Event Player.buttons[Evaluate Once(
+						Event Player._extendedPlayerCollection[2])][11] && Absolute Value(Angle Difference(Horizontal Angle From Direction(
+						Facing Direction Of(Event Player)), Horizontal Angle From Direction(Event Player.menuOriginalFacing))
+						- Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][4]) <= Event Player.buttons[Evaluate Once(
+						Event Player._extendedPlayerCollection[2])][6] / 2 && Absolute Value(Angle Difference(Vertical Angle From Direction(
+						Facing Direction Of(Event Player)), Vertical Angle From Direction(Event Player.menuOriginalFacing))
+						- Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][5]) <= Event Player.buttons[Evaluate Once(
+						Event Player._extendedPlayerCollection[2])][7] / 2 ? Event Player.buttons[Evaluate Once(
+						Event Player._extendedPlayerCollection[2])][9] : Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])
+						][8], Default Visibility);
+					Global._arrayBuilder = Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])];
+					Global._arrayBuilder[13] = Last Text ID;
+					Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])] = Global._arrayBuilder;
+					Global._arrayBuilder = Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])];
+					Global._arrayBuilder[14] = True;
+					Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])] = Global._arrayBuilder;
+					Global.textBudget -= 1;
+				End;
+			End;
+			Event Player._extendedPlayerCollection[2] += 1;
+		End;
+	}
+}
+
+rule("Create click areas")
+{
+	event
+	{
+		Subroutine;
+		createClickAreas;
+	}
+
+	actions
+	{
+		Event Player._extendedPlayerCollection[2] = 0;
+		While(Event Player._extendedPlayerCollection[2] < Count Of(Event Player.buttons));
+			Create In-World Text(Event Player, Custom String("┌"), Update Every Frame(Eye Position(Event Player) + 100 * ((
+				Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][4] - Event Player.buttons[Evaluate Once(
+				Event Player._extendedPlayerCollection[2])][6] / 2) * Cross Product(Facing Direction Of(Event Player), Direction From Angles(
+				Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+				Event Player)) - 90)) + (Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])
+				][5] + Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][7] / 2 - 0.200) * Direction From Angles(
+				Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+				Event Player)) - 90) + 3 * Facing Direction Of(Event Player))), 2, Do Not Clip, Visible To and Position,
+				!Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][12] ? Custom Color(0, 0, 0, 0) : (
+				Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][11] ? Color(Yellow) : Color(White)),
+				Default Visibility);
+			Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+			Global.textBudget -= 1;
+			Create In-World Text(Event Player, Custom String("┘"), Update Every Frame(Eye Position(Event Player) + 100 * ((
+				Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][4] + Event Player.buttons[Evaluate Once(
+				Event Player._extendedPlayerCollection[2])][6] / 2) * Cross Product(Facing Direction Of(Event Player), Direction From Angles(
+				Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+				Event Player)) - 90)) + (Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])
+				][5] - Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][7] / 2 - 0.200) * Direction From Angles(
+				Horizontal Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(Facing Direction Of(
+				Event Player)) - 90) + 3 * Facing Direction Of(Event Player))), 2, Do Not Clip, Visible To and Position,
+				!Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][12] ? Custom Color(0, 0, 0, 0) : (
+				Event Player.buttons[Evaluate Once(Event Player._extendedPlayerCollection[2])][11] ? Color(Yellow) : Color(White)),
+				Default Visibility);
+			Modify Player Variable(Event Player, menuFrame, Append To Array, Last Text ID);
+			Global.textBudget -= 1;
+			Event Player._extendedPlayerCollection[2] += 1;
+		End;
+	}
+}
+
+rule("Open menu")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		!Is Dummy Bot(Event Player) == True;
+		Event Player.isInMenu == True;
+	}
+
+	actions
+	{
+		Set Aim Speed(Event Player, 15);
+		Event Player.menuOriginalFacing = Facing Direction Of(Event Player);
+		Set Primary Fire Enabled(Event Player, False);
+		Set Secondary Fire Enabled(Event Player, False);
+		If(Global._extendedGlobalCollection[7]);
+			Disable Hero HUD(Event Player);
+			Disable Game Mode HUD(Event Player);
+		End;
+		Event Player.menuFrame = Empty Array;
+		Call Subroutine(createCursor);
+		Wait(0.016, Ignore Condition);
+		Call Subroutine(createBorderCorners);
+		Call Subroutine(createBorderEdges);
+		Wait(0.016, Ignore Condition);
+		Call Subroutine(createExitButton);
+		Wait(0.016, Ignore Condition);
+		Call Subroutine(doButtonUpdate);
+		If(Global._extendedGlobalCollection[5]);
+			Call Subroutine(createClickAreas);
+		End;
+	}
+}
+
+rule("Menu loading hud")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Workshop Setting Toggle(Custom String("Josbird's Cursor Menu"), Custom String("Loading hud"), True, 6) == True;
+		Event Player.isInMenu == True;
+	}
+
+	actions
+	{
+		Create HUD Text(Event Player, Custom String("ｌｏａｄｉｎｇ ｍｅｎｕ．．．"), Null, Null, Top, 3, Color(Turquoise), Color(White), Color(White),
+			None, Default Visibility);
+		Event Player._extendedPlayerCollection[1] = Last Text ID;
+		Global.textBudget -= 1;
+		Wait(1, Ignore Condition);
+		Destroy HUD Text(Event Player._extendedPlayerCollection[1]);
+		Global.textBudget += 1;
+	}
+}
+
+rule("Close menu")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		!Is Dummy Bot(Event Player) == True;
+		!Event Player.isInMenu == True;
+	}
+
+	actions
+	{
+		Set Aim Speed(Event Player, 100);
+		Set Primary Fire Enabled(Event Player, True);
+		Set Secondary Fire Enabled(Event Player, True);
+		If(Global._extendedGlobalCollection[7]);
+			Enable Hero HUD(Event Player);
+			Enable Game Mode HUD(Event Player);
+		End;
+		Event Player._extendedPlayerCollection[2] = 0;
+		While(Event Player._extendedPlayerCollection[2] < Count Of(Event Player.menuFrame));
+			Destroy In-World Text(Event Player.menuFrame[Event Player._extendedPlayerCollection[2]]);
+			Global.textBudget += 1;
+			Event Player._extendedPlayerCollection[2] += 1;
+		End;
+		Destroy Icon(First Of(Event Player._extendedPlayerCollection));
+		Call Subroutine(doButtonUpdate);
+	}
+}
+
+rule("Check for button update")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Event Player.isInMenu == True;
+		Is True For Any(Event Player.buttons, Current Array Element && (Current Array Element[15] || (
+			!Current Array Element[12] && Current Array Element[14]) || (Current Array Element[12] && !Current Array Element[14])))
+			== True;
+	}
+
+	actions
+	{
+		Call Subroutine(doButtonUpdate);
+		Wait(0.016, Ignore Condition);
+	}
+}
+
+rule("Detect primary fire button press")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Event Player.isInMenu == True;
+		Is Button Held(Event Player, Button(Primary Fire)) == True;
+	}
+
+	actions
+	{
+		If(Absolute Value(Angle Difference(Horizontal Angle From Direction(Facing Direction Of(Event Player)),
+			Horizontal Angle From Direction(Event Player.menuOriginalFacing)) - Global.exitButtonProperties[1])
+			<= Global.exitButtonProperties[3] / 2 && Absolute Value(Angle Difference(Vertical Angle From Direction(Facing Direction Of(
+			Event Player)), Vertical Angle From Direction(Event Player.menuOriginalFacing)) - Global.exitButtonProperties[2])
+			<= Global.exitButtonProperties[3] / 2);
+			Event Player.currActionID = First Of(Global.exitButtonProperties);
+		End;
+		Event Player._extendedPlayerCollection[3] = 0;
+		While(Event Player._extendedPlayerCollection[3] < Count Of(Event Player.buttons));
+			If(Event Player.buttons[Event Player._extendedPlayerCollection[3]][11] && Absolute Value(Angle Difference(
+				Horizontal Angle From Direction(Facing Direction Of(Event Player)), Horizontal Angle From Direction(
+				Event Player.menuOriginalFacing)) - Event Player.buttons[Event Player._extendedPlayerCollection[3]][4])
+				<= Event Player.buttons[Event Player._extendedPlayerCollection[3]][6] / 2 && Absolute Value(Angle Difference(
+				Vertical Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(
+				Event Player.menuOriginalFacing)) - Event Player.buttons[Event Player._extendedPlayerCollection[3]][5])
+				<= Event Player.buttons[Event Player._extendedPlayerCollection[3]][7] / 2);
+				Event Player.currActionID = Event Player.buttons[Event Player._extendedPlayerCollection[3]][1];
+			End;
+			Event Player._extendedPlayerCollection[3] += 1;
+		End;
+		If(Event Player.currActionID && Global._extendedGlobalCollection[6]);
+			Play Effect(Event Player, Explosion Sound, Color(White), Event Player, 30);
+		End;
+		Wait(0.016, Ignore Condition);
+		Event Player.currActionID = Null;
+	}
+}
+
+rule("Detect secondary fire button press")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Event Player.isInMenu == True;
+		Is Button Held(Event Player, Button(Secondary Fire)) == True;
+	}
+
+	actions
+	{
+		If(Absolute Value(Angle Difference(Horizontal Angle From Direction(Facing Direction Of(Event Player)),
+			Horizontal Angle From Direction(Event Player.menuOriginalFacing)) - Global.exitButtonProperties[1])
+			<= Global.exitButtonProperties[3] / 2 && Absolute Value(Angle Difference(Vertical Angle From Direction(Facing Direction Of(
+			Event Player)), Vertical Angle From Direction(Event Player.menuOriginalFacing)) - Global.exitButtonProperties[2])
+			<= Global.exitButtonProperties[3] / 2);
+			Event Player.currActionID = First Of(Global.exitButtonProperties);
+		End;
+		Event Player._extendedPlayerCollection[4] = 0;
+		While(Event Player._extendedPlayerCollection[4] < Count Of(Event Player.buttons));
+			If(Event Player.buttons[Event Player._extendedPlayerCollection[4]][11] && Absolute Value(Angle Difference(
+				Horizontal Angle From Direction(Facing Direction Of(Event Player)), Horizontal Angle From Direction(
+				Event Player.menuOriginalFacing)) - Event Player.buttons[Event Player._extendedPlayerCollection[4]][4])
+				<= Event Player.buttons[Event Player._extendedPlayerCollection[4]][6] / 2 && Absolute Value(Angle Difference(
+				Vertical Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(
+				Event Player.menuOriginalFacing)) - Event Player.buttons[Event Player._extendedPlayerCollection[4]][5])
+				<= Event Player.buttons[Event Player._extendedPlayerCollection[4]][7] / 2);
+				Event Player.currActionID = Event Player.buttons[Event Player._extendedPlayerCollection[4]][2];
+			End;
+			Event Player._extendedPlayerCollection[4] += 1;
+		End;
+		If(Event Player.currActionID && Global._extendedGlobalCollection[6]);
+			Play Effect(Event Player, Explosion Sound, Color(White), Event Player, 30);
+		End;
+		Wait(0.016, Ignore Condition);
+		Event Player.currActionID = Null;
+	}
+}
+
+rule("Action ID: Exit menu")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Event Player.currActionID == Custom String("exit menu");
+	}
+
+	actions
+	{
+		Event Player.isInMenu = False;
+	}
+}
+
+rule("Cursor bounds")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Event Player.isInMenu == True;
+		(Absolute Value(Angle Difference(Horizontal Angle From Direction(Facing Direction Of(Event Player)),
+			Horizontal Angle From Direction(Event Player.menuOriginalFacing)))
+			> Global._extendedGlobalCollection[1] / 2 + 0.050 || Absolute Value(Angle Difference(Vertical Angle From Direction(
+			Facing Direction Of(Event Player)), Vertical Angle From Direction(Event Player.menuOriginalFacing)))
+			> Global._extendedGlobalCollection[2] / 2 + 0.050) == True;
+	}
+
+	actions
+	{
+		Set Facing(Event Player, Direction From Angles(Min(Max(Horizontal Angle From Direction(Event Player.menuOriginalFacing)
+			- Angle Difference(Horizontal Angle From Direction(Facing Direction Of(Event Player)), Horizontal Angle From Direction(
+			Event Player.menuOriginalFacing)), Horizontal Angle From Direction(Event Player.menuOriginalFacing)
+			- Global._extendedGlobalCollection[1] / 2), Horizontal Angle From Direction(Event Player.menuOriginalFacing)
+			+ Global._extendedGlobalCollection[1] / 2), Min(Max(Vertical Angle From Direction(Event Player.menuOriginalFacing)
+			- Angle Difference(Vertical Angle From Direction(Facing Direction Of(Event Player)), Vertical Angle From Direction(
+			Event Player.menuOriginalFacing)), Vertical Angle From Direction(Event Player.menuOriginalFacing)
+			- Global._extendedGlobalCollection[2] / 2), Vertical Angle From Direction(Event Player.menuOriginalFacing)
+			+ Global._extendedGlobalCollection[2] / 2)), To World);
+		Wait(0.016, Ignore Condition);
+		Loop If Condition Is True;
+	}
+}
+
+rule("Text budget warning")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Global.textBudget < 0;
+	}
+
+	actions
+	{
+		Small Message(Host Player, Custom String("{0} Warning! Text budget exceeded! {0}", Icon String(Warning)));
+	}
+}
+
+rule("▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒a")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+}

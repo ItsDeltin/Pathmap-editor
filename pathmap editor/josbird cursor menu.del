@@ -1,0 +1,406 @@
+globalvar define cm_extendedGlobalCollection;
+globalvar define cm_arrayBuilder;
+globalvar define cm_textBudget;
+globalvar define cm_exitButtonProperties;
+playervar define cm_extendedPlayerCollection;
+playervar define cm_getProperties;
+playervar define cm_buttonModification;
+playervar define cm_currActionID;
+playervar define cm_destroyButtonID;
+playervar define cm_lastMenuButtonID;
+playervar define cm_buttons;
+playervar define cm_newButton;
+playervar define cm_menuOriginalFacing;
+playervar define cm_menuFrame;
+playervar define cm_isInMenu;
+
+rule: "▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒【Josbird's Cursor Menu】▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒"
+{
+}
+
+rule: "Global init"
+{
+    cm_textBudget = 128;
+    if (WorkshopSettingToggle("Extra", "Server load hud", false, 0))
+    {
+        CreateHudText(HostPlayer(), ServerLoadAverage(), "Server Load", null, Location.Right, -1, Color.Turquoise, Color.White, Color.White, HudTextRev.VisibleToAndString, Spectators.DefaultVisibility);
+        cm_textBudget -= 1;
+    }
+    CreateHudText(FilteredArray(AllPlayers(Team.All), ArrayElement().cm_isInMenu), null, null, <"Cursor Menu created by Josbird <0> Code: GETVX", AbilityIconString(Hero.Mercy, Button.Ultimate)>, Location.Right, -100, Color.White, Color.White, Color.Turquoise, HudTextRev.VisibleToAndString, Spectators.DefaultVisibility);
+    cm_textBudget -= 1;
+    if (WorkshopSettingToggle("Josbird's Cursor Menu", "Menu prompt hud", true, 5))
+    {
+        CreateHudText(FilteredArray(AllPlayers(Team.All), !ArrayElement().cm_isInMenu), <"<0>", <"Press Interact [<0>] to open menu", InputBindingString(Button.Interact)>>, null, null, Location.Top, 1, Color.Yellow, Color.White, Color.White, HudTextRev.VisibleToAndString, Spectators.DefaultVisibility);
+        cm_textBudget -= 1;
+    }
+    cm_extendedGlobalCollection[1] = WorkshopSettingReal("Josbird's Cursor Menu", "Menu Width", 5, 0, 10, 1);
+    cm_extendedGlobalCollection[2] = WorkshopSettingReal("Josbird's Cursor Menu", "Menu Height", 2.5, 0, 5, 2);
+    cm_extendedGlobalCollection[6] = WorkshopSettingToggle("Josbird's Cursor Menu", "Button click sounds", true, 3);
+    cm_extendedGlobalCollection[5] = WorkshopSettingToggle("Josbird's Cursor Menu", "Debug mode (show button click areas)", false, 4);
+    cm_extendedGlobalCollection[7] = WorkshopSettingToggle("Josbird's Cursor Menu", "Menu disables game hud", true, 7);
+    cm_extendedGlobalCollection[3] = "━";
+    cm_extendedGlobalCollection[4] = "┃\n";
+    cm_exitButtonProperties = ["exit menu", cm_extendedGlobalCollection[1] / 2 - 0.15, cm_extendedGlobalCollection[2] / 2 - 0.15, 0.35];
+}
+
+void createMenuButton() "Create a menu button"
+{
+    if (CountOf(cm_newButton) != 13)
+    {
+        LogToInspector(<"[CursorMenu.createMenuButton] Error: incorrect number of arguments (got <0>, expected <1>)", cm_destroyButtonID, 13>);
+    }
+    else
+    {
+        cm_lastMenuButtonID = CountOf(cm_buttons);
+        cm_extendedPlayerCollection[2] = 0;
+        while (cm_extendedPlayerCollection[2] < CountOf(cm_buttons))
+        {
+            if (cm_buttons[cm_extendedPlayerCollection[2]] == null)
+            {
+                cm_lastMenuButtonID = cm_extendedPlayerCollection[2];
+                cm_extendedPlayerCollection[2] = CountOf(cm_buttons);
+            }
+            cm_extendedPlayerCollection[2] += 1;
+        }
+        cm_buttons[cm_lastMenuButtonID] = cm_newButton;
+    }
+}
+
+void destroyMenuButton() "Destroy a menu button"
+{
+    if (cm_destroyButtonID >= CountOf(cm_buttons) || !cm_buttons[cm_destroyButtonID])
+    {
+        LogToInspector(<"[CursorMenu.destroyMenuButton] Error: tried to destroy an invalid button ID (<0>)", cm_destroyButtonID>);
+    }
+    else
+    {
+        cm_arrayBuilder = cm_buttons[cm_destroyButtonID];
+        cm_arrayBuilder[15] = true;
+        cm_buttons[cm_destroyButtonID] = cm_arrayBuilder;
+    }
+}
+
+void modifyMenuButton() "Modify a menu button"
+{
+    if (CountOf(cm_buttonModification) % 2 == 0 || CountOf(cm_buttonModification) < 3)
+    {
+        LogToInspector(<"[CursorMenu.modifyMenuButton] Error: incorrect number of arguments (<0>)", CountOf(FirstOf(cm_buttonModification))>);
+    }
+    else if (FirstOf(cm_buttonModification) >= CountOf(cm_buttons) || !cm_buttons[FirstOf(cm_buttonModification)])
+    {
+        LogToInspector(<"[CursorMenu.modifyMenuButton] Error: tried to modify an invalid button ID (<0>)", FirstOf(cm_buttonModification)>);
+    }
+    else
+    {
+        cm_extendedPlayerCollection[2] = 1;
+        while (cm_extendedPlayerCollection[2] < CountOf(cm_buttonModification))
+        {
+            if (cm_buttonModification[cm_extendedPlayerCollection[2]] < 0 || cm_buttonModification[cm_extendedPlayerCollection[2]] >= 13)
+            {
+                LogToInspector(<"[CursorMenu.modifyMenuButton] Error: tried to modify an invalid property index (<0>)", CountOf(cm_buttonModification[cm_extendedPlayerCollection[2]])>);
+            }
+            else
+            {
+                cm_arrayBuilder = cm_buttons[FirstOf(cm_buttonModification)];
+                cm_arrayBuilder[cm_buttonModification[cm_extendedPlayerCollection[2]]] = cm_buttonModification[cm_extendedPlayerCollection[2] + 1];
+                cm_buttons[FirstOf(cm_buttonModification)] = cm_arrayBuilder;
+            }
+            cm_extendedPlayerCollection[2] += 2;
+        }
+    }
+}
+
+void getButtonProperties() "Get properties of a menu button"
+{
+    if (cm_getProperties >= CountOf(cm_buttons) || !cm_buttons[cm_getProperties])
+    {
+        LogToInspector(<"[CursorMenu.getButtonProperties] Error: tried to access an invalid button ID (<0>)", cm_getProperties>);
+    }
+    else
+    {
+        cm_getProperties = ArraySlice(cm_buttons[cm_getProperties], 0, 13);
+    }
+}
+
+rule: "Toggle menu"
+Event.OngoingPlayer
+if (!IsDummyBot(EventPlayer()) == true)
+if (IsButtonHeld(EventPlayer(), Button.Interact) == true)
+if (!IsCommunicatingAnyEmote(EventPlayer()) == true)
+{
+    cm_isInMenu = !cm_isInMenu;
+}
+
+void createCursor() "Create menu cursor"
+{
+    CreateInWorldText(FilteredArray(EventPlayer(), TotalTimeElapsed() % 0.032 < 0.016), "▲", UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 3, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, Color.White, Spectators.DefaultVisibility);
+    ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+    cm_textBudget -= 1;
+    CreateInWorldText(FilteredArray(EventPlayer(), TotalTimeElapsed() % 0.032 >= 0.016), "▲", UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 3, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, Color.White, Spectators.DefaultVisibility);
+    ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+    cm_textBudget -= 1;
+}
+
+void createBorderCorners() "Create menu border corners"
+{
+    CreateInWorldText(EventPlayer(), "┌", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_extendedGlobalCollection[1] * -1 / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_extendedGlobalCollection[2] / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+    cm_textBudget -= 1;
+    CreateInWorldText(EventPlayer(), "┐", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_extendedGlobalCollection[1] / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_extendedGlobalCollection[2] / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+    cm_textBudget -= 1;
+    CreateInWorldText(EventPlayer(), "└", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_extendedGlobalCollection[1] * -1 / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_extendedGlobalCollection[2] * -1 / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+    cm_textBudget -= 1;
+    CreateInWorldText(EventPlayer(), "┘", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_extendedGlobalCollection[1] / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_extendedGlobalCollection[2] * -1 / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+    cm_textBudget -= 1;
+}
+
+void createBorderEdges() "Create menu border edges"
+{
+    cm_extendedGlobalCollection[8] = "";
+    cm_extendedPlayerCollection[2] = 0;
+    while (cm_extendedPlayerCollection[2] < 4.6 * cm_extendedGlobalCollection[1] - 1)
+    {
+        cm_extendedGlobalCollection[8] = <"<0><1>", cm_extendedGlobalCollection[8], cm_extendedGlobalCollection[3]>;
+        cm_extendedPlayerCollection[2] += 1;
+    }
+    CreateInWorldText(EventPlayer(), cm_extendedGlobalCollection[8], <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * ((cm_extendedGlobalCollection[2] / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+    cm_textBudget -= 1;
+    cm_extendedGlobalCollection[9] = "";
+    cm_extendedPlayerCollection[2] = 0;
+    while (cm_extendedPlayerCollection[2] < 4.6 * cm_extendedGlobalCollection[1] - 1)
+    {
+        cm_extendedGlobalCollection[9] = <"<0><1>", cm_extendedGlobalCollection[9], cm_extendedGlobalCollection[3]>;
+        cm_extendedPlayerCollection[2] += 1;
+    }
+    CreateInWorldText(EventPlayer(), cm_extendedGlobalCollection[9], <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * ((cm_extendedGlobalCollection[2] * -1 / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+    cm_textBudget -= 1;
+    cm_extendedGlobalCollection[10] = "";
+    cm_extendedPlayerCollection[2] = 0.3;
+    while (cm_extendedPlayerCollection[2] < cm_extendedGlobalCollection[2])
+    {
+        cm_extendedGlobalCollection[10] = <"<0><1>", cm_extendedGlobalCollection[10], cm_extendedGlobalCollection[4]>;
+        cm_extendedPlayerCollection[2] += 0.3;
+    }
+    CreateInWorldText(EventPlayer(), cm_extendedGlobalCollection[10], <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_extendedGlobalCollection[1] / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (-0.095 * RoundToInteger(cm_extendedGlobalCollection[2] / 0.3, Rounding.Down) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+    cm_textBudget -= 1;
+    cm_extendedGlobalCollection[11] = "";
+    cm_extendedPlayerCollection[2] = 0.3;
+    while (cm_extendedPlayerCollection[2] < cm_extendedGlobalCollection[2])
+    {
+        cm_extendedGlobalCollection[11] = <"<0><1>", cm_extendedGlobalCollection[11], cm_extendedGlobalCollection[4]>;
+        cm_extendedPlayerCollection[2] += 0.3;
+    }
+    CreateInWorldText(EventPlayer(), cm_extendedGlobalCollection[11], <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_extendedGlobalCollection[1] * -1 / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (-0.095 * RoundToInteger(cm_extendedGlobalCollection[2] / 0.3, Rounding.Down) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+    cm_textBudget -= 1;
+}
+
+void createExitButton() "Create exit button"
+{
+    CreateIcon(EventPlayer(), <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_exitButtonProperties[1] * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_exitButtonProperties[2] - 0.25) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), Icon.X, IconRev.PositionAndColor, AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[1]) <= cm_exitButtonProperties[3] / 2 && AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[2]) <= cm_exitButtonProperties[3] / 2 ? Color.Yellow : Color.Red, false);
+    cm_extendedPlayerCollection[0] = LastCreatedEntity();
+}
+
+void doButtonUpdate() "Do button update"
+{
+    cm_extendedPlayerCollection[2] = 0;
+    while (cm_extendedPlayerCollection[2] < CountOf(cm_buttons))
+    {
+        if (cm_buttons[cm_extendedPlayerCollection[2]])
+        {
+            if (cm_buttons[cm_extendedPlayerCollection[2]][15])
+            {
+                if (cm_buttons[cm_extendedPlayerCollection[2]][14])
+                {
+                    DestroyInWorldText(cm_buttons[cm_extendedPlayerCollection[2]][13]);
+                }
+                cm_buttons[cm_extendedPlayerCollection[2]] = null;
+            }
+            else if (!cm_buttons[cm_extendedPlayerCollection[2]][12] && cm_buttons[cm_extendedPlayerCollection[2]][14] || !cm_isInMenu)
+            {
+                DestroyInWorldText(cm_buttons[cm_extendedPlayerCollection[2]][13]);
+                cm_textBudget += 1;
+                cm_arrayBuilder = cm_buttons[cm_extendedPlayerCollection[2]];
+                cm_arrayBuilder[14] = false;
+                cm_buttons[cm_extendedPlayerCollection[2]] = cm_arrayBuilder;
+            }
+            else if (cm_buttons[cm_extendedPlayerCollection[2]][12] && !cm_buttons[cm_extendedPlayerCollection[2]][14])
+            {
+                CreateInWorldText(EventPlayer(), cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][10] ? <"<0>", FirstOf(cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])])> : FirstOf(cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])]), <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][4] * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][5] - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][3], Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][11] && AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) - cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][4]) <= cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][6] / 2 && AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][5]) <= cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][7] / 2 ? cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][9] : cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][8], Spectators.DefaultVisibility);
+                cm_arrayBuilder = cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])];
+                cm_arrayBuilder[13] = LastTextID();
+                cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])] = cm_arrayBuilder;
+                cm_arrayBuilder = cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])];
+                cm_arrayBuilder[14] = true;
+                cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])] = cm_arrayBuilder;
+                cm_textBudget -= 1;
+            }
+        }
+        cm_extendedPlayerCollection[2] += 1;
+    }
+}
+
+void createClickAreas() "Create click areas"
+{
+    cm_extendedPlayerCollection[2] = 0;
+    while (cm_extendedPlayerCollection[2] < CountOf(cm_buttons))
+    {
+        CreateInWorldText(EventPlayer(), "┌", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * ((cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][4] - cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][6] / 2) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][5] + cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][7] / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 2, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, !cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][12] ? CustomColor(0, 0, 0, 0) : cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][11] ? Color.Yellow : Color.White, Spectators.DefaultVisibility);
+        ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+        cm_textBudget -= 1;
+        CreateInWorldText(EventPlayer(), "┘", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * ((cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][4] + cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][6] / 2) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][5] - cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][7] / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 2, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, !cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][12] ? CustomColor(0, 0, 0, 0) : cm_buttons[EvaluateOnce(cm_extendedPlayerCollection[2])][11] ? Color.Yellow : Color.White, Spectators.DefaultVisibility);
+        ModifyVariable(cm_menuFrame, Operation.AppendToArray, LastTextID());
+        cm_textBudget -= 1;
+        cm_extendedPlayerCollection[2] += 1;
+    }
+}
+
+rule: "Open menu"
+Event.OngoingPlayer
+if (!IsDummyBot(EventPlayer()) == true)
+if (cm_isInMenu == true)
+{
+    SetAimSpeed(EventPlayer(), 15);
+    cm_menuOriginalFacing = FacingDirectionOf(EventPlayer());
+    SetPrimaryFireEnabled(EventPlayer(), false);
+    SetSecondaryFireEnabled(EventPlayer(), false);
+    if (cm_extendedGlobalCollection[7])
+    {
+        DisableHeroHud(EventPlayer());
+        DisableGameModeHud(EventPlayer());
+    }
+    cm_menuFrame = [];
+    createCursor();
+    MinWait();
+    createBorderCorners();
+    createBorderEdges();
+    MinWait();
+    createExitButton();
+    MinWait();
+    doButtonUpdate();
+    if (cm_extendedGlobalCollection[5])
+    {
+        createClickAreas();
+    }
+}
+
+rule: "Menu loading hud"
+Event.OngoingPlayer
+if (WorkshopSettingToggle("Josbird's Cursor Menu", "Loading hud", true, 6) == true)
+if (cm_isInMenu == true)
+{
+    CreateHudText(EventPlayer(), "ｌｏａｄｉｎｇ ｍｅｎｕ．．．", null, null, Location.Top, 3, Color.Turquoise, Color.White, Color.White, HudTextRev.None, Spectators.DefaultVisibility);
+    cm_extendedPlayerCollection[1] = LastTextID();
+    cm_textBudget -= 1;
+    Wait(1, WaitBehavior.IgnoreCondition);
+    DestroyHudText(cm_extendedPlayerCollection[1]);
+    cm_textBudget += 1;
+}
+
+rule: "Close menu"
+Event.OngoingPlayer
+if (!IsDummyBot(EventPlayer()) == true)
+if (!cm_isInMenu == true)
+{
+    SetAimSpeed(EventPlayer(), 100);
+    SetPrimaryFireEnabled(EventPlayer(), true);
+    SetSecondaryFireEnabled(EventPlayer(), true);
+    if (cm_extendedGlobalCollection[7])
+    {
+        EnableHeroHud(EventPlayer());
+        EnableGameModeHud(EventPlayer());
+    }
+    cm_extendedPlayerCollection[2] = 0;
+    while (cm_extendedPlayerCollection[2] < CountOf(cm_menuFrame))
+    {
+        DestroyInWorldText(cm_menuFrame[cm_extendedPlayerCollection[2]]);
+        cm_textBudget += 1;
+        cm_extendedPlayerCollection[2] += 1;
+    }
+    DestroyIcon(FirstOf(cm_extendedPlayerCollection));
+    doButtonUpdate();
+}
+
+rule: "Check for button update"
+Event.OngoingPlayer
+if (cm_isInMenu == true)
+if (IsTrueForAny(cm_buttons, ArrayElement() && (ArrayElement()[15] || !ArrayElement()[12] && ArrayElement()[14] || ArrayElement()[12] && !ArrayElement()[14])) == true)
+{
+    doButtonUpdate();
+    MinWait();
+}
+
+rule: "Detect primary fire button press"
+Event.OngoingPlayer
+if (cm_isInMenu == true)
+if (IsButtonHeld(EventPlayer(), Button.PrimaryFire) == true)
+{
+    if (AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[1]) <= cm_exitButtonProperties[3] / 2 && AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[2]) <= cm_exitButtonProperties[3] / 2)
+    {
+        cm_currActionID = FirstOf(cm_exitButtonProperties);
+    }
+    cm_extendedPlayerCollection[3] = 0;
+    while (cm_extendedPlayerCollection[3] < CountOf(cm_buttons))
+    {
+        if (cm_buttons[cm_extendedPlayerCollection[3]][11] && AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) - cm_buttons[cm_extendedPlayerCollection[3]][4]) <= cm_buttons[cm_extendedPlayerCollection[3]][6] / 2 && AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - cm_buttons[cm_extendedPlayerCollection[3]][5]) <= cm_buttons[cm_extendedPlayerCollection[3]][7] / 2)
+        {
+            cm_currActionID = cm_buttons[cm_extendedPlayerCollection[3]][1];
+        }
+        cm_extendedPlayerCollection[3] += 1;
+    }
+    if (cm_currActionID && cm_extendedGlobalCollection[6])
+    {
+        PlayEffect(EventPlayer(), PlayEffect.ExplosionSound, Color.White, EventPlayer(), 30);
+    }
+    MinWait();
+    cm_currActionID = null;
+}
+
+rule: "Detect secondary fire button press"
+Event.OngoingPlayer
+if (cm_isInMenu == true)
+if (IsButtonHeld(EventPlayer(), Button.SecondaryFire) == true)
+{
+    if (AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[1]) <= cm_exitButtonProperties[3] / 2 && AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[2]) <= cm_exitButtonProperties[3] / 2)
+    {
+        cm_currActionID = FirstOf(cm_exitButtonProperties);
+    }
+    cm_extendedPlayerCollection[4] = 0;
+    while (cm_extendedPlayerCollection[4] < CountOf(cm_buttons))
+    {
+        if (cm_buttons[cm_extendedPlayerCollection[4]][11] && AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) - cm_buttons[cm_extendedPlayerCollection[4]][4]) <= cm_buttons[cm_extendedPlayerCollection[4]][6] / 2 && AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - cm_buttons[cm_extendedPlayerCollection[4]][5]) <= cm_buttons[cm_extendedPlayerCollection[4]][7] / 2)
+        {
+            cm_currActionID = cm_buttons[cm_extendedPlayerCollection[4]][2];
+        }
+        cm_extendedPlayerCollection[4] += 1;
+    }
+    if (cm_currActionID && cm_extendedGlobalCollection[6])
+    {
+        PlayEffect(EventPlayer(), PlayEffect.ExplosionSound, Color.White, EventPlayer(), 30);
+    }
+    MinWait();
+    cm_currActionID = null;
+}
+
+rule: "Action ID: Exit menu"
+Event.OngoingPlayer
+if (cm_currActionID == "exit menu")
+{
+    cm_isInMenu = false;
+}
+
+rule: "Cursor bounds"
+Event.OngoingPlayer
+if (cm_isInMenu == true)
+if ((AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing))) > cm_extendedGlobalCollection[1] / 2 + 0.05 || AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing))) > cm_extendedGlobalCollection[2] / 2 + 0.05) == true)
+{
+    SetFacing(EventPlayer(), DirectionFromAngles(Min(Max(HorizontalAngleFromDirection(cm_menuOriginalFacing) - AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)), HorizontalAngleFromDirection(cm_menuOriginalFacing) - cm_extendedGlobalCollection[1] / 2), HorizontalAngleFromDirection(cm_menuOriginalFacing) + cm_extendedGlobalCollection[1] / 2), Min(Max(VerticalAngleFromDirection(cm_menuOriginalFacing) - AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)), VerticalAngleFromDirection(cm_menuOriginalFacing) - cm_extendedGlobalCollection[2] / 2), VerticalAngleFromDirection(cm_menuOriginalFacing) + cm_extendedGlobalCollection[2] / 2)), Relative.ToWorld);
+    MinWait();
+    LoopIfConditionIsTrue();
+}

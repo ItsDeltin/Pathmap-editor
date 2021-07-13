@@ -1,0 +1,9 @@
+Boolean button(Button button): IsButtonHeld(host, button);
+Vector eye: EyePosition(host);
+Player host: HostPlayer();
+Vector ray(Vector start, Vector end): RayCastHitPosition(start, end, null, null, false);
+
+Any makeEffect(Effect effect, in Color color, in Vector position,  in Number radius)
+{
+    return CreateEffect(AllPlayers(), effect, color, position, radius, EffectRev.VisibleToPositionRadiusAndColor);
+}

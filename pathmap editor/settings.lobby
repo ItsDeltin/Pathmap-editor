@@ -1,0 +1,26 @@
+{
+  "Extensions": {
+    "Spawn More Dummy Bots": true,
+    "Play More Effects": true,
+    "Buff Status Effects": true,
+    "Debuff Status Effects": true,
+    "Kinetic Explosion Effects": true,
+    "Energy Explosion Effects": true,
+    "Beam Effects": true,
+    "Beam Sounds": true,
+    "Buff and Debuff Sounds": true,
+    "Explosion Sounds": true
+  },
+  "Modes": {
+    "Skirmish": {
+      "Enabled": true,
+      "Enabled Maps": [
+        "Dorado"
+      ]
+    }
+  },
+  "Lobby": {
+    "Max Team 1 Players": 1,
+    "Max Team 2 Players": 0
+  }
+}

@@ -1,0 +1,103 @@
+import 'main.del';
+
+enum WorldMode
+{
+    PlacingNodes,
+    ConnectingSegments
+}
+
+globalvar WorldMode mode;
+globalvar Any[] controlTexts;
+globalvar Number controlTextOrder = 1;
+globalvar Number connectingFromNode = -1;
+globalvar Any segmentPreviewID;
+
+rule: 'Editor: Enter node mode'
+if (mode == WorldMode.PlacingNodes)
+{
+    DestroyControlTexts();
+    AddControlText('Create node', Button.PrimaryFire, SelectedNodeID == -1);
+    AddControlText('Select node', Button.PrimaryFire, SelectedNodeID != -1);
+}
+
+rule: 'Editor: Enter segment mode'
+if (mode == WorldMode.ConnectingSegments)
+{
+    DestroyControlTexts();
+    AddControlText('Attach to node', Button.PrimaryFire, SelectedNodeID == -1);
+    AddControlText('Stop', Button.SecondaryFire);
+
+    CreateBeamEffect(
+        UpdateEveryFrame(SelectedNodeID != -1 ? AllPlayers() : null),
+        BeamType.TorbjornTurretSightBeam,
+        Nodes[connectingFromNode].ShownPosition(),
+        Nodes[SelectedNodeIndex].ShownPosition(),
+        Color.Team1,
+        EffectRev.VisibleToPositionRadiusAndColor
+    );
+    CreateBeamEffect(
+        UpdateEveryFrame(SelectedNodeID == -1 ? AllPlayers() : null),
+        BeamType.TorbjornTurretSightBeam,
+        Nodes[connectingFromNode].ShownPosition(),
+        UpdateEveryFrame(watchPoint),
+        Color.Team2,
+        EffectRev.VisibleToPositionRadiusAndColor
+    );
+}
+
+rule: 'Editor: Place node'
+if (mode == WorldMode.PlacingNodes)
+if (button(Button.PrimaryFire))
+if (SelectedNodeID == -1)
+if (!host.cm_isInMenu)
+{
+    NodeUniqueID++;
+    Number id = NodeUniqueID;
+    Vector pos = watchPoint;
+
+    Document({
+        Set: () => {
+            Nodes += { Node: {Position: pos, UniqueID: id}, Visibility: 0, Selected: false, BallEffect: null, RingEffect: null };
+        },
+        Revert: () => {
+            RemoveNodeByIndex(NodeIndexFromID(id));
+        }
+    });
+}
+
+rule: 'Editor: Select node'
+if (button(Button.PrimaryFire))
+if (SelectedNodeID != -1)
+if (!host.cm_isInMenu)
+{
+    if (mode == WorldMode.PlacingNodes)
+        Nodes[SelectedNodeIndex].Selected = !Nodes[SelectedNodeIndex].Selected;
+    else if (mode == WorldMode.ConnectingSegments)
+    {
+        connectingFromNode = SelectedNodeIndex;
+    }
+}
+
+void AddControlText(in String text, in Button button, in Boolean condition = true)
+{
+    controlTexts += CreateHudText(
+        HostPlayer(),
+        Location: Location.Left,
+        Text: '                                                                                                 {0}: {1}'
+            .Format([text, InputBindingString(button)]),
+        TextColor: condition ? Color.White : Color.Gray,
+        SortOrder: controlTextOrder,
+        Reevaluation: HudTextRev.VisibleToStringAndColor
+    );
+    controlTextOrder++;
+}
+
+void DestroyControlTexts() 'Destroy control texts'
+{
+    while (controlTexts.Length)
+    {
+        DestroyHudText(controlTexts.First);
+        controlTexts.ModRemoveByIndex(0);
+    }
+    controlTextOrder = 1;
+}

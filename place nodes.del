@@ -1,52 +1,10 @@
 import 'main.del';
 
-enum WorldMode
-{
-    PlacingNodes,
-    ConnectingSegments
-}
-
-globalvar WorldMode mode;
 globalvar Any[] controlTexts;
 globalvar Number controlTextOrder = 1;
 globalvar Number connectingFromNode = -1;
-globalvar Any segmentPreviewID;
-
-rule: 'Editor: Enter node mode'
-if (mode == WorldMode.PlacingNodes)
-{
-    DestroyControlTexts();
-    AddControlText('Create node', Button.PrimaryFire, SelectedNodeID == -1);
-    AddControlText('Select node', Button.PrimaryFire, SelectedNodeID != -1);
-}
-
-rule: 'Editor: Enter segment mode'
-if (mode == WorldMode.ConnectingSegments)
-{
-    DestroyControlTexts();
-    AddControlText('Attach to node', Button.PrimaryFire, SelectedNodeID == -1);
-    AddControlText('Stop', Button.SecondaryFire);
-
-    CreateBeamEffect(
-        UpdateEveryFrame(SelectedNodeID != -1 ? AllPlayers() : null),
-        BeamType.TorbjornTurretSightBeam,
-        Nodes[connectingFromNode].ShownPosition(),
-        Nodes[SelectedNodeIndex].ShownPosition(),
-        Color.Team1,
-        EffectRev.VisibleToPositionRadiusAndColor
-    );
-    CreateBeamEffect(
-        UpdateEveryFrame(SelectedNodeID == -1 ? AllPlayers() : null),
-        BeamType.TorbjornTurretSightBeam,
-        Nodes[connectingFromNode].ShownPosition(),
-        UpdateEveryFrame(watchPoint),
-        Color.Team2,
-        EffectRev.VisibleToPositionRadiusAndColor
-    );
-}
 
 rule: 'Editor: Place node'
-if (mode == WorldMode.PlacingNodes)
 if (button(Button.PrimaryFire))
 if (SelectedNodeID == -1)
 if (!host.cm_isInMenu)
@@ -66,16 +24,42 @@ if (!host.cm_isInMenu)
 }
 
 rule: 'Editor: Select node'
+if (button(Button.SecondaryFire))
+if (SelectedNodeID != -1)
+if (!host.cm_isInMenu)
+{
+    Nodes[SelectedNodeIndex].Selected = !Nodes[SelectedNodeIndex].Selected;
+}
+
+rule: 'Editor: Connect node'
 if (button(Button.PrimaryFire))
 if (SelectedNodeID != -1)
 if (!host.cm_isInMenu)
 {
-    if (mode == WorldMode.PlacingNodes)
-        Nodes[SelectedNodeIndex].Selected = !Nodes[SelectedNodeIndex].Selected;
-    else if (mode == WorldMode.ConnectingSegments)
+    if (connectingFromNode == SelectedNodeIndex)
     {
-        connectingFromNode = SelectedNodeIndex;
+        connectingFromNode = -1;
+        return;
     }
+    else if (connectingFromNode != -1)
+    {
+        // Create segment
+        SegmentUniqueID++;
+        Number id! = SegmentUniqueID;
+        Number from! = Nodes[connectingFromNode].Node.UniqueID;
+        Number to! = Nodes[SelectedNodeIndex].Node.UniqueID;
+
+        Document({
+            Set: () => {
+                Segments += { ID: id, Node1: from, Node2: to, Effect: null };
+            },
+            Revert: () => {
+                RemoveSegmentByIndex(SegmentIndexFromID(id));
+            }
+        });
+    }
+
+    connectingFromNode = SelectedNodeIndex;
 }
 
 void AddControlText(in String text, in Button button, in Boolean condition = true)

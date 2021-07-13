@@ -32,6 +32,7 @@ struct WorldNode
 
 struct WorldSegment
 {
+    public Number ID;
     public Number Node1;
     public Number Node2;
     public Any Effect;
@@ -41,6 +42,7 @@ globalvar WorldNode[] Nodes = [];
 globalvar WorldSegment[] Segments = [];
 
 globalvar Number NodeUniqueID! = 1;
+globalvar Number SegmentUniqueID! = 1;
 
 Number NodeSize: 0.3;
 Boolean AnyNodesSelected: Nodes.IsTrueForAny(node => node.Selected);
@@ -54,7 +56,16 @@ Number NodeIndexFromID(in Number id)
         if (Nodes[i].Node.UniqueID == id)
             return i;
     
-    return 0;
+    return -1;
+}
+
+Number SegmentIndexFromID(in Number id)
+{
+    for (define i = 0; Segments.Length; 1)
+        if (Segments[i].ID == id)
+            return i;
+    
+    return -1;
 }
 
 void RemoveNodeByIndex(in Number index)
@@ -64,9 +75,38 @@ void RemoveNodeByIndex(in Number index)
     Nodes.ModRemoveByIndex(index);
 }
 
+void RemoveSegmentByIndex(in Number index)
+{
+    DestroyEffect(Segments[index].Effect);
+    Segments.ModRemoveByIndex(index);
+}
+
 rule: 'Main: Init'
 {
-    CreateEffect(AllPlayers().FilteredArray(p => SelectedNodeID == -1 && !host.cm_isInMenu), Effect.Sphere, Color.Orange, UpdateEveryFrame(watchPoint), 0.2, EffectRev.VisibleToPositionRadiusAndColor);
+    // Ball
+    CreateEffect(
+        AllPlayers().FilteredArray(p => SelectedNodeID == -1 && !host.cm_isInMenu),
+        Effect.Sphere,
+        Color.Orange,
+        UpdateEveryFrame(watchPoint),
+        0.2,
+        EffectRev.VisibleToPositionRadiusAndColor);
+
+    // Segment lines
+    CreateBeamEffect(
+        UpdateEveryFrame(connectingFromNode != -1 && SelectedNodeID != -1 ? AllPlayers() : null),
+        BeamType.TorbjornTurretSightBeam,
+        Nodes[connectingFromNode].ShownPosition(),
+        Nodes[SelectedNodeIndex].ShownPosition(),
+        Color.Team1,
+        EffectRev.VisibleToPositionRadiusAndColor);
+    CreateBeamEffect(
+        UpdateEveryFrame(connectingFromNode != -1 && SelectedNodeID == -1 ? AllPlayers() : null),
+        BeamType.TorbjornTurretSightBeam,
+        Nodes[connectingFromNode].ShownPosition(),
+        UpdateEveryFrame(watchPoint),
+        Color.Team2,
+        EffectRev.VisibleToPositionRadiusAndColor);
 }
 
 rule: 'Main: Selection loop'
@@ -86,7 +126,8 @@ if (Nodes.Length)
 rule: 'Main: Renderer'
 {
     // Nodes
-    for (define i = 0; Nodes.Length; 1)
+    Number i;
+    for (i = 0; Nodes.Length; 1)
     {
         // Not visible.
         if (!Nodes[i].Node.Position.IsInLineOfSight(eye))
@@ -107,9 +148,6 @@ rule: 'Main: Renderer'
                 Nodes[i].Visibility = 1;
             }
 
-            // Segments
-
-
             // Ring effect
             if (Nodes[i].Node.Position.DistanceTo(eye) > 10)
             {
@@ -124,6 +162,36 @@ rule: 'Main: Renderer'
                 Nodes[i].RingEffect = makeEffect(Effect.Ring, Nodes[EvaluateOnce(i)].Color(), Nodes[EvaluateOnce(i)].Node.Position, NodeSize);
                 Nodes[i].Visibility = 2;
             }
+        }
+
+        MinWait();
+    }
+
+    // Segments
+    for (i = 0; Segments.Length; 1)
+    {
+        Number node1 = NodeIndexFromID(Segments[i].Node1);
+        Number node2 = NodeIndexFromID(Segments[i].Node2);
+
+        // Visible
+        if (Nodes[node1].Visibility ||
+            Nodes[node2].Visibility)
+        {
+            if (!Segments[i].Effect)
+                Segments[i].Effect = CreateBeamEffect(
+                    AllPlayers(),
+                    BeamType.BrigitteFlailChainBeam,
+                    EvaluateOnce(Nodes[node1].ShownPosition()),
+                    EvaluateOnce(Nodes[node2].ShownPosition()),
+                    Color.White,
+                    EffectRev.VisibleTo
+                );
+        }
+        // Not visible
+        else if (Segments[i].Effect)
+        {
+            DestroyEffect(Segments[i].Effect);
+            Segments[i].Effect = null;
         }
 
         MinWait();

@@ -2,7 +2,6 @@ import 'main.del';
 import 'cursor menu adapter.del';
 
 playervar Number freecamSwitchID!;
-playervar Number connectNodesID!;
 
 enum MenuAction
 {
@@ -68,28 +67,6 @@ Event.OngoingPlayer
         posX: -2,
         posY: 1,
         defaultColor: Color.Red);
-    
-    connectNodesID = createButton(
-        label: 'connect nodes', 
-        posX: 0, 
-        posY: -0.5, 
-        primaryAction: MenuAction.Connect);
-}
-
-disabled rule: 'CM: Connect nodes enable'
-Event.OngoingPlayer
-if (AnyNodesSelected)
-{
-    SetColor(connectNodesID, Color.White);
-    SetInteractability(connectNodesID, true);
-}
-
-disabled rule: 'CM: Connect nodes disable'
-Event.OngoingPlayer
-if (!AnyNodesSelected)
-{
-    SetColor(connectNodesID, Color.Gray);
-    SetInteractability(connectNodesID, false);
 }
 
 rule: 'CM: Freecam increment'
@@ -124,14 +101,6 @@ if (cm_currActionID == MenuAction.Redo)
 if (CanRedo)
 {
     Redo();
-}
-
-rule: 'CM: Path ocnnect'
-Event.OngoingPlayer
-if (cm_currActionID == MenuAction.Connect)
-{
-    cm_isInMenu = false;
-    mode = WorldMode.ConnectingSegments;
 }
 
 void updateFreecamLabel() '(Subroutine) CM: Update freecam label'

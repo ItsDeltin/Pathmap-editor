@@ -49,33 +49,21 @@ Boolean AnyNodesSelected: Nodes.IsTrueForAny(node => node.Selected);
 
 globalvar Number SelectedNodeIndex = -1;
 globalvar Number SelectedNodeID = -1;
+globalvar Number CachedSelectedNodeID = -1;
+globalvar Number SelectedSegment = -1;
 
-Number NodeIndexFromID(in Number id)
-{
-    for (define i = 0; Nodes.Length; 1)
-        if (Nodes[i].Node.UniqueID == id)
-            return i;
-    
-    return -1;
-}
+Number NodeIndexFromID(in Number id): Nodes.Map(node => node.Node.UniqueID).IndexOf(id);
 
-Number SegmentIndexFromID(in Number id)
-{
-    for (define i = 0; Segments.Length; 1)
-        if (Segments[i].ID == id)
-            return i;
-    
-    return -1;
-}
+Number SegmentIndexFromID(in Number id): Segments.Map(segment => segment.ID).IndexOf(id);
 
-void RemoveNodeByIndex(in Number index)
+void RemoveNodeByIndex(Number index)
 {
     DestroyEffect(Nodes[index].BallEffect);
     DestroyEffect(Nodes[index].RingEffect);
     Nodes.ModRemoveByIndex(index);
 }
 
-void RemoveSegmentByIndex(in Number index)
+void RemoveSegmentByIndex(Number index)
 {
     DestroyEffect(Segments[index].Effect);
     Segments.ModRemoveByIndex(index);
@@ -94,14 +82,14 @@ rule: 'Main: Init'
 
     // Segment lines
     CreateBeamEffect(
-        UpdateEveryFrame(connectingFromNode != -1 && SelectedNodeID != -1 ? AllPlayers() : null),
+        UpdateEveryFrame(SelectedSegment == -1 && connectingFromNode != -1 && SelectedNodeID != -1 ? AllPlayers() : null),
         BeamType.TorbjornTurretSightBeam,
         Nodes[connectingFromNode].ShownPosition(),
         Nodes[SelectedNodeIndex].ShownPosition(),
         Color.Team1,
         EffectRev.VisibleToPositionRadiusAndColor);
     CreateBeamEffect(
-        UpdateEveryFrame(connectingFromNode != -1 && SelectedNodeID == -1 ? AllPlayers() : null),
+        UpdateEveryFrame(SelectedSegment == -1 && connectingFromNode != -1 && SelectedNodeID == -1 ? AllPlayers() : null),
         BeamType.TorbjornTurretSightBeam,
         Nodes[connectingFromNode].ShownPosition(),
         UpdateEveryFrame(watchPoint),
@@ -120,6 +108,24 @@ if (Nodes.Length)
         .First;
     
     SelectedNodeID = SelectedNodeIndex == -1 || !Nodes[SelectedNodeIndex].ValidTarget() ? -1 : Nodes[SelectedNodeIndex].Node.UniqueID;
+
+    if (CachedSelectedNodeID != SelectedNodeID)
+    {
+        CachedSelectedNodeID = SelectedNodeID;
+
+        // Get segment that contains both nodes.
+        if (connectingFromNode == -1 || SelectedNodeID == -1)
+            SelectedSegment = -1;
+        else
+        {
+            Number[] temp! = Segments.Map((s, i) => i).FilteredArray(i =>
+                (Segments[i].Node1 == Nodes[SelectedNodeIndex].Node.UniqueID && Segments[i].Node2 == Nodes[connectingFromNode].Node.UniqueID) ||
+                (Segments[i].Node2 == Nodes[SelectedNodeIndex].Node.UniqueID && Segments[i].Node1 == Nodes[connectingFromNode].Node.UniqueID));
+            
+            SelectedSegment = temp == [] ? -1 : temp.First; 
+        }
+    }
+
     MinWait();
     LoopIfConditionIsTrue();
 }
@@ -187,20 +193,25 @@ public void UpdateSegmentVisibility(Number index) 'Subroutine: Update segment vi
 {
     Number node1 = NodeIndexFromID(Segments[index].Node1);
     Number node2 = NodeIndexFromID(Segments[index].Node2);
+    Number id = Segments[index].ID;
 
     // Visible
     if (Nodes[node1].Visibility ||
         Nodes[node2].Visibility)
     {
         if (!Segments[index].Effect)
+        {
+            Number segmentIndex: SegmentIndexFromID(EvaluateOnce(id));
+
             Segments[index].Effect = CreateBeamEffect(
-                AllPlayers(),
+                UpdateEveryFrame(attributeMode || SelectedSegment != segmentIndex || TotalTimeElapsed() % 1 < 0.5 ? AllPlayers() : null),
                 BeamType.BrigitteFlailChainBeam,
-                EvaluateOnce(Nodes[node1].ShownPosition()),
-                EvaluateOnce(Nodes[node2].ShownPosition()),
+                Nodes[NodeIndexFromID(Segments[segmentIndex].Node1)].ShownPosition(),
+                Nodes[NodeIndexFromID(Segments[segmentIndex].Node2)].ShownPosition(),
                 Color.White,
                 EffectRev.VisibleTo
             );
+        }
     }
     // Not visible
     else if (Segments[index].Effect)

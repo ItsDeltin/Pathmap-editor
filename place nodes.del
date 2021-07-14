@@ -3,6 +3,55 @@ import 'main.del';
 globalvar Any[] controlTexts;
 globalvar Number controlTextOrder = 1;
 globalvar Number connectingFromNode = -1;
+globalvar Boolean attributeMode;
+globalvar Number attribute;
+globalvar Any blueVisual!;
+globalvar Any redVisual!;
+globalvar Any attributeFloatText!;
+
+rule: 'Editor: path mode'
+if (!attributeMode)
+{
+    DestroyInWorldText(attributeFloatText);
+    MakeVisualBeams(BeamType.TorbjornTurretSightBeam, SelectedSegment == -1);
+}
+
+rule: 'Editor: attribute mode'
+if (attributeMode)
+{
+    MakeVisualBeams(BeamType.SymmetraTurretBeam, true);
+
+    DestroyInWorldText(attributeFloatText);
+    attributeFloatText = CreateInWorldText(
+        VisibleTo: SelectedNodeID == -1 && connectingFromNode != -1 ? AllPlayers() : null,
+        Header: attribute,
+        Position: Nodes[connectingFromNode].ShownPosition() + (watchPoint - Nodes[connectingFromNode].ShownPosition()) * 0.2,
+        Scale: 2.5,
+        Clipping: Clipping.ClipAgainstSurfaces,
+        Reevaluation: InworldTextRev.VisibleToPositionAndString,
+        TextColor: Color.Yellow
+    );
+}
+
+void MakeVisualBeams(BeamType beamType, in Boolean visualCondition)
+{
+    DestroyEffect(blueVisual);
+    DestroyEffect(redVisual);
+    blueVisual = CreateBeamEffect(
+        UpdateEveryFrame(visualCondition && connectingFromNode != -1 && SelectedNodeID != -1 ? AllPlayers() : null),
+        beamType,
+        Nodes[connectingFromNode].ShownPosition(),
+        Nodes[SelectedNodeIndex].ShownPosition(),
+        Color.Team1,
+        EffectRev.VisibleToPositionRadiusAndColor);
+    redVisual = CreateBeamEffect(
+        UpdateEveryFrame(visualCondition && connectingFromNode != -1 && SelectedNodeID == -1 ? AllPlayers() : null),
+        beamType,
+        Nodes[connectingFromNode].ShownPosition(),
+        UpdateEveryFrame(watchPoint),
+        Color.Team2,
+        EffectRev.VisibleToPositionRadiusAndColor);
+}
 
 rule: 'Editor: Place node'
 if (button(Button.PrimaryFire))
@@ -44,34 +93,86 @@ if (!host.cm_isInMenu)
     }
     else if (connectingFromNode != -1)
     {
-        // Create segment
-        SegmentUniqueID++;
-        Number id! = SegmentUniqueID;
-        Number from! = Nodes[connectingFromNode].Node.UniqueID;
-        Number to! = Nodes[SelectedNodeIndex].Node.UniqueID;
+        // Delete segment
+        if (SelectedSegment != -1)
+        {
+            WorldSegment segment = Segments[SelectedSegment];
+            segment.Effect = null;
 
-        Document({
-            Set: () => {
-                Segments += { ID: id, Node1: from, Node2: to, Effect: null };
-                UpdateSegmentVisibility(Segments.Length - 1);
-            },
-            Revert: () => {
-                RemoveSegmentByIndex(SegmentIndexFromID(id));
-            }
-        });
+            Document({
+                Set: () => {
+                    RemoveSegmentByIndex(SegmentIndexFromID(segment.ID));
+                },
+                Revert: () => {
+                    Segments += segment;
+                    UpdateSegmentVisibility(Segments.Length - 1);
+                }
+            });
+        }
+        // Create segment
+        else
+        {
+            SegmentUniqueID++;
+
+            // Temp variables for local capture
+            Number id! = SegmentUniqueID;
+            Number from! = Nodes[connectingFromNode].Node.UniqueID;
+            Number to! = Nodes[SelectedNodeIndex].Node.UniqueID;
+
+            Document({
+                Set: () => {
+                    Segments += { ID: id, Node1: from, Node2: to, Effect: null };
+                    UpdateSegmentVisibility(Segments.Length - 1);
+                },
+                Revert: () => {
+                    RemoveSegmentByIndex(SegmentIndexFromID(id));
+                }
+            });
+        }
     }
 
     connectingFromNode = SelectedNodeIndex;
 }
 
+rule: 'Editor: Cancel link'
+if (button(Button.SecondaryFire))
+if (SelectedNodeID == -1)
+if (connectingFromNode != -1)
+if (!host.cm_isInMenu)
+{
+    connectingFromNode = -1;
+}
+
+rule: 'Editor: tutorial'
+{
+    CreateHudText(
+        HostPlayer(),
+        Location: Location.Right,
+        Text: ' \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n ',
+        SortOrder: 0,
+        Reevaluation: HudTextRev.VisibleTo
+    );
+    AddControlText(
+        SelectedSegment != -1 ? 'Delete path' :
+            connectingFromNode != -1 && SelectedNodeID != -1 ? (connectingFromNode == SelectedNodeIndex ? 'Cancel path' : 'Link path') :
+            connectingFromNode == -1 && SelectedNodeID != -1 ? 'Create path' : 'Create node',
+        Button.PrimaryFire
+    );
+    AddControlText(
+        'Cancel path',
+        Button.SecondaryFire,
+        connectingFromNode != -1 && SelectedNodeID == -1
+    );
+}
+
 void AddControlText(in String text, in Button button, in Boolean condition = true)
 {
     controlTexts += CreateHudText(
-        HostPlayer(),
-        Location: Location.Left,
-        Text: '                                                                                                 {0}: {1}'
-            .Format([text, InputBindingString(button)]),
-        TextColor: condition ? Color.White : Color.Gray,
+        !host.cm_isInMenu && condition ? HostPlayer() : null,
+        Location: Location.Right,
+        Text: '{0}: {1}{2}{2}{2}{2}'
+            .Format([text, InputBindingString(button), '                                                        ']),
+        TextColor: CustomColor(255, 255, 255, 162.435),
         SortOrder: controlTextOrder,
         Reevaluation: HudTextRev.VisibleToStringAndColor
     );

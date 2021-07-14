@@ -2,6 +2,10 @@ import 'main.del';
 import 'cursor menu adapter.del';
 
 playervar Number freecamSwitchID!;
+playervar Number linkModeID!;
+playervar Number attributeDecrementID!;
+playervar Number attributeTextID!;
+playervar Number attributeIncrementID!;
 
 enum MenuAction
 {
@@ -10,7 +14,11 @@ enum MenuAction
     FreecamDecrement = 3,
     Undo = 4,
     Redo = 5,
-    Connect = 6
+    LinkMode = 6,
+    AttributeIncrement = 7,
+    AttributeIncrementBig = 8,
+    AttributeDecrement = 9,
+    AttributeDecrementBig = 10
 }
 
 rule: 'CM: Make buttons: Main'
@@ -56,17 +64,40 @@ Event.OngoingPlayer
         primaryAction: MenuAction.FreecamIncrement,
         secondaryAction: MenuAction.FreecamDecrement,
         scale: 2.5,
-        posX: -1.2,
+        posX: -1.7,
         posY: 0.6,
-        defaultColor: Color.Rose);
+        defaultColor: Color.White);
     
-    createButton(
-        'back',
-        primaryAction: MenuAction.Back,
-        scale: 2,
-        posX: -2,
-        posY: 1,
-        defaultColor: Color.Red);
+    linkModeID = createButton(
+        'Node link mode (segment)',
+        primaryAction: MenuAction.LinkMode,
+        scale: 2.5,
+        posY: 0.7);
+    
+    attributeIncrementID = createButton(
+        '→',
+        primaryAction: MenuAction.AttributeIncrement,
+        secondaryAction: MenuAction.AttributeIncrementBig,
+        scale: 4,
+        posY: 0.5,
+        posX: 0.1775,
+        visible: false);
+    attributeDecrementID = createButton(
+        '←',
+        primaryAction: MenuAction.AttributeDecrement,
+        secondaryAction: MenuAction.AttributeDecrementBig,
+        scale: 4,
+        posY: 0.5,
+        posX: -0.1775,
+        visible: false,
+        useDefaultFont: false);
+    attributeTextID = createButton(
+        '0',
+        scale: 2.5,
+        posY: 0.5,
+        defaultColor: Color.Yellow,
+        interactable: false, 
+        visible: false);
 }
 
 rule: 'CM: Freecam increment'
@@ -101,6 +132,36 @@ if (cm_currActionID == MenuAction.Redo)
 if (CanRedo)
 {
     Redo();
+}
+
+rule: 'CM: Change link mode'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.LinkMode)
+{
+    attributeMode = !attributeMode;
+    SetLabel(linkModeID, !attributeMode ? 'Node link mode (segment)' : 'Node link mode (attribute)');
+    SetVisible(attributeDecrementID, attributeMode);
+    SetVisible(attributeTextID, attributeMode);
+    SetVisible(attributeIncrementID, attributeMode);
+}
+
+rule: 'CM: Attribute change'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.AttributeIncrement ||
+    cm_currActionID == MenuAction.AttributeIncrementBig ||
+    cm_currActionID == MenuAction.AttributeDecrement ||
+    cm_currActionID == MenuAction.AttributeDecrementBig)
+{
+    if (cm_currActionID == MenuAction.AttributeIncrement)
+        attribute++;
+    else if (cm_currActionID == MenuAction.AttributeIncrementBig)
+        attribute += 5;
+    else if (cm_currActionID == MenuAction.AttributeDecrement)
+        attribute--;
+    else if (cm_currActionID == MenuAction.AttributeDecrementBig)
+        attribute -= 5;
+
+    SetLabel(attributeTextID, <String>attribute);
 }
 
 void updateFreecamLabel() '(Subroutine) CM: Update freecam label'

@@ -5,8 +5,8 @@ Number createButton(
     in Any primaryAction = 0,
     in Any secondaryAction = 0,
     in Number scale = 1.75,
-    in Number posX,
-    in Number posY,
+    in Number posX = 0,
+    in Number posY = 0,
     in Number clickWidth = 0.2,
     in Number clickHeight = 0.2,
     in Color defaultColor = Color.White,
@@ -48,6 +48,11 @@ void SetLabel(in Number buttonID, in String value)
 void SetInteractability(in Number buttonID, in Boolean value)
 {
     cm_buttons[buttonID][11] = value;
+}
+
+void SetVisible(in Number buttonID, in Boolean value)
+{
+    cm_buttons[buttonID][12] = value;
 }
 
 void SetColor(in Number buttonID, in Color color)

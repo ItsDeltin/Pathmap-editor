@@ -38,11 +38,21 @@ struct WorldSegment
     public Any Effect;
 }
 
+struct Attribute
+{
+    public Number Value;
+    public Number ID;
+    public Number Node1;
+    public Number Node2;
+}
+
 globalvar WorldNode[] Nodes = [];
 globalvar WorldSegment[] Segments = [];
+globalvar Attribute[] Attributes = [];
 
 globalvar Number NodeUniqueID! = 1;
 globalvar Number SegmentUniqueID! = 1;
+globalvar Number AttributeUniqueID! = 1;
 
 Number NodeSize: 0.3;
 Boolean AnyNodesSelected: Nodes.IsTrueForAny(node => node.Selected);
@@ -51,10 +61,11 @@ globalvar Number SelectedNodeIndex = -1;
 globalvar Number SelectedNodeID = -1;
 globalvar Number CachedSelectedNodeID = -1;
 globalvar Number SelectedSegment = -1;
+globalvar Any[] AttributeTexts = [];
 
 Number NodeIndexFromID(in Number id): Nodes.Map(node => node.Node.UniqueID).IndexOf(id);
-
 Number SegmentIndexFromID(in Number id): Segments.Map(segment => segment.ID).IndexOf(id);
+Number AttributeIndexFromID(in Number id): Attributes.Map(attribute => attribute.ID).IndexOf(id);
 
 void RemoveNodeByIndex(Number index)
 {
@@ -67,6 +78,11 @@ void RemoveSegmentByIndex(Number index)
 {
     DestroyEffect(Segments[index].Effect);
     Segments.ModRemoveByIndex(index);
+}
+
+void RemoveAttributeByIndex(Number index)
+{
+    Attributes.ModRemoveByIndex(index);
 }
 
 rule: 'Main: Init'
@@ -107,11 +123,19 @@ if (Nodes.Length)
         .FilteredArray(i => Nodes[i].ValidTarget())
         .First;
     
-    SelectedNodeID = SelectedNodeIndex == -1 || !Nodes[SelectedNodeIndex].ValidTarget() ? -1 : Nodes[SelectedNodeIndex].Node.UniqueID;
+    if (SelectedNodeIndex == -1 || !Nodes[SelectedNodeIndex].ValidTarget())
+    {
+        SelectedNodeID = -1;
+        SelectedNodeIndex = -1;
+    }
+    else
+        SelectedNodeID = Nodes[SelectedNodeIndex].Node.UniqueID;
 
     if (CachedSelectedNodeID != SelectedNodeID)
     {
         CachedSelectedNodeID = SelectedNodeID;
+
+        UpdateAttributeVisibility();
 
         // Get segment that contains both nodes.
         if (connectingFromNode == -1 || SelectedNodeID == -1)
@@ -218,5 +242,54 @@ public void UpdateSegmentVisibility(Number index) 'Subroutine: Update segment vi
     {
         DestroyEffect(Segments[index].Effect);
         Segments[index].Effect = null;
+    }
+}
+
+public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility'
+{
+    while (AttributeTexts.Length)
+    {
+        DestroyInWorldText(AttributeTexts.First);
+        AttributeTexts.ModRemoveByIndex(0);
+    }
+
+    // Show connected attributes.
+    if (SelectedNodeID != -1)
+    {
+        define attributeIndices = Attributes.Map((s, i) => i).FilteredArray(
+            i => Attributes[i].Node1 == SelectedNodeID || Attributes[i].Node2 == SelectedNodeID
+        );
+        
+        while (attributeIndices.Length)
+        {
+            Vector p1 = Nodes[NodeIndexFromID(Attributes[attributeIndices.First].Node1)].ShownPosition();
+            Vector p2 = Nodes[NodeIndexFromID(Attributes[attributeIndices.First].Node2)].ShownPosition();
+            Boolean isSource = Attributes[attributeIndices.First].Node1 == SelectedNodeID;
+
+            define group = attributeIndices.FilteredArray(i => Attributes[attributeIndices.First].Node2 == Attributes[i].Node2);
+
+            // Remove from attributeIndices the values in the current group.
+            attributeIndices -= group;
+
+            // Generate string
+            String string = '';
+            while (group.Length)
+            {
+                string = ' {0}\n{1}'.Format([string, Attributes[group.First].Value]);
+                group.ModRemoveByIndex(0);
+            }
+
+            AttributeTexts += CreateInWorldText(
+                VisibleTo: AllPlayers(),
+                Header: string,
+                Position: p1 + (p2 - p1) * 0.3,
+                Scale: 2.5,
+                Clipping: Clipping.DoNotClip,
+                Reevaluation: InworldTextRev.VisibleTo,
+                TextColor: isSource ? Color.Yellow : CustomColor(255, 225, 0, 100)
+            );
+        }
+
+        // define homewreckers = Attributes.Map((s, i) => i).FilteredArray(i => Attributes[i].Node2 == SelectedNodeID);
     }
 }

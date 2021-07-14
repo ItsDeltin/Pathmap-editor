@@ -23,13 +23,13 @@ if (attributeMode)
 
     DestroyInWorldText(attributeFloatText);
     attributeFloatText = CreateInWorldText(
-        VisibleTo: SelectedNodeID == -1 && connectingFromNode != -1 ? AllPlayers() : null,
-        Header: attribute,
-        Position: Nodes[connectingFromNode].ShownPosition() + (watchPoint - Nodes[connectingFromNode].ShownPosition()) * 0.2,
+        VisibleTo: connectingFromNode != -1 && connectingFromNode != SelectedNodeIndex ? AllPlayers() : null,
+        Header: " \n{0}".Format([attribute]),
+        Position: Nodes[connectingFromNode].ShownPosition() + ((SelectedNodeID == -1 ? watchPoint : Nodes[SelectedNodeIndex].ShownPosition()) - Nodes[connectingFromNode].ShownPosition()) * 0.3,
         Scale: 2.5,
-        Clipping: Clipping.ClipAgainstSurfaces,
-        Reevaluation: InworldTextRev.VisibleToPositionAndString,
-        TextColor: Color.Yellow
+        Clipping: Clipping.DoNotClip,
+        Reevaluation: InworldTextRev.VisibleToPositionStringAndColor,
+        TextColor: SelectedNodeID == -1 ? Color.Red : Color.Blue
     );
 }
 
@@ -93,41 +93,94 @@ if (!host.cm_isInMenu)
     }
     else if (connectingFromNode != -1)
     {
-        // Delete segment
-        if (SelectedSegment != -1)
+        // Segment mode
+        if (!attributeMode)
         {
-            WorldSegment segment = Segments[SelectedSegment];
-            segment.Effect = null;
+            // Delete segment
+            if (SelectedSegment != -1)
+            {
+                WorldSegment segment = Segments[SelectedSegment];
+                segment.Effect = null;
 
-            Document({
-                Set: () => {
-                    RemoveSegmentByIndex(SegmentIndexFromID(segment.ID));
-                },
-                Revert: () => {
-                    Segments += segment;
-                    UpdateSegmentVisibility(Segments.Length - 1);
-                }
-            });
+                Document({
+                    Set: () => {
+                        RemoveSegmentByIndex(SegmentIndexFromID(segment.ID));
+                    },
+                    Revert: () => {
+                        Segments += segment;
+                        UpdateSegmentVisibility(Segments.Length - 1);
+                    }
+                });
+            }
+            // Create segment
+            else
+            {
+                SegmentUniqueID++;
+
+                // Temp variables for local capture
+                Number id! = SegmentUniqueID;
+                Number from! = Nodes[connectingFromNode].Node.UniqueID;
+                Number to! = Nodes[SelectedNodeIndex].Node.UniqueID;
+
+                Document({
+                    Set: () => {
+                        Segments += { ID: id, Node1: from, Node2: to, Effect: null };
+                        UpdateSegmentVisibility(Segments.Length - 1);
+                    },
+                    Revert: () => {
+                        RemoveSegmentByIndex(SegmentIndexFromID(id));
+                    }
+                });
+            }
         }
-        // Create segment
+        // Attribute mode
         else
         {
-            SegmentUniqueID++;
-
-            // Temp variables for local capture
-            Number id! = SegmentUniqueID;
             Number from! = Nodes[connectingFromNode].Node.UniqueID;
             Number to! = Nodes[SelectedNodeIndex].Node.UniqueID;
 
-            Document({
-                Set: () => {
-                    Segments += { ID: id, Node1: from, Node2: to, Effect: null };
-                    UpdateSegmentVisibility(Segments.Length - 1);
-                },
-                Revert: () => {
-                    RemoveSegmentByIndex(SegmentIndexFromID(id));
-                }
-            });
+            // Find existing attribute.
+            Number[] existingAttributeIndex = Attributes.Map((a, i) => i).FilteredArray(
+                i => Attributes[i].Value == attribute && Attributes[i].Node1 == from && Attributes[i].Node2 == to
+            );
+
+            // Delete segment
+            if (existingAttributeIndex)
+            {
+                Attribute deleting = Attributes[existingAttributeIndex.First];
+
+                Document({
+                    Set: () => {
+                        RemoveAttributeByIndex(existingAttributeIndex.First);
+                        UpdateAttributeVisibility();
+                    },
+                    Revert: () => {
+                        Attributes += deleting;
+                        UpdateAttributeVisibility();
+                    }
+                });
+            }
+            // Create segment
+            else
+            {
+                AttributeUniqueID++;
+
+                // Temp variables for local capture
+                Number value! = attribute;
+                Number id! = SegmentUniqueID;
+
+                // Create attribute
+                Document({
+                    Set: () => {
+                        Attributes += { Value: value, ID: id, Node1: from, Node2: to };
+                        UpdateAttributeVisibility();
+                    },
+                    Revert: () => {
+                        RemoveAttributeByIndex(AttributeIndexFromID(id));
+                        UpdateAttributeVisibility();
+                    }
+                });
+            }
         }
     }
 

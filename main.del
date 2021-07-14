@@ -266,7 +266,10 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
             Vector p2 = Nodes[NodeIndexFromID(Attributes[attributeIndices.First].Node2)].ShownPosition();
             Boolean isSource = Attributes[attributeIndices.First].Node1 == SelectedNodeID;
 
-            define group = attributeIndices.FilteredArray(i => Attributes[attributeIndices.First].Node2 == Attributes[i].Node2);
+            define group = attributeIndices.FilteredArray(i =>
+                Attributes[attributeIndices.First].Node1 == Attributes[i].Node1 &&
+                Attributes[attributeIndices.First].Node2 == Attributes[i].Node2
+            );
 
             // Remove from attributeIndices the values in the current group.
             attributeIndices -= group;
@@ -289,7 +292,5 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
                 TextColor: isSource ? Color.Yellow : CustomColor(255, 225, 0, 100)
             );
         }
-
-        // define homewreckers = Attributes.Map((s, i) => i).FilteredArray(i => Attributes[i].Node2 == SelectedNodeID);
     }
 }

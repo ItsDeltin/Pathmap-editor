@@ -9,7 +9,7 @@ Vector cameraPos: cameraMode ? cameraPosition : EyePosition(host);
 
 Vector watchPoint: RayCastHitPosition(cameraPos, cameraPos + facing * 100, null, null, false);
 
-rule: 'Enter freecam'
+disabled rule: 'Enter freecam'
 if (cameraMode)
 {
     # Initial camera position.
@@ -37,7 +37,7 @@ if (cameraMode)
     ToggleInput(false);
 }
 
-rule: 'Exit freecam'
+disabled rule: 'Exit freecam'
 if (!cameraMode)
 {
     StopCamera(host);

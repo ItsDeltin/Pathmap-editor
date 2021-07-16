@@ -1,0 +1,69 @@
+import 'main.del';
+
+Number closestNodeToPosition(Vector position): Nodes.Map((node, i) => i).SortedArray(i => Nodes[i].Node.Position.DistanceTo(position)).First;
+
+globalvar Boolean pathfinderActive = false;
+
+DijkstraResult Dijkstra(
+    Number source,
+    Number[] targets,
+    Number[] attributes
+) 'Subroutine: Dijkstra'
+{
+    if (pathfinderActive)
+    {
+        LogToInspector('Error: Attempted to pathfind while already active');
+        return { Parents: null };
+    }
+    pathfinderActive = true;
+
+    // WorldNode to actual node
+    Number[] unvisited = Nodes.Map((node, i) => i);
+    Number[] distances = unvisited.Map(node => 9999);
+    Number[] parents = unvisited.Map(node => -1);
+
+    distances[source] = 0;
+
+    while (unvisited.Length && (targets == null || targets.IsTrueForAny(target => unvisited.Contains(target))))
+    {
+        Number current = unvisited.SortedArray(i => distances[i]).First;
+        Number currentID = Nodes[current].Node.UniqueID;
+        unvisited -= current;
+
+        define neighbors = Segments
+            // Get the list of segments that contain the current node.
+            .FilteredArray(segment => segment.Node1 == currentID || segment.Node2 == currentID)
+            // Select the opposite node in the segment to get the list of neighbors.
+            .Map(segment => NodeIndexFromID(segment.Node1 == currentID ? segment.Node2 : segment.Node1))
+            // Only use the unvisited neighbors
+            .FilteredArray(node => unvisited.Contains(node));
+        
+        for (Number i = 0; neighbors.Length; 1)
+        {
+            Number neighborIndex = neighbors[i];
+            Number neighborID = Nodes[neighborIndex].Node.UniqueID;
+            Number[] nieghborAttributes = Attributes.FilteredArray(
+                attribute => attribute.Node1 == neighborID && attribute.Node2 == currentID
+            ).Map(a => a.Value);
+
+            Number newDistance = distances[current] + Nodes[current].Node.Position.DistanceTo(Nodes[neighborIndex].Node.Position);
+            if (newDistance < distances[neighborIndex] &&
+                (nieghborAttributes.Length == 0 || nieghborAttributes.IsTrueForAny(attribute => attributes.Contains(attribute)))
+            )
+            {
+                distances[neighborIndex] = newDistance;
+                parents[neighborIndex] = current;
+            }
+        }
+
+        MinWait();
+    }
+
+    pathfinderActive = false;
+    return { Parents: parents };
+}
+
+struct DijkstraResult
+{
+    public Number[] Parents;
+}

@@ -3,6 +3,8 @@ import 'place nodes.del';
 import 'utility.del';
 import 'history.del';
 import 'freecam.del';
+import 'dummy.del';
+import 'dijkstra.del';
 import 'settings.lobby';
 
 struct Node
@@ -59,8 +61,8 @@ Boolean AnyNodesSelected: Nodes.IsTrueForAny(node => node.Selected);
 
 globalvar Number SelectedNodeIndex = -1;
 globalvar Number SelectedNodeID = -1;
-globalvar Number CachedSelectedNodeID = -1;
 globalvar Number SelectedSegment = -1;
+globalvar Player SelectedPlayer;
 globalvar Any[] AttributeTexts = [];
 
 Number NodeIndexFromID(in Number id): Nodes.Map(node => node.Node.UniqueID).IndexOf(id);
@@ -85,56 +87,52 @@ void RemoveAttributeByIndex(Number index)
     Attributes.ModRemoveByIndex(index);
 }
 
-rule: 'Main: Init'
+rule: 'Init'
 {
-    // Ball
-    CreateEffect(
-        AllPlayers().FilteredArray(p => SelectedNodeID == -1 && !host.cm_isInMenu),
-        Effect.Sphere,
-        Color.Orange,
-        UpdateEveryFrame(watchPoint),
-        0.2,
-        EffectRev.VisibleToPositionRadiusAndColor);
+    DisableInspectorRecording();
+}
 
-    // Segment lines
-    CreateBeamEffect(
-        UpdateEveryFrame(SelectedSegment == -1 && connectingFromNode != -1 && SelectedNodeID != -1 ? AllPlayers() : null),
-        BeamType.TorbjornTurretSightBeam,
-        Nodes[connectingFromNode].ShownPosition(),
-        Nodes[SelectedNodeIndex].ShownPosition(),
-        Color.Team1,
-        EffectRev.VisibleToPositionRadiusAndColor);
-    CreateBeamEffect(
-        UpdateEveryFrame(SelectedSegment == -1 && connectingFromNode != -1 && SelectedNodeID == -1 ? AllPlayers() : null),
-        BeamType.TorbjornTurretSightBeam,
-        Nodes[connectingFromNode].ShownPosition(),
-        UpdateEveryFrame(watchPoint),
-        Color.Team2,
-        EffectRev.VisibleToPositionRadiusAndColor);
+rule: 'Player init'
+Event.OngoingPlayer
+if (!IsDummyBot())
+{
+    DisallowButton(eventPlayer, Button.PrimaryFire);
+    DisallowButton(eventPlayer, Button.SecondaryFire);
 }
 
 rule: 'Main: Selection loop'
-if (Nodes.Length)
 {
+    // Find player
+    AllPlayers().dummyHighlighted = false;
+    SelectedPlayer = RayCastHitPlayer(eye, eye + facing * 100, AllPlayers(), host, false);
+    SelectedPlayer.dummyHighlighted = true;
+
     // Selected node
-    SelectedNodeIndex = Nodes
+    Number[] tempNode! = Nodes
         .Map((node, i) => i)
         .SortedArray(i => Nodes[i].ShownPosition().DistanceTo(cameraPos))
-        .FilteredArray(i => Nodes[i].ValidTarget())
-        .First;
+        .FilteredArray(i => Nodes[i].ValidTarget());
     
-    if (SelectedNodeIndex == -1 || !Nodes[SelectedNodeIndex].ValidTarget())
+    SelectedNodeIndex = tempNode.Length ? tempNode.First : -1;
+    
+    // Player and node found, choose one.
+    if (SelectedPlayer != null && SelectedNodeIndex != -1)
     {
-        SelectedNodeID = -1;
-        SelectedNodeIndex = -1;
+        if (Nodes[SelectedNodeIndex].ShownPosition().DistanceTo(eye) > SelectedPlayer.Position().DistanceTo(eye))
+            SelectedNodeIndex = -1;
+        else
+            SelectedPlayer = null;
     }
+    
+    Number previouslySelectedNodeID = SelectedNodeID;
+    
+    if (SelectedNodeIndex == -1)
+        SelectedNodeID = -1;
     else
         SelectedNodeID = Nodes[SelectedNodeIndex].Node.UniqueID;
 
-    if (CachedSelectedNodeID != SelectedNodeID)
+    if (previouslySelectedNodeID != SelectedNodeID)
     {
-        CachedSelectedNodeID = SelectedNodeID;
-
         UpdateAttributeVisibility();
 
         // Get segment that contains both nodes.
@@ -142,11 +140,11 @@ if (Nodes.Length)
             SelectedSegment = -1;
         else
         {
-            Number[] temp! = Segments.Map((s, i) => i).FilteredArray(i =>
+            Number[] tempSegment! = Segments.Map((s, i) => i).FilteredArray(i =>
                 (Segments[i].Node1 == Nodes[SelectedNodeIndex].Node.UniqueID && Segments[i].Node2 == Nodes[connectingFromNode].Node.UniqueID) ||
                 (Segments[i].Node2 == Nodes[SelectedNodeIndex].Node.UniqueID && Segments[i].Node1 == Nodes[connectingFromNode].Node.UniqueID));
             
-            SelectedSegment = temp == [] ? -1 : temp.First; 
+            SelectedSegment = tempSegment == [] ? -1 : tempSegment.First; 
         }
     }
 
@@ -228,7 +226,7 @@ public void UpdateSegmentVisibility(Number index) 'Subroutine: Update segment vi
             Number segmentIndex: SegmentIndexFromID(EvaluateOnce(id));
 
             Segments[index].Effect = CreateBeamEffect(
-                UpdateEveryFrame(attributeMode || SelectedSegment != segmentIndex || TotalTimeElapsed() % 1 < 0.5 ? AllPlayers() : null),
+                UpdateEveryFrame(editorState != EditorState.Node || attributeMode || SelectedSegment != segmentIndex || TotalTimeElapsed() % 1 < 0.5 ? AllPlayers() : null),
                 BeamType.BrigitteFlailChainBeam,
                 Nodes[NodeIndexFromID(Segments[segmentIndex].Node1)].ShownPosition(),
                 Nodes[NodeIndexFromID(Segments[segmentIndex].Node2)].ShownPosition(),
@@ -289,7 +287,7 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
                 Scale: 2.5,
                 Clipping: Clipping.DoNotClip,
                 Reevaluation: InworldTextRev.VisibleTo,
-                TextColor: isSource ? Color.Yellow : CustomColor(255, 225, 0, 100)
+                TextColor: isSource ? Color.Yellow : CustomColor(255, 115, 0, 100)
             );
         }
     }

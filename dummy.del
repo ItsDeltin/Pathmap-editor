@@ -1,0 +1,76 @@
+import 'main.del';
+
+playervar Boolean dummyHighlighted;
+playervar Boolean dummySelected;
+playervar Number dummySavedOutlineState = -1;
+playervar Number[] travelPath;
+playervar Number currentPathNode;
+playervar Boolean isPathfinding;
+playervar Vector pathfindDestination;
+
+Number dummyOutlineState: dummyHighlighted + dummySelected * 2;
+Player[] selectedDummies: AllPlayers().FilteredArray(p => p.IsDummy() && p.dummySelected);
+Vector currentPathfindingNodePosition: Nodes[travelPath[currentPathNode]].Node.Position;
+
+rule: 'Dummy: new state'
+Event.OngoingPlayer
+if (dummyOutlineState != dummySavedOutlineState)
+{
+    dummySavedOutlineState = dummyOutlineState;
+
+    if (dummySavedOutlineState == 0)
+        StopForcingPlayerOutlines(eventPlayer, host);
+    else if (dummySavedOutlineState == 1)
+        StartForcingPlayerOutlines(eventPlayer, host, true, Color.SkyBlue, OutlineType.Always);
+    else if (dummySavedOutlineState == 2)
+        StartForcingPlayerOutlines(eventPlayer, host, true, Color.Green, OutlineType.Always);
+    else if (dummySavedOutlineState == 3)
+        StartForcingPlayerOutlines(eventPlayer, host, true, Color.Turquoise, OutlineType.Always);
+}
+
+rule: 'Pathfind: Pathfind selected dummies'
+if (button(Button.Reload))
+if (selectedDummies.Length)
+if (!pathfinderActive)
+{
+    Vector destination = watchPoint;
+    Player[] players = selectedDummies;
+    Number[] targetNodes = [];
+    Number source = closestNodeToPosition(destination);
+
+    define i;
+    for (i = 0; players.Length; 1)
+        targetNodes[i] = closestNodeToPosition(players[i].Position());
+
+    DijkstraResult dijkstra = Dijkstra(source, targetNodes, []);
+    players.travelPath = dijkstra.Parents;
+    players.isPathfinding = true;
+    players.pathfindDestination = destination;
+
+    for (i = 0; players.Length; 1)
+        players[i].currentPathNode = targetNodes[i];
+}
+
+rule: 'Pathfind: Begin'
+Event.OngoingPlayer
+if (isPathfinding)
+{
+    StartThrottleInDirection(
+        eventPlayer,
+        PositionOf().DirectionTowards(travelPath[currentPathNode] == -1 ? pathfindDestination : currentPathfindingNodePosition),
+        1,
+        Relative.ToWorld,
+        ThrottleBehavior.ReplaceExistingThrottle,
+        ThrottleRev.DirectionAndMagnitude
+    );
+
+    CreateHudText(AllPlayers(), travelPath[currentPathNode] == -1 ? pathfindDestination : currentPathfindingNodePosition);
+}
+
+rule: 'Pathfind: Next node'
+Event.OngoingPlayer
+if (isPathfinding)
+if (PositionOf().DistanceTo(currentPathfindingNodePosition) < 0.4)
+{
+    currentPathNode = travelPath[currentPathNode];
+}

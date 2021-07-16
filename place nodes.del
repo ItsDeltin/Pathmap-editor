@@ -8,20 +8,90 @@ globalvar Number attribute;
 globalvar Any blueVisual!;
 globalvar Any redVisual!;
 globalvar Any attributeFloatText!;
+globalvar Any cursorMarkerEffect!;
+globalvar Any dummyBotHeroIcon!;
+globalvar EditorState editorState!;
+globalvar Hero placingDummyHero!;
 
-rule: 'Editor: path mode'
-if (!attributeMode)
+enum EditorState
 {
+    Node,
+    PlaceDummy
+}
+
+rule: 'Editor: node mode edit'
+if (editorState != EditorState.Node)
+{
+    DestroyEffect(cursorMarkerEffect);
+}
+
+rule: 'Editor: dummy mode exit'
+if (editorState != EditorState.PlaceDummy)
+{
+    DestroyEffect(cursorMarkerEffect);
+    DestroyInWorldText(dummyBotHeroIcon);
+}
+
+rule: 'Editor: node mode enter'
+if (editorState == EditorState.Node)
+{
+    cursorMarkerEffect = CreateEffect(
+        AllPlayers().FilteredArray(p => SelectedNodeID == -1 && !host.cm_isInMenu),
+        Effect.Sphere,
+        Color.Orange,
+        UpdateEveryFrame(watchPoint),
+        0.2,
+        EffectRev.VisibleToPositionRadiusAndColor);
+}
+
+rule: 'Editor: dummy mode enter'
+if (editorState == EditorState.PlaceDummy)
+{
+    cursorMarkerEffect = CreateEffect(
+        AllPlayers().FilteredArray(p => !host.cm_isInMenu),
+        Effect.Ring,
+        Color.SkyBlue,
+        UpdateEveryFrame(watchPoint),
+        0.5,
+        EffectRev.VisibleToPositionRadiusAndColor);
+    
+    dummyBotHeroIcon = CreateInWorldText(
+        AllPlayers(),
+        HeroIconString(placingDummyHero),
+        UpdateEveryFrame(watchPoint),
+        2,
+        Clipping.DoNotClip,
+        InworldTextRev.VisibleToAndPosition
+    );
+}
+
+rule: 'Editor: path mode exit'
+if (attributeMode || editorState != EditorState.Node)
+{
+    DestroyEffect(blueVisual);
+    DestroyEffect(redVisual);
+}
+
+rule: 'Editor: attribute mode exit'
+if (!attributeMode || editorState != EditorState.Node)
+{
+    DestroyEffect(blueVisual);
+    DestroyEffect(redVisual);
     DestroyInWorldText(attributeFloatText);
+}
+
+rule: 'Editor: path mode enter'
+if (!attributeMode)
+if (editorState == EditorState.Node)
+{
     MakeVisualBeams(BeamType.TorbjornTurretSightBeam, SelectedSegment == -1);
 }
 
-rule: 'Editor: attribute mode'
+rule: 'Editor: attribute mode enter'
 if (attributeMode)
+if (editorState == EditorState.Node)
 {
     MakeVisualBeams(BeamType.SymmetraTurretBeam, true);
-
-    DestroyInWorldText(attributeFloatText);
     attributeFloatText = CreateInWorldText(
         VisibleTo: connectingFromNode != -1 && connectingFromNode != SelectedNodeIndex ? AllPlayers() : null,
         Header: " \n{0}".Format([attribute]),
@@ -55,7 +125,9 @@ void MakeVisualBeams(BeamType beamType, in Boolean visualCondition)
 
 rule: 'Editor: Place node'
 if (button(Button.PrimaryFire))
+if (editorState == EditorState.Node)
 if (SelectedNodeID == -1)
+if (SelectedPlayer == null)
 if (!host.cm_isInMenu)
 {
     NodeUniqueID++;
@@ -75,6 +147,7 @@ if (!host.cm_isInMenu)
 
 rule: 'Editor: Select node'
 if (button(Button.SecondaryFire))
+if (editorState == EditorState.Node)
 if (SelectedNodeID != -1)
 if (!host.cm_isInMenu)
 {
@@ -83,6 +156,7 @@ if (!host.cm_isInMenu)
 
 rule: 'Editor: Connect node'
 if (button(Button.PrimaryFire))
+if (editorState == EditorState.Node)
 if (SelectedNodeID != -1)
 if (!host.cm_isInMenu)
 {
@@ -189,11 +263,36 @@ if (!host.cm_isInMenu)
 
 rule: 'Editor: Cancel link'
 if (button(Button.SecondaryFire))
+if (editorState == EditorState.Node)
 if (SelectedNodeID == -1)
 if (connectingFromNode != -1)
 if (!host.cm_isInMenu)
 {
     connectingFromNode = -1;
+}
+
+rule: 'Editor: Place dummy'
+if (button(Button.PrimaryFire))
+if (editorState == EditorState.PlaceDummy)
+if (!host.cm_isInMenu)
+{
+    CreateDummyBot(placingDummyHero, Team.Team1, -1, watchPoint, facing);
+}
+
+rule: 'Editor: Exit dummy mode'
+if (button(Button.SecondaryFire))
+if (editorState == EditorState.PlaceDummy)
+if (!host.cm_isInMenu)
+{
+    editorState = EditorState.Node;
+}
+
+rule: 'Editor: Select dummy'
+if (button(Button.PrimaryFire))
+if (SelectedPlayer != null)
+if (!host.cm_isInMenu)
+{
+    SelectedPlayer.dummySelected = !SelectedPlayer.dummySelected;
 }
 
 rule: 'Editor: tutorial'
@@ -206,15 +305,16 @@ rule: 'Editor: tutorial'
         Reevaluation: HudTextRev.VisibleTo
     );
     AddControlText(
-        SelectedSegment != -1 ? 'Delete path' :
+        editorState == EditorState.PlaceDummy ? 'Place dummy' :
+            SelectedSegment != -1 ? 'Delete path' :
             connectingFromNode != -1 && SelectedNodeID != -1 ? (connectingFromNode == SelectedNodeIndex ? 'Cancel path' : 'Link path') :
             connectingFromNode == -1 && SelectedNodeID != -1 ? 'Create path' : 'Create node',
         Button.PrimaryFire
     );
     AddControlText(
-        'Cancel path',
+        editorState == EditorState.Node ? 'Cancel path' : 'Cancel',
         Button.SecondaryFire,
-        connectingFromNode != -1 && SelectedNodeID == -1
+        (editorState == EditorState.Node && connectingFromNode != -1 && SelectedNodeID == -1) || editorState == EditorState.PlaceDummy
     );
 }
 

@@ -8,21 +8,20 @@ globalvar HistoryCatalog[] historyItems = [];
 
 void Document(in HistoryCatalog catalogItem)
 {
-    // If we went back in time and something is documented,
-    // the future items are now stale.
-    // We can remove them.
+    // If we went back in time and something is documented, the future states are now stale so we can remove them.
     while (historyItems.Length > historyPage)
         historyItems.ModRemoveByIndex(historyPage);
 
     catalogItem.Set();
-    historyItems += [catalogItem]; // TODO: append context
+    historyItems += [catalogItem]; // TODO: catalogItem should not be surrounded by [], ostw should handle it natively
     historyPage++;
 }
 
+// Represents a point in history
 struct HistoryCatalog
 {
-    public () => void Set;
-    public () => void Revert;
+    public () => void Set; // The action required to enter this state.
+    public () => void Revert; // The logical inverse of 'Set' to backtrack out of this state.
 }
 
 void Undo()

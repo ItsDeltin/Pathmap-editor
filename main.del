@@ -5,6 +5,8 @@ import 'history.del';
 import 'freecam.del';
 import 'dummy.del';
 import 'dijkstra.del';
+import 'rule.del';
+import 'scroll menu.del';
 import 'settings.lobby';
 
 struct Node

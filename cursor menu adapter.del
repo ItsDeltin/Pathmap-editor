@@ -59,3 +59,8 @@ void SetColor(in Number buttonID, in Color color)
 {
     cm_buttons[buttonID][8] = color;
 }
+
+void SetPosY(in Number buttonID, in Number value)
+{
+    cm_buttons[buttonID][5] = value;
+}

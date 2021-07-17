@@ -1,0 +1,254 @@
+import 'main.del';
+
+struct Rule
+{
+    public RuleAction[] Actions;
+}
+
+struct RuleAction
+{
+    public String Label;
+    public () => void Executor;
+}
+
+globalvar Rule[] Rules = [];
+globalvar Number rulePage!;
+globalvar Any rulePageText!;
+globalvar Any deleteActionText!;
+globalvar Number[] pagerButtons = [];
+globalvar Scrollbar actionScrollBar!;
+globalvar Number waitTime!;
+globalvar Any waitTimeText!;
+globalvar Boolean pagerInitialized!;
+globalvar Boolean[] actionsSelected;
+
+Color deleteActionEnabledColor: Color.Red;
+Color deleteActionDisabledColor: CustomColor(252, 0, 0, 50.745000000000005);
+
+void SetupRuleMenu() 'Setup rule menu'
+{
+    setMainLabel('main / rule editor');
+
+    buttonCollectionMain += createButton(
+        'Add rule',
+        primaryAction: MenuAction.CreateRule,
+        posY: 0.75,
+        scale: 3
+    );
+
+    if (Rules.Length)
+        initiatePager();
+}
+
+void updateRuleContent() 'CM: Update rule content'
+{
+    SetLabel(rulePageText, 'rule ' + rulePage);
+}
+
+void initiatePager() 'CM: Initiate pager'
+{
+    if (pagerInitialized) return;
+    pagerInitialized = true;
+
+    pagerButtons += createButton(
+        '←',
+        primaryAction: MenuAction.RulePrevious,
+        posY: 0.55,
+        posX: -0.35,
+        scale: 4
+    );
+    pagerButtons += createButton(
+        '→',
+        primaryAction: MenuAction.RuleNext,
+        posY: 0.55,
+        posX: 0.35,
+        scale: 4
+    );
+    pagerButtons += createButton(
+        'add action...',
+        primaryAction: MenuAction.AddAction,
+        posY: 0.8,
+        posX: -2,
+        scale: 2
+    );
+    deleteActionText = createButton(
+        'delete action',
+        primaryAction: MenuAction.DeleteAction,
+        posY: 0.4,
+        posX: -0.725,
+        scale: 2,
+        defaultColor: deleteActionDisabledColor,
+        interactable: false
+    );
+    rulePageText = createButton(
+        'rule 0',
+        posY: 0.55,
+        scale: 3,
+        interactable: false
+    );
+
+    pagerButtons += [deleteActionText, rulePageText];
+    buttonCollectionMain += pagerButtons;
+
+    actionScrollBar = new Scrollbar(-1.75, 0.5, Rules[rulePage].Actions.Map(action => action.Label), item => {
+        actionsSelected[item] = !actionsSelected[item];
+        actionScrollBar.SetButtonColor(item, actionsSelected[item] ? Color.Green : Color.White);
+    });
+}
+
+rule: 'CM: Enable delete action button'
+Event.OngoingPlayer
+if (menuState == MenuState.Rules)
+if (pagerInitialized)
+if (actionsSelected.IsTrueForAny(action => action))
+{
+    SetInteractability(deleteActionText, true);
+    SetColor(deleteActionText, deleteActionEnabledColor);
+}
+
+rule: 'CM: Disable delete action button'
+Event.OngoingPlayer
+if (menuState == MenuState.Rules)
+if (pagerInitialized)
+if (!actionsSelected.IsTrueForAny(action => action))
+{
+    SetInteractability(deleteActionText, false);
+    SetColor(deleteActionText, deleteActionDisabledColor);
+}
+
+rule: 'CM: Enter rule menu'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.RuleMenu)
+{
+    SetMenuState(MenuState.Rules);
+}
+
+rule: 'CM: Add action'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.AddAction)
+{
+    SetMenuState(MenuState.AddAction);
+    actionScrollBar = new Scrollbar(0, 0.75, [
+        'wait...',
+        'jump',
+        'start holding jump',
+        'stop holding jump',
+        'ability 1',
+        'ability 2',
+        'stop walking',
+        'walk to destination',
+        'look at floor',
+        'look at destination'
+    ], item => {
+        actionScrollBar.Dispose();
+
+        // Wait length
+        if (item == 0)
+        {
+            SetMenuState(MenuState.ChooseWaitLength);
+            waitTime = 0.016;
+            waitTimeText = createButton('wait time: ' + waitTime + ' seconds', scale: 1.5, defaultColor: Color.Yellow, interactable: false);
+            
+            buttonCollectionMain += createButton('←', primaryAction: MenuAction.WaitTimeDown, secondaryAction: MenuAction.WaitTimeDownBig, posX: -0.6, scale: 4);
+            buttonCollectionMain += createButton('→', primaryAction: MenuAction.WaitTimeUp, secondaryAction: MenuAction.WaitTimeUpBig, posX: 0.6, scale: 4);
+            buttonCollectionMain += createButton('Add action', primaryAction: MenuAction.WaitConfirm, posY: -0.15, scale: 2, defaultColor: Color.Green);
+            buttonCollectionMain += waitTimeText;
+        }
+        else
+        {
+            if (item == 1)
+                AddAction('jump', () => PressButton(eventPlayer, Button.Jump));
+            else if (item == 2)
+                AddAction('start holding jump', () => StartHoldingButton(eventPlayer, Button.Jump));
+            else if (item == 3)
+                AddAction('stop holding jump', () => StopHoldingButton(eventPlayer, Button.Jump));
+            else if (item == 4)
+                AddAction('ability 1', () => PressButton(eventPlayer, Button.Ability1));
+            else if (item == 5)
+                AddAction('ability 2', () => PressButton(eventPlayer, Button.Ability2));
+            else if (item == 6)
+                AddAction('stop walking', () => StopThrottleInDirection(eventPlayer));
+            else if (item == 7)
+                AddAction('walk to destination', WalkToDestination);
+            else if (item == 8)
+                AddAction('look at floor', () => StartFacing(
+                    eventPlayer,
+                    DirectionFromAngles(HorizontalFacingAngleOf(eventPlayer), -89),
+                    100,
+                    Relative.ToWorld,
+                    FacingRev.None
+                ));
+            else if (item == 9)
+                AddAction('look at destination', () => StartFacing(
+                    eventPlayer,
+                    EyePosition().DirectionTowards(walkingTo + Up() * 1.75),
+                    100,
+                    Relative.ToWorld,
+                    FacingRev.DirectionAndTurnRate
+                ));
+            
+            SetMenuState(MenuState.Rules);
+        }
+    });
+}
+
+rule: 'CM: Next rule'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.RuleNext)
+{
+    rulePage++;
+    updateRuleContent();
+}
+
+rule: 'CM: Previous rule'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.RulePrevious)
+{
+    rulePage--;
+    updateRuleContent();
+}
+
+rule: 'CM: Create rule'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.CreateRule)
+{
+    rulePage = Rules.Length;
+
+    // todo: should not be surrounded in []
+    Rules.ModAppend([{ Actions: [] }]);
+
+    initiatePager();
+    updateRuleContent();
+}
+
+rule: 'CM: Wait time'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.WaitTimeDown || cm_currActionID == MenuAction.WaitTimeUp || cm_currActionID == MenuAction.WaitTimeDownBig || cm_currActionID == MenuAction.WaitTimeUpBig)
+{
+    if (cm_currActionID == MenuAction.WaitTimeDown)
+        waitTime -= 0.016;
+    else if (cm_currActionID == MenuAction.WaitTimeUp)
+        waitTime += 0.016;
+    else if (cm_currActionID == MenuAction.WaitTimeDownBig)
+        waitTime -= 0.5;
+    else if (cm_currActionID == MenuAction.WaitTimeUpBig)
+        waitTime += 0.5;
+    
+    ModifyVariable(waitTime, Operation.Max, 0.016);
+    SetLabel(waitTimeText, 'wait time: ' + waitTime + ' seconds');
+}
+
+rule: 'CM: Wait confirm'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.WaitConfirm)
+{
+    AddAction('wait ' + waitTime, () => {
+        Wait(waitTime);
+    });
+    SetMenuState(MenuState.Rules);
+}
+
+void AddAction(in String label, in () => void executor)
+{
+    Rules[rulePage].Actions += {Label: label, Executor: executor};
+}

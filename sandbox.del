@@ -7,6 +7,7 @@ playervar Number linkModeID!;
 playervar Number attributeDecrementID!;
 playervar Number attributeTextID!;
 playervar Number attributeIncrementID!;
+playervar Number mainText!;
 
 playervar Number[] buttonCollectionMain = [];
 
@@ -23,22 +24,40 @@ enum MenuAction
     AttributeDecrement = 9,
     AttributeDecrementBig = 10,
     AddDummy = 11,
-    ChooseHero = 12
+    ChooseHero = 12,
+    RuleMenu = 13,
+    RuleNext = 14,
+    RulePrevious = 15,
+    CreateRule = 16,
+    AddAction = 17,
+    ScrollbarUp = 18,
+    ScrollbarDown = 19,
+    ScrollbarItem = 20,
+    WaitTimeUp = 21,
+    WaitTimeDown = 22,
+    WaitTimeUpBig = 23,
+    WaitTimeDownBig = 24,
+    WaitConfirm = 25,
+    DeleteAction = 26
 }
 
 enum MenuState
 {
     None,
     Main,
-    ChooseHero
+    ChooseHero,
+    Rules,
+    AddAction,
+    ChooseWaitLength
 }
 
 rule: 'CM: Make buttons: Main'
 Event.OngoingPlayer
+if (eventPlayer == host)
 {
     SetMenuState(MenuState.Main);
 
-    createButton(
+    mainText = createButton(
         'main',
         scale: 2,
         posX: 0,
@@ -59,9 +78,15 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
     if (newState == menuState) return;
 
     // Cleanup
-    if (menuState == MenuState.Main)
-        destroyButtonCollection(buttonCollectionMain);
-    
+    destroyButtonCollection(buttonCollectionMain);
+
+    if (menuState == MenuState.Rules)
+    {
+        destroyButtonCollection(pagerButtons);
+        pagerInitialized = false;
+        actionScrollBar.Dispose();
+    }
+        
     menuState = newState;
     
     // Setup
@@ -94,6 +119,14 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             scale: 2.5,
             posX: 1.7,
             posY: 0.6,
+            defaultColor: Color.White);
+        
+        buttonCollectionMain += createButton(
+            'Rule editor',
+            primaryAction: MenuAction.RuleMenu,
+            scale: 2.5,
+            posX: 1.7,
+            posY: 0.45,
             defaultColor: Color.White);
         
         freecamSwitchID = createButton(
@@ -138,13 +171,8 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
         
         buttonCollectionMain += [freecamSwitchID, linkModeID, attributeIncrementID, attributeDecrementID, attributeTextID];
     }
-}
-
-rule: 'CM: Make buttons: Main cleanup'
-Event.OngoingPlayer
-if (menuState != MenuState.Main)
-{
-    destroyButtonCollection(buttonCollectionMain);
+    else if (newState == MenuState.Rules)
+        SetupRuleMenu();
 }
 
 rule: 'CM: Freecam increment'
@@ -233,6 +261,11 @@ void destroyButtonCollection(ref Number[] buttonCollection)
         DestroyButton(buttonCollection.First);
         buttonCollection.ModRemoveByIndex(0);
     }
+}
+
+void setMainLabel(String label) '(Subroutine) CM: Set main label'
+{
+    SetLabel(mainText, label);
 }
 
 globalvar Hero => void chooseHeroCallback;

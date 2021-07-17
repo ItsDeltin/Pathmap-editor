@@ -1,0 +1,161 @@
+import 'main.del';
+
+class Scrollbar
+{
+    Number itemY: 0.175;
+    Number topY;
+    Number posX;
+    Color[] itemColors;
+    String[] scrollItems;
+    Any[] scrollItemButtons;
+    Any upButton;
+    Any downButton;
+    Any viewCount;
+    Number position;
+    Number => void itemSelected;
+
+    public Boolean canScrollUp: position > 0;
+    public Boolean canScrollDown: position < scrollItems.Length - viewCount;
+
+    Boolean isRendered(Number item): item >= position && item < position + viewCount;
+
+    public constructor(in Number posX, in Number topY, in String[] items, in Number => void itemSelected)
+    {
+        this.posX = posX;
+        this.topY = topY;
+        scrollItems = items;
+        itemColors = scrollItems.Map(item => Color.White);
+        scrollItemButtons = scrollItems.Map(item => -1);
+        this.itemSelected = itemSelected;
+        viewCount = 5;
+
+        upButton = createButton(
+            '↑',
+            posX: posX,
+            posY: topY,
+            primaryAction: MenuAction.ScrollbarUp,
+            scale: 4
+        );
+        downButton = createButton(
+            '↓',
+            posX: posX,
+            posY: topY - (viewCount + 1) * itemY,
+            primaryAction: MenuAction.ScrollbarDown,
+            scale: 4
+        );
+        Update();
+    }
+
+    public void ScrollUp()
+    {
+        position--;
+        Update();
+    }
+
+    public void ScrollDown()
+    {
+        position++;
+        Update();
+    }
+
+    public void Choose(Number item)
+    {
+        itemSelected(item);
+    }
+
+    public void Remove(Number item)
+    {
+        scrollItems.ModRemoveByIndex(item);
+
+        if (scrollItemButtons[item] != 0)
+            DestroyButton(scrollItemButtons[item]);
+            
+        scrollItemButtons.ModRemoveByIndex(item);
+    }
+
+    public void Update() '(Subroutine) CM: Update scrollbar'
+    {
+        for (Number i = 0; scrollItems.Length; 1)
+        {
+            // Out of range
+            if (i < position || i >= position + viewCount)
+            {
+                // Remove button
+                if (scrollItemButtons[i] != -1)
+                {
+                    DestroyButton(scrollItemButtons[i]);
+                    scrollItemButtons[i] = -1;
+                }
+            }
+            else
+            {
+                Number posY! = topY - (i - position + 1) * itemY;
+
+                // Create button
+                if (scrollItemButtons[i] == -1)
+                    scrollItemButtons[i] = createButton(
+                        scrollItems[i],
+                        posX: posX,
+                        posY: posY,
+                        scale: 2,
+                        primaryAction: [MenuAction.ScrollbarItem, this, i],
+                        defaultColor: itemColors[i]
+                    );
+                // Update button position
+                else
+                    SetPosY(scrollItemButtons[i], posY);
+            }
+        }
+
+        // Update upButton
+        SetInteractability(upButton, canScrollUp);
+        SetColor(upButton, canScrollUp ? Color.White : Color.Gray);
+
+        // Update downButton
+        SetInteractability(downButton, canScrollDown);
+        SetColor(downButton, canScrollDown ? Color.White : Color.Gray);
+    }
+
+    public void SetButtonColor(in Number item, in Color color)
+    {
+        if (isRendered(item))
+            SetColor(scrollItemButtons[item], color);
+        
+        itemColors[item] = color;
+    }
+
+    public void Dispose()
+    {
+        define destroy = scrollItemButtons;
+
+        for (Number i = 0; destroy.Length; 1)
+            if (destroy[i] != -1)
+                DestroyButton(destroy[i]);
+        
+        DestroyButton(upButton);
+        DestroyButton(downButton);
+
+        delete this;
+    }
+}
+
+rule: 'CM: Scroll up'
+Event.OngoingPlayer
+if (cm_currActionID[0] == MenuAction.ScrollbarUp)
+{
+    (<Scrollbar>cm_currActionID[1]).ScrollUp();
+}
+
+rule: 'CM: Scroll down'
+Event.OngoingPlayer
+if (cm_currActionID[0] == MenuAction.ScrollbarDown)
+{
+    (<Scrollbar>cm_currActionID[1]).ScrollDown();
+}
+
+rule: 'CM: Scroll item'
+Event.OngoingPlayer
+if (cm_currActionID[0] == MenuAction.ScrollbarItem)
+{
+    (<Scrollbar>cm_currActionID[1]).Choose(cm_currActionID[2]);
+}

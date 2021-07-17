@@ -11,6 +11,7 @@ playervar Vector pathfindDestination;
 Number dummyOutlineState: dummyHighlighted + dummySelected * 2;
 Player[] selectedDummies: AllPlayers().FilteredArray(p => p.IsDummy() && p.dummySelected);
 Vector currentPathfindingNodePosition: Nodes[travelPath[currentPathNode]].Node.Position;
+Vector walkingTo: travelPath[currentPathNode] == -1 ? pathfindDestination : currentPathfindingNodePosition;
 
 rule: 'Dummy: new state'
 Event.OngoingPlayer
@@ -55,16 +56,7 @@ rule: 'Pathfind: Begin'
 Event.OngoingPlayer
 if (isPathfinding)
 {
-    StartThrottleInDirection(
-        eventPlayer,
-        PositionOf().DirectionTowards(travelPath[currentPathNode] == -1 ? pathfindDestination : currentPathfindingNodePosition),
-        1,
-        Relative.ToWorld,
-        ThrottleBehavior.ReplaceExistingThrottle,
-        ThrottleRev.DirectionAndMagnitude
-    );
-
-    CreateHudText(AllPlayers(), travelPath[currentPathNode] == -1 ? pathfindDestination : currentPathfindingNodePosition);
+    WalkToDestination();
 }
 
 rule: 'Pathfind: Next node'
@@ -73,4 +65,16 @@ if (isPathfinding)
 if (PositionOf().DistanceTo(currentPathfindingNodePosition) < 0.4)
 {
     currentPathNode = travelPath[currentPathNode];
+}
+
+void WalkToDestination()
+{
+    StartThrottleInDirection(
+        eventPlayer,
+        PositionOf().DirectionTowards(walkingTo),
+        1,
+        Relative.ToWorld,
+        ThrottleBehavior.ReplaceExistingThrottle,
+        ThrottleRev.DirectionAndMagnitude
+    );
 }

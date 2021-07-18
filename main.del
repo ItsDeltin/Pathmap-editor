@@ -8,7 +8,15 @@ import 'dijkstra.del';
 import 'rule.del';
 import 'scroll menu.del';
 import 'number selector.del';
+import 'pathfinder settings.del';
 import 'settings.lobby';
+
+class what {} globalvar what whaat! = new what();
+
+rule: 'Disable inspector' -1
+{
+    DisableInspectorRecording();
+}
 
 struct Node
 {

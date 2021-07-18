@@ -124,7 +124,7 @@ class Scrollbar
         itemColors[item] = color;
     }
 
-    public void Dispose()
+    public void Dispose() '(Subroutine) dispose scrollbar'
     {
         define destroy = scrollItemButtons;
 

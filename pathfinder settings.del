@@ -1,0 +1,82 @@
+import 'main.del';
+
+globalvar Number[] pathfinderAttributes = [];
+globalvar NumberSelector pathfinderAttributeSelector!;
+globalvar Any pathfinderAttributesText!;
+globalvar Any pathfinderAttributesAddText!;
+
+rule: 'CM: Pathfinder settings'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.PathfinderSettings)
+{
+    SetMenuState(MenuState.PathfinderSettings);
+
+    pathfinderAttributesText = createButton(
+        defaultColor: Color.Yellow,
+        interactable: false,
+        posY: 0.2
+    );
+    pathfinderAttributesAddText = createButton(
+        primaryAction: MenuAction.AddOrRemovePathfindingAttribute,
+        posY: -0.2
+    );
+    buttonCollectionMain += [pathfinderAttributesText, pathfinderAttributesAddText];
+
+    UpdatePathfinderAttributesList();
+    pathfinderAttributeSelector = new NumberSelector(0, 0, 0, true, value => UpdatePathfinderAttributeSelector());
+    UpdatePathfinderAttributeSelector();
+}
+
+rule: 'CM: Pathfinder settings back'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.Back)
+if (menuState == MenuState.PathfinderSettings)
+{
+    SetMenuState(MenuState.Main);
+    pathfinderAttributeSelector.Dispose();
+}
+
+rule: 'CM: Add or remove pathfinding attribute'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.AddOrRemovePathfindingAttribute)
+{
+    Number index = pathfinderAttributes.IndexOf(pathfinderAttributeSelector.Value);
+
+    // Add
+    if (index == -1)
+        pathfinderAttributes += pathfinderAttributeSelector.Value;
+    // Remove
+    else
+        pathfinderAttributes.ModRemoveByIndex(index);
+    
+    UpdatePathfinderAttributeSelector();
+    UpdatePathfinderAttributesList();
+}
+
+void UpdatePathfinderAttributeSelector() '(Subroutine) CM: Update pathfinder attribute selector'
+{
+    if (pathfinderAttributes.Contains(pathfinderAttributeSelector.Value))
+    {
+        SetLabel(pathfinderAttributesAddText, 'remove');
+        SetColor(pathfinderAttributesAddText, Color.Red);
+    }
+    else
+    {
+        SetLabel(pathfinderAttributesAddText, 'add');
+        SetColor(pathfinderAttributesAddText, Color.Green);
+    }
+}
+
+void UpdatePathfinderAttributesList() '(Subroutine) CM: Update pathfinder attributes list'
+{
+    String result = '';
+
+    if (pathfinderAttributes.Length)
+    {
+        result = '{0}'.Format([pathfinderAttributes[0]]);
+        for (waitlessI = 1; pathfinderAttributes.Length; 1)
+            result = '{0}, {1}'.Format([result, pathfinderAttributes[waitlessI]]);
+    }
+
+    SetLabel(pathfinderAttributesText, result);
+}

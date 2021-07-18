@@ -38,7 +38,9 @@ enum MenuAction
     WaitTimeUpBig = 23,
     WaitTimeDownBig = 24,
     WaitConfirm = 25,
-    DeleteAction = 26
+    DeleteAction = 26,
+    PathfinderSettings = 27,
+    AddOrRemovePathfindingAttribute = 28
 }
 
 enum MenuState
@@ -48,7 +50,8 @@ enum MenuState
     ChooseHero,
     Rules,
     AddAction,
-    ChooseWaitLength
+    ChooseWaitLength,
+    PathfinderSettings
 }
 
 rule: 'CM: Make buttons: Main'
@@ -82,7 +85,7 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
 
     if (menuState == MenuState.Main)
     {
-        if (attributeSelector != null)
+        if (attributeSelector)
         {
             attributeSelector.Dispose();
             attributeSelector = null;
@@ -109,7 +112,15 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             primaryAction: MenuAction.RuleMenu,
             scale: 2.5,
             posX: 1.7,
-            posY: 0.45,
+            posY: 0.4,
+            defaultColor: Color.White);
+        
+        buttonCollectionMain += createButton(
+            'pathfinder settings',
+            primaryAction: MenuAction.PathfinderSettings,
+            scale: 2.5,
+            posX: 1.7,
+            posY: 0.2,
             defaultColor: Color.White);
         
         freecamSwitchID = createButton(
@@ -201,7 +212,8 @@ if (cm_currActionID == MenuAction.LinkMode)
 {
     attributeMode = !attributeMode;
     SetLabel(linkModeID, !attributeMode ? 'Node link mode (segment)' : 'Node link mode (attribute)');
-    attributeSelector.SetVisible(attributeMode);
+    if (attributeSelector)
+        attributeSelector.SetVisible(attributeMode);
 }
 
 rule: 'CM: Add dummy'

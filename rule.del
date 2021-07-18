@@ -174,7 +174,6 @@ if (cm_currActionID == MenuAction.AddAction)
     ], item => {
         actionScrollBar.Dispose();
         actionScrollBar = null;
-        EnableInspectorRecording();
 
         // Wait length
         if (item == 0)
@@ -228,8 +227,6 @@ if (cm_currActionID == MenuAction.AddAction)
             DocumentAction(id, createdAction);
             SetMenuState(MenuState.Rules);
         }
-
-        DisableInspectorRecording();
     });
 }
 
@@ -326,7 +323,8 @@ if (cm_currActionID == MenuAction.WaitConfirm)
 {
     uniqueActionID++;
     Number id! = uniqueActionID;
-    DocumentAction(id, { Label: 'wait ' + waitTime, ID: id, Executor: () => Wait(waitTime) });
+    Number wait! = waitTime;
+    DocumentAction(id, { Label: 'wait ' + wait, ID: id, Executor: () => Wait(wait) });
     SetMenuState(MenuState.Rules);
 }
 
@@ -354,7 +352,7 @@ void DocumentAction(in Number actionID, in RuleAction createdAction)
     Document({
         Set: () => {
             Rules[ruleIndex].ActionOrder += actionID;
-            Rules[ruleIndex].Actions += createdAction;
+            Rules[ruleIndex].Actions += [createdAction];
             RefreshPager();
         },
         Revert: () => {

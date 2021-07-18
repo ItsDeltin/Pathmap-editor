@@ -3,27 +3,36 @@ import 'main.del';
 struct Rule
 {
     public RuleAction[] Actions;
+    public Number ExecutesOnAttribute;
+    public Number[] ActionOrder;
 }
 
 struct RuleAction
 {
     public String Label;
+    public Number ID;
     public () => void Executor;
 }
 
 globalvar Rule[] Rules = [];
 globalvar Number rulePage!;
 globalvar Any rulePageText!;
+globalvar Any previousRuleText!;
+globalvar Any nextRuleText!;
 globalvar Any deleteActionText!;
+globalvar NumberSelector ruleAttributeSelector!;
 globalvar Number[] pagerButtons = [];
 globalvar Scrollbar actionScrollBar!;
 globalvar Number waitTime!;
 globalvar Any waitTimeText!;
 globalvar Boolean pagerInitialized!;
 globalvar Boolean[] actionsSelected;
+globalvar Number uniqueActionID!;
 
 Color deleteActionEnabledColor: Color.Red;
 Color deleteActionDisabledColor: CustomColor(252, 0, 0, 50.745000000000005);
+
+Number actionIndexFromID(Number ruleIndex, Number id): Rules[ruleIndex].Actions.Map(action => action.ID).IndexOf(id);
 
 void SetupRuleMenu() 'Setup rule menu'
 {
@@ -43,6 +52,15 @@ void SetupRuleMenu() 'Setup rule menu'
 void updateRuleContent() 'CM: Update rule content'
 {
     SetLabel(rulePageText, 'rule ' + rulePage);
+    
+    SetInteractability(previousRuleText, rulePage != 0);
+    SetColor(previousRuleText, rulePage != 0 ? Color.White : Color.Gray);
+
+    SetInteractability(nextRuleText, rulePage < Rules.Length - 1);
+    SetColor(nextRuleText, rulePage < Rules.Length - 1 ? Color.White : Color.Gray);
+
+    RefreshPager();
+    UpdateRuleAttributeLabel();
 }
 
 void initiatePager() 'CM: Initiate pager'
@@ -50,14 +68,14 @@ void initiatePager() 'CM: Initiate pager'
     if (pagerInitialized) return;
     pagerInitialized = true;
 
-    pagerButtons += createButton(
+    previousRuleText = createButton(
         '←',
         primaryAction: MenuAction.RulePrevious,
         posY: 0.55,
         posX: -0.35,
         scale: 4
     );
-    pagerButtons += createButton(
+    nextRuleText = createButton(
         '→',
         primaryAction: MenuAction.RuleNext,
         posY: 0.55,
@@ -71,6 +89,12 @@ void initiatePager() 'CM: Initiate pager'
         posX: -2,
         scale: 2
     );
+    pagerButtons += createButton(
+        'executes on attribute',
+        posY: 0.3,
+        scale: 1.75
+    );
+    ruleAttributeSelector = new NumberSelector(Rules[rulePage].ExecutesOnAttribute, 0, 0.175, true, value => Rules[rulePage].ExecutesOnAttribute = value);
     deleteActionText = createButton(
         'delete action',
         primaryAction: MenuAction.DeleteAction,
@@ -87,13 +111,21 @@ void initiatePager() 'CM: Initiate pager'
         interactable: false
     );
 
-    pagerButtons += [deleteActionText, rulePageText];
+    pagerButtons += [previousRuleText, nextRuleText, deleteActionText, rulePageText];
     buttonCollectionMain += pagerButtons;
+    updateRuleContent();
+}
 
-    actionScrollBar = new Scrollbar(-1.75, 0.5, Rules[rulePage].Actions.Map(action => action.Label), item => {
-        actionsSelected[item] = !actionsSelected[item];
-        actionScrollBar.SetButtonColor(item, actionsSelected[item] ? Color.Green : Color.White);
-    });
+void loadActionScrollbar() '(Subroutine) CM: Load action scrollbar'
+{
+    actionScrollBar = new Scrollbar(
+        -1.75,
+        0.5,
+        Rules[rulePage].ActionOrder.Map(actionID => Rules[rulePage].Actions[Rules[rulePage].Actions.Map(action => action.ID).IndexOf(actionID)].Label),
+        item => {
+            actionsSelected[item] = !actionsSelected[item];
+            actionScrollBar.SetButtonColor(item, actionsSelected[item] ? Color.Green : Color.White);
+        });
 }
 
 rule: 'CM: Enable delete action button'
@@ -141,6 +173,8 @@ if (cm_currActionID == MenuAction.AddAction)
         'look at destination'
     ], item => {
         actionScrollBar.Dispose();
+        actionScrollBar = null;
+        EnableInspectorRecording();
 
         // Wait length
         if (item == 0)
@@ -156,38 +190,86 @@ if (cm_currActionID == MenuAction.AddAction)
         }
         else
         {
+            uniqueActionID++;
+            Number id! = uniqueActionID;
+            RuleAction createdAction!;
+
             if (item == 1)
-                AddAction('jump', () => PressButton(eventPlayer, Button.Jump));
+                createdAction = {Label: 'jump', ID: id, Executor: () => PressButton(eventPlayer, Button.Jump)};
             else if (item == 2)
-                AddAction('start holding jump', () => StartHoldingButton(eventPlayer, Button.Jump));
+                createdAction = {Label: 'start holding jump', ID: id, Executor: () => StartHoldingButton(eventPlayer, Button.Jump)};
             else if (item == 3)
-                AddAction('stop holding jump', () => StopHoldingButton(eventPlayer, Button.Jump));
+                createdAction = {Label: 'stop holding jump', ID: id, Executor: () => StopHoldingButton(eventPlayer, Button.Jump)};
             else if (item == 4)
-                AddAction('ability 1', () => PressButton(eventPlayer, Button.Ability1));
+                createdAction = {Label: 'ability 1', ID: id, Executor: () => PressButton(eventPlayer, Button.Ability1)};
             else if (item == 5)
-                AddAction('ability 2', () => PressButton(eventPlayer, Button.Ability2));
+                createdAction = {Label: 'ability 2', ID: id, Executor: () => PressButton(eventPlayer, Button.Ability2)};
             else if (item == 6)
-                AddAction('stop walking', () => StopThrottleInDirection(eventPlayer));
+                createdAction = {Label: 'stop walking', ID: id, Executor: () => StopThrottleInDirection(eventPlayer)};
             else if (item == 7)
-                AddAction('walk to destination', WalkToDestination);
+                createdAction = {Label: 'walk to destination', ID: id, Executor: () => WalkToDestination()}; //TODO: WalkToDestination directly
             else if (item == 8)
-                AddAction('look at floor', () => StartFacing(
+                createdAction = {Label: 'look at floor', ID: id, Executor: () => StartFacing(
                     eventPlayer,
                     DirectionFromAngles(HorizontalFacingAngleOf(eventPlayer), -89),
                     100,
                     Relative.ToWorld,
                     FacingRev.None
-                ));
+                )};
             else if (item == 9)
-                AddAction('look at destination', () => StartFacing(
+                createdAction = {Label: 'look at destination', ID: id, Executor: () => StartFacing(
                     eventPlayer,
                     EyePosition().DirectionTowards(walkingTo + Up() * 1.75),
                     100,
                     Relative.ToWorld,
                     FacingRev.DirectionAndTurnRate
-                ));
+                )};
             
+            DocumentAction(id, createdAction);
             SetMenuState(MenuState.Rules);
+        }
+
+        DisableInspectorRecording();
+    });
+}
+
+rule: 'CM: Delete action'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.DeleteAction)
+{
+    RuleAction[] deleting! = [];
+    Number[] originalIndices! = [];
+
+    for (waitlessI = 0; actionsSelected.Length; 1)
+        if (actionsSelected[waitlessI])
+        {
+            deleting += Rules[rulePage].Actions[waitlessI];
+            originalIndices += waitlessI;
+        }
+    
+    actionsSelected = [];
+    
+    Number ruleIndex! = rulePage;
+    
+    Document({
+        Set: () => {
+            for (waitlessI = 0; deleting.Length; 1)
+            {
+                Rules[ruleIndex].ActionOrder -= deleting[waitlessI].ID;
+                Rules[ruleIndex].Actions.ModRemoveByIndex(actionIndexFromID(ruleIndex, deleting[waitlessI].ID));
+            }
+            RefreshPager();
+        },
+        Revert: () => {
+            for (waitlessI = 0; deleting.Length; 1)
+            {
+                Rules[ruleIndex].Actions += [deleting[waitlessI]];
+                Rules[ruleIndex].ActionOrder = Rules[ruleIndex].ActionOrder
+                    .Slice(0, originalIndices[waitlessI])
+                    .Append(deleting[waitlessI].ID)
+                    .Append(Rules[ruleIndex].ActionOrder.Slice(originalIndices[waitlessI], 9999));
+            }
+            RefreshPager();
         }
     });
 }
@@ -215,7 +297,7 @@ if (cm_currActionID == MenuAction.CreateRule)
     rulePage = Rules.Length;
 
     // todo: should not be surrounded in []
-    Rules.ModAppend([{ Actions: [] }]);
+    Rules.ModAppend([{ Actions: [], ActionOrder: [], ExecutesOnAttribute: 0 }]);
 
     initiatePager();
     updateRuleContent();
@@ -242,13 +324,81 @@ rule: 'CM: Wait confirm'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.WaitConfirm)
 {
-    AddAction('wait ' + waitTime, () => {
-        Wait(waitTime);
-    });
+    uniqueActionID++;
+    Number id! = uniqueActionID;
+    DocumentAction(id, { Label: 'wait ' + waitTime, ID: id, Executor: () => Wait(waitTime) });
     SetMenuState(MenuState.Rules);
 }
 
-void AddAction(in String label, in () => void executor)
+rule: 'CM: Exit rule menu'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.Back)
+if (menuState == MenuState.Rules)
 {
-    Rules[rulePage].Actions += {Label: label, Executor: executor};
+    SetMenuState(MenuState.Main);
+}
+
+rule: 'CM: Exit action menu'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.Back)
+if (menuState == MenuState.AddAction)
+{
+    actionScrollBar.Dispose();
+    actionScrollBar = null;
+    SetMenuState(MenuState.Rules);
+}
+
+void DocumentAction(in Number actionID, in RuleAction createdAction)
+{
+    Number ruleIndex! = rulePage;
+    Document({
+        Set: () => {
+            Rules[ruleIndex].ActionOrder += actionID;
+            Rules[ruleIndex].Actions += createdAction;
+            RefreshPager();
+        },
+        Revert: () => {
+            Number i! = Rules[ruleIndex].ActionOrder.IndexOf(actionID);
+
+            Rules[ruleIndex].ActionOrder -= actionID;
+            Rules[ruleIndex].Actions.ModRemoveByIndex(i);
+            RefreshPager();
+        }
+    });
+}
+
+void RefreshPager()
+{
+    if (menuState == MenuState.Rules)
+    {
+        if (actionScrollBar != null)
+        {
+            actionScrollBar.Dispose();
+            actionScrollBar = null;
+        }
+        loadActionScrollbar();
+    }
+}
+
+void DestroyPager()
+{
+    destroyButtonCollection(pagerButtons);
+    pagerInitialized = false;
+    
+    if (actionScrollBar != null)
+    {
+        actionScrollBar.Dispose();
+        actionScrollBar = null;
+    }
+    if (ruleAttributeSelector != null)
+    {
+        ruleAttributeSelector.Dispose();
+        ruleAttributeSelector = null;
+    }
+}
+
+void UpdateRuleAttributeLabel() '(Subroutine) CM: Update rule attribute label'
+{
+    if (ruleAttributeSelector != null)
+        ruleAttributeSelector.Set(Rules[rulePage].ExecutesOnAttribute);
 }

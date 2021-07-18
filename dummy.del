@@ -39,17 +39,16 @@ if (!pathfinderActive)
     Number[] targetNodes = [];
     Number source = closestNodeToPosition(destination);
 
-    define i;
-    for (i = 0; players.Length; 1)
-        targetNodes[i] = closestNodeToPosition(players[i].Position());
+    for (waitlessI = 0; players.Length; 1)
+        targetNodes[waitlessI] = closestNodeToPosition(players[waitlessI].Position());
 
     DijkstraResult dijkstra = Dijkstra(source, targetNodes, []);
     players.travelPath = dijkstra.Parents;
     players.isPathfinding = true;
     players.pathfindDestination = destination;
 
-    for (i = 0; players.Length; 1)
-        players[i].currentPathNode = targetNodes[i];
+    for (waitlessI = 0; players.Length; 1)
+        players[waitlessI].currentPathNode = targetNodes[waitlessI];
 }
 
 rule: 'Pathfind: Begin'
@@ -64,7 +63,24 @@ Event.OngoingPlayer
 if (isPathfinding)
 if (PositionOf().DistanceTo(currentPathfindingNodePosition) < 0.4)
 {
+    Number previous! = currentPathNode;
     currentPathNode = travelPath[currentPathNode];
+
+    // Get attributes of current node
+    Number[] attributes = Attributes.FilteredArray(a =>
+        a.Node1 == Nodes[travelPath[previous]].Node.UniqueID &&
+        a.Node2 == Nodes[travelPath[currentPathNode]].Node.UniqueID)
+        .Map(a => a.ID);
+    
+    // Execute the rules that contain the attributes.
+    for (define i = 0; attributes.Length; 1)
+        for (define r = 0; Rules.Length; r++)
+            if (Rules[r].ExecutesOnAttribute == attributes[i])
+            {
+                for (define a = 0; a < Rules[r].Actions.Length; a++)
+                    Rules[r].Actions[a].Executor();
+                break;
+            }
 }
 
 void WalkToDestination()

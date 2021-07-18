@@ -2,11 +2,12 @@ import 'sandbox.del';
 import 'place nodes.del';
 import 'utility.del';
 import 'history.del';
-import 'freecam.del';
+import 'noclip.del';
 import 'dummy.del';
 import 'dijkstra.del';
 import 'rule.del';
 import 'scroll menu.del';
+import 'number selector.del';
 import 'settings.lobby';
 
 struct Node
@@ -31,7 +32,7 @@ struct WorldNode
 
     public Vector ShownPosition(): Node.Position + Up() * 1.3;
 
-    public Boolean ValidTarget(): ShownPosition().DistanceTo(ray(cameraPos, cameraPos + facing * ShownPosition().DistanceTo(cameraPos))) < NodeSize;
+    public Boolean ValidTarget(): ShownPosition().DistanceTo(ray(eye, eye + facing * ShownPosition().DistanceTo(eye))) < NodeSize;
 }
 
 struct WorldSegment
@@ -61,10 +62,10 @@ globalvar Number AttributeUniqueID! = 1;
 Number NodeSize: 0.3;
 Boolean AnyNodesSelected: Nodes.IsTrueForAny(node => node.Selected);
 
-globalvar Number SelectedNodeIndex = -1;
-globalvar Number SelectedNodeID = -1;
-globalvar Number SelectedSegment = -1;
-globalvar Player SelectedPlayer;
+globalvar Number SelectedNodeIndex! = -1;
+globalvar Number SelectedNodeID! = -1;
+globalvar Number SelectedSegment! = -1;
+globalvar Player SelectedPlayer!;
 globalvar Any[] AttributeTexts = [];
 
 Number NodeIndexFromID(in Number id): Nodes.Map(node => node.Node.UniqueID).IndexOf(id);
@@ -89,11 +90,6 @@ void RemoveAttributeByIndex(Number index)
     Attributes.ModRemoveByIndex(index);
 }
 
-rule: 'Init'
-{
-    DisableInspectorRecording();
-}
-
 rule: 'Player init'
 Event.OngoingPlayer
 if (!IsDummyBot())
@@ -102,7 +98,15 @@ if (!IsDummyBot())
     DisallowButton(eventPlayer, Button.SecondaryFire);
 }
 
+disabled rule: 'debug button'
+Event.OngoingPlayer
+if (host == eventPlayer)
+{
+    createButton('db');
+}
+
 rule: 'Main: Selection loop'
+if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
 {
     // Find player
     AllPlayers().dummyHighlighted = false;
@@ -112,7 +116,7 @@ rule: 'Main: Selection loop'
     // Selected node
     Number[] tempNode! = Nodes
         .Map((node, i) => i)
-        .SortedArray(i => Nodes[i].ShownPosition().DistanceTo(cameraPos))
+        .SortedArray(i => Nodes[i].ShownPosition().DistanceTo(eye))
         .FilteredArray(i => Nodes[i].ValidTarget());
     
     SelectedNodeIndex = tempNode.Length ? tempNode.First : -1;
@@ -155,6 +159,7 @@ rule: 'Main: Selection loop'
 }
 
 rule: 'Main: Renderer'
+if (Nodes.Length)
 {
     // Nodes
     Number i;
@@ -178,7 +183,7 @@ rule: 'Main: Renderer'
 public void UpdateNodeVisibility(Number index) 'Subroutine: Update node visibility'
 {
     // Not visible.
-    if (!Nodes[index].ShownPosition().IsInLineOfSight(cameraPos))
+    if (!Nodes[index].ShownPosition().IsInLineOfSight(eye))
     {
         if (Nodes[index].Visibility != 0)
         {
@@ -197,7 +202,7 @@ public void UpdateNodeVisibility(Number index) 'Subroutine: Update node visibili
         }
 
         // Ring effect
-        if (Nodes[index].Node.Position.DistanceTo(cameraPos) > 10)
+        if (Nodes[index].Node.Position.DistanceTo(eye) > 10)
         {
             if (Nodes[index].Visibility == 2)
             {
@@ -275,7 +280,7 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
             attributeIndices -= group;
 
             // Generate string
-            String string = '';
+            String string! = '';
             while (group.Length)
             {
                 string = ' {0}\n{1}'.Format([string, Attributes[group.First].Value]);

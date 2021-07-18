@@ -1,0 +1,51 @@
+// Original code by Josbird
+// https://workshop.codes/50RQ1
+// Decompiled by ostw 
+
+playervar define IsNoclipping;
+
+rule: "Start noclipping"
+Event.OngoingPlayer
+if (IsNoclipping == true)
+{
+    SetGravity(EventPlayer(), 0);
+    DisableMovementCollisionWithEnvironment(EventPlayer(), true);
+    DisableMovementCollisionWithPlayers(EventPlayer());
+    SetMoveSpeed(EventPlayer(), 0);
+    DisallowButton(EventPlayer(), Button.Jump);
+    DisallowButton(EventPlayer(), Button.Crouch);
+}
+
+rule: "Stop noclipping"
+Event.OngoingPlayer
+if (IsNoclipping == false)
+{
+    SetGravity(EventPlayer(), 100);
+    EnableMovementCollisionWithEnvironment(EventPlayer());
+    EnableMovementCollisionWithPlayers(EventPlayer());
+    SetMoveSpeed(EventPlayer(), 100);
+    AllowButton(EventPlayer(), Button.Jump);
+    AllowButton(EventPlayer(), Button.Crouch);
+}
+
+rule: "Noclip propulsion"
+Event.OngoingPlayer
+if (IsNoclipping == true)
+if ((IsButtonHeld(EventPlayer(), Button.Crouch) || IsButtonHeld(EventPlayer(), Button.Jump) || ThrottleOf(EventPlayer()) != Vector(0, 0, 0)) == true)
+{
+    ApplyImpulse(EventPlayer(), VelocityOf(EventPlayer()) * -1, SpeedOf(EventPlayer()) * 0.03, Relative.ToWorld, ContraryMotion.Incorporate);
+    ApplyImpulse(EventPlayer(), Normalize(FacingDirectionOf(EventPlayer()) * ZOf(ThrottleOf(EventPlayer())) + WorldVectorOf(Left(), EventPlayer(), LocalVector.Rotation) * XOf(ThrottleOf(EventPlayer())) + Up() * (IsButtonHeld(EventPlayer(), Button.Jump) - IsButtonHeld(EventPlayer(), Button.Crouch))), (60 + 400 * IsButtonHeld(EventPlayer(), Button.Reload) - SpeedOf(EventPlayer())) / 62.5, Relative.ToWorld, ContraryMotion.Incorporate);
+    MinWait();
+    LoopIfConditionIsTrue();
+}
+
+rule: "Noclip air resistance"
+Event.OngoingPlayer
+if (IsNoclipping == true)
+if ((IsButtonHeld(EventPlayer(), Button.Crouch) || IsButtonHeld(EventPlayer(), Button.Jump) || ThrottleOf(EventPlayer()) != Vector(0, 0, 0)) == false)
+if (SpeedOf(EventPlayer()) > 0.01)
+{
+    ApplyImpulse(EventPlayer(), VelocityOf(EventPlayer()) * -1, SpeedOf(EventPlayer()) * 0.06, Relative.ToWorld, ContraryMotion.Incorporate);
+    MinWait();
+    LoopIfConditionIsTrue();
+}

@@ -1,7 +1,7 @@
 import 'josbird cursor menu.del';
 
 Number createButton(
-    in String label,
+    in String label = null,
     in Any primaryAction = 0,
     in Any secondaryAction = 0,
     in Number scale = 1.75,
@@ -58,6 +58,11 @@ void SetVisible(in Number buttonID, in Boolean value)
 void SetColor(in Number buttonID, in Color color)
 {
     cm_buttons[buttonID][8] = color;
+}
+
+void SetPosX(in Number buttonID, in Number value)
+{
+    cm_buttons[buttonID][4] = value;
 }
 
 void SetPosY(in Number buttonID, in Number value)

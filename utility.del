@@ -6,7 +6,13 @@ Player host: HostPlayer();
 Player eventPlayer: EventPlayer();
 Vector ray(Vector start, Vector end): RayCastHitPosition(start, end, null, null, false);
 
+
+Vector facing: FacingDirectionOf(host);
+Vector watchPoint: RayCastHitPosition(eye, eye + facing * 100, null, null, false);
+
 Any makeEffect(Effect effect, in Color color, in Vector position,  in Number radius)
 {
     return CreateEffect(AllPlayers(), effect, color, position, radius, EffectRev.VisibleToPositionRadiusAndColor);
 }
+
+globalvar Number waitlessI;

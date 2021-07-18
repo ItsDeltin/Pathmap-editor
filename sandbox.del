@@ -4,10 +4,10 @@ import 'cursor menu adapter.del';
 playervar MenuState menuState!;
 playervar Number freecamSwitchID!;
 playervar Number linkModeID!;
-playervar Number attributeDecrementID!;
-playervar Number attributeTextID!;
-playervar Number attributeIncrementID!;
+playervar NumberSelector attributeSelector!;
 playervar Number mainText!;
+globalvar Number undoText! = -1;
+globalvar Number redoText! = -1;
 
 playervar Number[] buttonCollectionMain = [];
 
@@ -80,39 +80,22 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
     // Cleanup
     destroyButtonCollection(buttonCollectionMain);
 
-    if (menuState == MenuState.Rules)
+    if (menuState == MenuState.Main)
     {
-        destroyButtonCollection(pagerButtons);
-        pagerInitialized = false;
-        actionScrollBar.Dispose();
+        if (attributeSelector != null)
+        {
+            attributeSelector.Dispose();
+            attributeSelector = null;
+        }
     }
+    else if (menuState == MenuState.Rules)
+        DestroyPager();
         
     menuState = newState;
     
     // Setup
     if (newState == MenuState.Main)
-    {
-        buttonCollectionMain += createButton(
-            '← undo',
-            primaryAction: MenuAction.Undo,
-            scale: 2,
-            posX: -2.1,
-            posY: -1,
-            clickWidth: 0.4,
-            clickHeight: 0.3,
-            defaultColor: Color.Yellow,
-            hoverColor: Color.Orange);
-        buttonCollectionMain += createButton(
-            'redo →',
-            primaryAction: MenuAction.Redo,
-            scale: 2,
-            posX: -1.6,
-            posY: -1,
-            clickWidth: 0.4,
-            clickHeight: 0.3,
-            defaultColor: Color.Aqua,
-            hoverColor: Color.SkyBlue);
-        
+    {   
         buttonCollectionMain += createButton(
             'add dummy bot',
             primaryAction: MenuAction.AddDummy,
@@ -130,7 +113,7 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             defaultColor: Color.White);
         
         freecamSwitchID = createButton(
-            'freecam: off',
+            'noclip: off',
             primaryAction: MenuAction.FreecamIncrement,
             secondaryAction: MenuAction.FreecamDecrement,
             scale: 2.5,
@@ -144,32 +127,8 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             scale: 2.5,
             posY: 0.7);
         
-        attributeIncrementID = createButton(
-            '→',
-            primaryAction: MenuAction.AttributeIncrement,
-            secondaryAction: MenuAction.AttributeIncrementBig,
-            scale: 4,
-            posY: 0.5,
-            posX: 0.1775,
-            visible: false);
-        attributeDecrementID = createButton(
-            '←',
-            primaryAction: MenuAction.AttributeDecrement,
-            secondaryAction: MenuAction.AttributeDecrementBig,
-            scale: 4,
-            posY: 0.5,
-            posX: -0.1775,
-            visible: false,
-            useDefaultFont: false);
-        attributeTextID = createButton(
-            '0',
-            scale: 2.5,
-            posY: 0.5,
-            defaultColor: Color.Yellow,
-            interactable: false,
-            visible: false);
-        
-        buttonCollectionMain += [freecamSwitchID, linkModeID, attributeIncrementID, attributeDecrementID, attributeTextID];
+        attributeSelector = new NumberSelector(attribute, 0, 0.5, false, value => attribute = value);        
+        buttonCollectionMain += [freecamSwitchID, linkModeID];
     }
     else if (newState == MenuState.Rules)
         SetupRuleMenu();
@@ -179,17 +138,7 @@ rule: 'CM: Freecam increment'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.FreecamIncrement)
 {
-    cameraMode++;
-    if (cameraMode == 3) cameraMode = 0;
-    updateFreecamLabel();
-}
-
-rule: 'CM: Freecam decrement'
-Event.OngoingPlayer
-if (cm_currActionID == MenuAction.FreecamDecrement)
-{
-    cameraMode--;
-    if (cameraMode == -1) cameraMode = 2;
+    IsNoclipping = !IsNoclipping;
     updateFreecamLabel();
 }
 
@@ -209,34 +158,50 @@ if (CanRedo)
     Redo();
 }
 
+rule: 'CM: Enable undo menu'
+Event.OngoingPlayer
+if (menuState == MenuState.Main || menuState == MenuState.Rules)
+{
+    undoText = createButton(
+        '← undo',
+        primaryAction: MenuAction.Undo,
+        scale: 2,
+        posX: -2.1,
+        posY: -1,
+        clickWidth: 0.4,
+        clickHeight: 0.3,
+        defaultColor: Color.Yellow,
+        hoverColor: Color.Orange);
+    redoText = createButton(
+        'redo →',
+        primaryAction: MenuAction.Redo,
+        scale: 2,
+        posX: -1.6,
+        posY: -1,
+        clickWidth: 0.4,
+        clickHeight: 0.3,
+        defaultColor: Color.Aqua,
+        hoverColor: Color.SkyBlue);
+}
+
+rule: 'CM: Disable undo menu'
+Event.OngoingPlayer
+if (menuState != MenuState.Main && menuState != MenuState.Rules)
+if (undoText != -1)
+{
+    DestroyButton(undoText);
+    DestroyButton(redoText);
+    undoText = -1;
+    redoText = -1;
+}
+
 rule: 'CM: Change link mode'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.LinkMode)
 {
     attributeMode = !attributeMode;
     SetLabel(linkModeID, !attributeMode ? 'Node link mode (segment)' : 'Node link mode (attribute)');
-    SetVisible(attributeDecrementID, attributeMode);
-    SetVisible(attributeTextID, attributeMode);
-    SetVisible(attributeIncrementID, attributeMode);
-}
-
-rule: 'CM: Attribute change'
-Event.OngoingPlayer
-if (cm_currActionID == MenuAction.AttributeIncrement ||
-    cm_currActionID == MenuAction.AttributeIncrementBig ||
-    cm_currActionID == MenuAction.AttributeDecrement ||
-    cm_currActionID == MenuAction.AttributeDecrementBig)
-{
-    if (cm_currActionID == MenuAction.AttributeIncrement)
-        attribute++;
-    else if (cm_currActionID == MenuAction.AttributeIncrementBig)
-        attribute += 5;
-    else if (cm_currActionID == MenuAction.AttributeDecrement)
-        attribute--;
-    else if (cm_currActionID == MenuAction.AttributeDecrementBig)
-        attribute -= 5;
-
-    SetLabel(attributeTextID, <String>attribute);
+    attributeSelector.SetVisible(attributeMode);
 }
 
 rule: 'CM: Add dummy'
@@ -251,7 +216,7 @@ if (cm_currActionID == MenuAction.AddDummy)
 
 void updateFreecamLabel() '(Subroutine) CM: Update freecam label'
 {
-    SetLabel(freecamSwitchID, ['freecam: off', 'freecam: on', 'freecam: gimbal'][cameraMode]);
+    SetLabel(freecamSwitchID, IsNoclipping ? 'noclip: on' : 'noclip: off');
 }
 
 void destroyButtonCollection(ref Number[] buttonCollection)
@@ -276,12 +241,12 @@ void chooseHeroMenu(Hero => void callback) '(Subroutine) CM: Choose hero'
     SetMenuState(MenuState.ChooseHero);
     chooseHeroCallback = callback;
 
-    for (define i = 0; AllHeroes().Length; 1)
+    for (waitlessI = 0; AllHeroes().Length; 1)
         buttonCollectionHeroes += createButton(
-            label: HeroIconString(AllHeroes()[i]),
-            primaryAction: [MenuAction.ChooseHero, AllHeroes()[i]],
-            posX: -2 + (i % 13) / 3,
-            posY: 0.5 - (i / 13 ~ Floor()) / 2,
+            label: HeroIconString(AllHeroes()[waitlessI]),
+            primaryAction: [MenuAction.ChooseHero, AllHeroes()[waitlessI]],
+            posX: -2 + (waitlessI % 13) / 3,
+            posY: 0.5 - (waitlessI / 13 ~ Floor()) / 2,
             scale: 5
         );
 }

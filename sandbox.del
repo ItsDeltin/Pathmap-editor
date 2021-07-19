@@ -40,7 +40,8 @@ enum MenuAction
     WaitConfirm = 25,
     DeleteAction = 26,
     PathfinderSettings = 27,
-    AddOrRemovePathfindingAttribute = 28
+    AddOrRemovePathfindingAttribute = 28,
+    ToggleAll = 29
 }
 
 enum MenuState

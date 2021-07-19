@@ -19,7 +19,7 @@ class Scrollbar
 
     Boolean isRendered(Number item): item >= position && item < position + viewCount;
 
-    public constructor(in Number posX, in Number topY, in String[] items, in Number => void itemSelected)
+    public constructor(in Number posX, in Number topY, in String[] items, in Number viewCount, in Number => void itemSelected)
     {
         this.posX = posX;
         this.topY = topY;
@@ -27,50 +27,75 @@ class Scrollbar
         itemColors = scrollItems.Map(item => Color.White);
         scrollItemButtons = scrollItems.Map(item => -1);
         this.itemSelected = itemSelected;
-        viewCount = 5;
+        this.viewCount = viewCount;
 
         upButton = createButton(
             '↑',
             posX: posX,
             posY: topY,
-            primaryAction: [MenuAction.ScrollbarUp, this],
+            primaryAction: [MenuAction.ScrollbarUp, this, 1],
+            secondaryAction: [MenuAction.ScrollbarUp, this, viewCount],
             scale: 4
         );
         downButton = createButton(
             '↓',
             posX: posX,
             posY: topY - (viewCount + 1) * itemY,
-            primaryAction: [MenuAction.ScrollbarDown, this],
+            primaryAction: [MenuAction.ScrollbarDown, this, 1],
+            secondaryAction: [MenuAction.ScrollbarDown, this, viewCount],
             scale: 4
         );
         Update();
     }
 
-    public void ScrollUp()
+    public void ScrollUp(in Number amount)
     {
-        position--;
+        position = Max(position - amount, 0);
         Update();
     }
 
-    public void ScrollDown()
+    public void ScrollDown(in Number amount)
     {
-        position++;
+        position = Min(position + amount, scrollItems.Length - viewCount);
         Update();
     }
 
-    public void Choose(Number item)
+    public void Choose(in Number item)
     {
         itemSelected(item);
     }
 
-    public void Remove(Number item)
+    public void Remove(in Number item)
     {
         scrollItems.ModRemoveByIndex(item);
 
-        if (scrollItemButtons[item] != 0)
+        if (scrollItemButtons[item] != -1)
             DestroyButton(scrollItemButtons[item]);
             
         scrollItemButtons.ModRemoveByIndex(item);
+        itemColors.ModRemoveByIndex(item);
+        Update();
+    }
+
+    public void Add(in String label, in Color color = Color.White)
+    {
+        scrollItems += label;
+        itemColors += color;
+        scrollItemButtons += -1;
+        Update();
+    }
+
+    public void Insert(in Number index, in String label, in Color color = Color.White)
+    {
+        scrollItems = ArrayInsert(scrollItems, index, label);
+        itemColors = ArrayInsert(itemColors, index, color);
+        scrollItemButtons = ArrayInsert(scrollItemButtons, index, <Any>(-1)); // todo ostw: Number should be accepted as Any by default for type inferrence
+        Update();
+    }
+
+    T[] ArrayInsert<T>(in T[] array, in Number index, in T value)
+    {
+        return array.Slice(0, index).Append(value).Append(array.Slice(index, 9999));
     }
 
     public void Update() '(Subroutine) CM: Update scrollbar'
@@ -124,6 +149,14 @@ class Scrollbar
         itemColors[item] = color;
     }
 
+    public void SetButtonLabel(in Number item, in String newLabel)
+    {
+        if (isRendered(item))
+            SetLabel(scrollItemButtons[item], newLabel);
+        
+        scrollItems[item] = newLabel;
+    }
+
     public void Dispose() '(Subroutine) dispose scrollbar'
     {
         define destroy = scrollItemButtons;
@@ -144,14 +177,14 @@ rule: 'CM: Scroll up'
 Event.OngoingPlayer
 if (cm_currActionID[0] == MenuAction.ScrollbarUp)
 {
-    (<Scrollbar>cm_currActionID[1]).ScrollUp();
+    (<Scrollbar>cm_currActionID[1]).ScrollUp(cm_currActionID[2]);
 }
 
 rule: 'CM: Scroll down'
 Event.OngoingPlayer
 if (cm_currActionID[0] == MenuAction.ScrollbarDown)
 {
-    (<Scrollbar>cm_currActionID[1]).ScrollDown();
+    (<Scrollbar>cm_currActionID[1]).ScrollDown(cm_currActionID[2]);
 }
 
 rule: 'CM: Scroll item'

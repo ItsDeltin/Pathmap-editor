@@ -5,6 +5,7 @@ struct Rule
     public RuleAction[] Actions;
     public Number ExecutesOnAttribute;
     public Number[] ActionOrder;
+    public Boolean[] EnabledHeroes;
 }
 
 struct RuleAction
@@ -23,6 +24,7 @@ globalvar Any deleteActionText!;
 globalvar NumberSelector ruleAttributeSelector!;
 globalvar Number[] pagerButtons = [];
 globalvar Scrollbar actionScrollBar!;
+globalvar Scrollbar heroScrollBar!;
 globalvar Number waitTime!;
 globalvar Any waitTimeText!;
 globalvar Boolean pagerInitialized!;
@@ -49,9 +51,10 @@ void SetupRuleMenu() 'Setup rule menu'
         initiatePager();
 }
 
+// When a new rule is selected, this updates the content.
 void updateRuleContent() 'CM: Update rule content'
 {
-    SetLabel(rulePageText, 'rule ' + rulePage);
+    SetLabel(rulePageText, 'rule ' + (rulePage + 1));
     
     SetInteractability(previousRuleText, rulePage != 0);
     SetColor(previousRuleText, rulePage != 0 ? Color.White : Color.Gray);
@@ -59,8 +62,20 @@ void updateRuleContent() 'CM: Update rule content'
     SetInteractability(nextRuleText, rulePage < Rules.Length - 1);
     SetColor(nextRuleText, rulePage < Rules.Length - 1 ? Color.White : Color.Gray);
 
-    RefreshPager();
-    UpdateRuleAttributeLabel();
+    RefreshActionList();
+
+    // Update the attribute label.
+    if (ruleAttributeSelector != null)
+        ruleAttributeSelector.Set(Rules[rulePage].ExecutesOnAttribute);
+
+    updateAllHeroIcons();
+}
+
+void updateAllHeroIcons() 'CM: Update all hero icons'
+{
+    // Update the hero selector
+    for (waitlessI = 0; AllHeroes().Length; 1)
+        updateHeroIcon(waitlessI);
 }
 
 void initiatePager() 'CM: Initiate pager'
@@ -105,10 +120,28 @@ void initiatePager() 'CM: Initiate pager'
         interactable: false
     );
     rulePageText = createButton(
-        'rule 0',
+        'rule 1',
         posY: 0.55,
         scale: 3,
         interactable: false
+    );
+
+    heroScrollBar = new Scrollbar(
+        1.75,
+        0.5,
+        AllHeroes().Map((hero, i) => '{0} {1}'.Format([HeroIconString(hero), Rules[rulePage].EnabledHeroes[i] ? 'yes' : 'no'])),
+        6,
+        toggleHero => {
+            Rules[rulePage].EnabledHeroes[toggleHero] = !Rules[rulePage].EnabledHeroes[toggleHero];
+            updateHeroIcon(toggleHero);
+        }
+    );
+    pagerButtons += createButton(
+        'toggle all',
+        posX: 1.75,
+        posY: 0.7,
+        scale: 1.75,
+        primaryAction: MenuAction.ToggleAll
     );
 
     pagerButtons += [previousRuleText, nextRuleText, deleteActionText, rulePageText];
@@ -122,10 +155,25 @@ void loadActionScrollbar() '(Subroutine) CM: Load action scrollbar'
         -1.75,
         0.5,
         Rules[rulePage].ActionOrder.Map(actionID => Rules[rulePage].Actions[Rules[rulePage].Actions.Map(action => action.ID).IndexOf(actionID)].Label),
+        6,
         item => {
             actionsSelected[item] = !actionsSelected[item];
             actionScrollBar.SetButtonColor(item, actionsSelected[item] ? Color.Green : Color.White);
         });
+}
+
+void updateHeroIcon(in Number index)
+{
+    // Update button color
+    heroScrollBar.SetButtonColor(index, Rules[rulePage].EnabledHeroes[index] ? Color.Green : Color.Red);
+    // Update button label
+    heroScrollBar.SetButtonLabel(
+        index,
+        '{0} {1}'.Format([
+            HeroIconString(AllHeroes()[index]),
+            Rules[rulePage].EnabledHeroes[index] ? 'yes' : 'no'
+        ])
+    );
 }
 
 rule: 'CM: Enable delete action button'
@@ -142,7 +190,7 @@ rule: 'CM: Disable delete action button'
 Event.OngoingPlayer
 if (menuState == MenuState.Rules)
 if (pagerInitialized)
-if (!actionsSelected.IsTrueForAny(action => action))
+if (actionsSelected.IsTrueForAll(action => !action))
 {
     SetInteractability(deleteActionText, false);
     SetColor(deleteActionText, deleteActionDisabledColor);
@@ -171,9 +219,8 @@ if (cm_currActionID == MenuAction.AddAction)
         'walk to destination',
         'look at floor',
         'look at destination'
-    ], item => {
-        actionScrollBar.Dispose();
-        actionScrollBar = null;
+    ], 9, item => {
+        DestroyScrollbar();
 
         // Wait length
         if (item == 0)
@@ -252,10 +299,14 @@ if (cm_currActionID == MenuAction.DeleteAction)
         Set: () => {
             for (waitlessI = 0; deleting.Length; 1)
             {
+                Number index! = actionIndexFromID(ruleIndex, deleting[waitlessI].ID);
+
                 Rules[ruleIndex].ActionOrder -= deleting[waitlessI].ID;
-                Rules[ruleIndex].Actions.ModRemoveByIndex(actionIndexFromID(ruleIndex, deleting[waitlessI].ID));
+                Rules[ruleIndex].Actions.ModRemoveByIndex(index);
+
+                if (menuState == MenuState.Rules && actionScrollBar)
+                    actionScrollBar.Remove(index);
             }
-            RefreshPager();
         },
         Revert: () => {
             for (waitlessI = 0; deleting.Length; 1)
@@ -265,8 +316,10 @@ if (cm_currActionID == MenuAction.DeleteAction)
                     .Slice(0, originalIndices[waitlessI])
                     .Append(deleting[waitlessI].ID)
                     .Append(Rules[ruleIndex].ActionOrder.Slice(originalIndices[waitlessI], 9999));
+
+                if (menuState == MenuState.Rules && actionScrollBar)
+                    actionScrollBar.Insert(originalIndices[waitlessI], deleting[waitlessI].Label);
             }
-            RefreshPager();
         }
     });
 }
@@ -294,7 +347,7 @@ if (cm_currActionID == MenuAction.CreateRule)
     rulePage = Rules.Length;
 
     // todo: should not be surrounded in []
-    Rules.ModAppend([{ Actions: [], ActionOrder: [], ExecutesOnAttribute: 0 }]);
+    Rules.ModAppend([{ Actions: [], ActionOrder: [], ExecutesOnAttribute: 0, EnabledHeroes: AllHeroes().Map(hero => true) }]);
 
     initiatePager();
     updateRuleContent();
@@ -328,6 +381,15 @@ if (cm_currActionID == MenuAction.WaitConfirm)
     SetMenuState(MenuState.Rules);
 }
 
+rule: 'CM: Toggle all'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.ToggleAll)
+{
+    Boolean setTo! = Rules[rulePage].EnabledHeroes.IsTrueForAny(hero => !hero);
+    Rules[rulePage].EnabledHeroes = AllHeroes().Map(_ => setTo);
+    updateAllHeroIcons();
+}
+
 rule: 'CM: Exit rule menu'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.Back)
@@ -341,8 +403,7 @@ Event.OngoingPlayer
 if (cm_currActionID == MenuAction.Back)
 if (menuState == MenuState.AddAction)
 {
-    actionScrollBar.Dispose();
-    actionScrollBar = null;
+    DestroyScrollbar();
     SetMenuState(MenuState.Rules);
 }
 
@@ -353,27 +414,27 @@ void DocumentAction(in Number actionID, in RuleAction createdAction)
         Set: () => {
             Rules[ruleIndex].ActionOrder += actionID;
             Rules[ruleIndex].Actions += [createdAction];
-            RefreshPager();
+            // RefreshActionList();
+            if (menuState == MenuState.Rules && actionScrollBar)
+                actionScrollBar.Add(createdAction.Label);
         },
         Revert: () => {
             Number i! = Rules[ruleIndex].ActionOrder.IndexOf(actionID);
 
             Rules[ruleIndex].ActionOrder -= actionID;
             Rules[ruleIndex].Actions.ModRemoveByIndex(i);
-            RefreshPager();
+            // RefreshActionList();
+            if (menuState == MenuState.Rules && actionScrollBar)
+                actionScrollBar.Remove(i);
         }
     });
 }
 
-void RefreshPager()
+void RefreshActionList()
 {
     if (menuState == MenuState.Rules)
     {
-        if (actionScrollBar != null)
-        {
-            actionScrollBar.Dispose();
-            actionScrollBar = null;
-        }
+        DestroyScrollbar();
         loadActionScrollbar();
     }
 }
@@ -383,20 +444,22 @@ void DestroyPager()
     destroyButtonCollection(pagerButtons);
     pagerInitialized = false;
     
-    if (actionScrollBar != null)
-    {
-        actionScrollBar.Dispose();
-        actionScrollBar = null;
-    }
+    DestroyScrollbar();
     if (ruleAttributeSelector != null)
     {
         ruleAttributeSelector.Dispose();
         ruleAttributeSelector = null;
     }
+
+    heroScrollBar.Dispose();
+    heroScrollBar = null;
 }
 
-void UpdateRuleAttributeLabel() '(Subroutine) CM: Update rule attribute label'
+void DestroyScrollbar()
 {
-    if (ruleAttributeSelector != null)
-        ruleAttributeSelector.Set(Rules[rulePage].ExecutesOnAttribute);
+    if (actionScrollBar)
+    {
+        actionScrollBar.Dispose();
+        actionScrollBar = null;
+    }
 }

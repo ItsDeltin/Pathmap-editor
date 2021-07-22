@@ -76,14 +76,17 @@ if (PositionOf().DistanceTo(currentPathfindingNodePosition) < 0.4)
     LogToInspector('node attributes [0]: ' + attributes[0]);
     
     // Execute the rules that contain the attributes.
-    for (define i = 0; attributes.Length; 1)
-        for (define r = 0; Rules.Length; 1)
-            if (Rules[r].ExecutesOnAttribute == attributes[i])
-            {
-                for (define a = 0; Rules[r].Actions.Length; 1)
-                    Rules[r].Actions[actionIndexFromID(r, Rules[r].ActionOrder[a])].Executor();
-                break;
-            }
+    Number[] executeRules = Rules
+        .Map((r, i) => i)
+        .FilteredArray(i =>
+            Rules[i].EnabledHeroes[AllHeroes().IndexOf(HeroOf())] &&
+            attributes.Contains(Rules[i].ExecutesOnAttribute));
+
+    if (executeRules.Length)
+    {
+        for (define a = 0; Rules[executeRules.First].Actions.Length; 1)
+            Rules[executeRules.First].Actions[actionIndexFromID(executeRules.First, Rules[executeRules.First].ActionOrder[a])].Executor();
+    }
     
     DisableInspectorRecording();
 }

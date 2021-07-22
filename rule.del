@@ -130,7 +130,7 @@ void initiatePager() 'CM: Initiate pager'
         1.75,
         0.5,
         AllHeroes().Map((hero, i) => '{0} {1}'.Format([HeroIconString(hero), Rules[rulePage].EnabledHeroes[i] ? 'yes' : 'no'])),
-        6,
+        4,
         toggleHero => {
             Rules[rulePage].EnabledHeroes[toggleHero] = !Rules[rulePage].EnabledHeroes[toggleHero];
             updateHeroIcon(toggleHero);
@@ -155,7 +155,7 @@ void loadActionScrollbar() '(Subroutine) CM: Load action scrollbar'
         -1.75,
         0.5,
         Rules[rulePage].ActionOrder.Map(actionID => Rules[rulePage].Actions[Rules[rulePage].Actions.Map(action => action.ID).IndexOf(actionID)].Label),
-        6,
+        4,
         item => {
             actionsSelected[item] = !actionsSelected[item];
             actionScrollBar.SetButtonColor(item, actionsSelected[item] ? Color.Green : Color.White);
@@ -215,11 +215,12 @@ if (cm_currActionID == MenuAction.AddAction)
         'stop holding jump',
         'ability 1',
         'ability 2',
+        'melee',
         'stop walking',
         'walk to destination',
         'look at floor',
         'look at destination'
-    ], 9, item => {
+    ], 4, item => {
         DestroyScrollbar();
 
         // Wait length
@@ -251,22 +252,24 @@ if (cm_currActionID == MenuAction.AddAction)
             else if (item == 5)
                 createdAction = {Label: 'ability 2', ID: id, Executor: () => PressButton(eventPlayer, Button.Ability2)};
             else if (item == 6)
-                createdAction = {Label: 'stop walking', ID: id, Executor: () => StopThrottleInDirection(eventPlayer)};
+                createdAction = {Label: 'melee', ID: id, Executor: () => PressButton(eventPlayer, Button.Melee)};
             else if (item == 7)
-                createdAction = {Label: 'walk to destination', ID: id, Executor: () => WalkToDestination()}; //TODO: WalkToDestination directly
+                createdAction = {Label: 'stop walking', ID: id, Executor: () => StopThrottleInDirection(eventPlayer)};
             else if (item == 8)
+                createdAction = {Label: 'walk to destination', ID: id, Executor: () => WalkToDestination()}; //TODO: WalkToDestination directly
+            else if (item == 9)
                 createdAction = {Label: 'look at floor', ID: id, Executor: () => StartFacing(
                     eventPlayer,
-                    DirectionFromAngles(HorizontalFacingAngleOf(eventPlayer), -89),
-                    100,
+                    DirectionFromAngles(HorizontalFacingAngleOf(eventPlayer), 89),
+                    1000,
                     Relative.ToWorld,
                     FacingRev.None
                 )};
-            else if (item == 9)
+            else if (item == 10)
                 createdAction = {Label: 'look at destination', ID: id, Executor: () => StartFacing(
                     eventPlayer,
                     EyePosition().DirectionTowards(walkingTo + Up() * 1.75),
-                    100,
+                    1000,
                     Relative.ToWorld,
                     FacingRev.DirectionAndTurnRate
                 )};
@@ -346,7 +349,6 @@ if (cm_currActionID == MenuAction.CreateRule)
 {
     rulePage = Rules.Length;
 
-    // todo: should not be surrounded in []
     Rules.ModAppend([{ Actions: [], ActionOrder: [], ExecutesOnAttribute: 0, EnabledHeroes: AllHeroes().Map(hero => true) }]);
 
     initiatePager();

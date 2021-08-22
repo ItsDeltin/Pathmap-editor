@@ -8,6 +8,9 @@ playervar Number currentPathNode;
 playervar Boolean isPathfinding;
 playervar Vector pathfindDestination;
 
+playervar Boolean pfstateIsStopped!;
+playervar Boolean pfstateIsJumping!;
+
 Number dummyOutlineState: dummyHighlighted + dummySelected * 2;
 Player[] selectedDummies: AllPlayers().FilteredArray(p => p.IsDummy() && p.dummySelected);
 Vector currentPathfindingNodePosition: Nodes[travelPath[currentPathNode]].Node.Position;
@@ -66,6 +69,18 @@ if (PositionOf().DistanceTo(currentPathfindingNodePosition) < 0.4)
     EnableInspectorRecording();
     Number previous! = currentPathNode;
     currentPathNode = travelPath[currentPathNode];
+
+    // Reset states of last node actions.
+    if (pfstateIsStopped)
+    {
+        pfstateIsStopped = false;
+        WalkToDestination();
+    }
+    if (pfstateIsJumping)
+    {
+        pfstateIsJumping = false;
+        StopHoldingButton(eventPlayer, Button.Jump);
+    }
 
     // Get attributes of current node
     Number[] attributes = Attributes.FilteredArray(a =>

@@ -1,4 +1,5 @@
 import 'main.del';
+import 'actions.del';
 
 struct Rule
 {
@@ -239,42 +240,8 @@ if (cm_currActionID == MenuAction.AddAction)
         {
             uniqueActionID++;
             Number id! = uniqueActionID;
-            RuleAction createdAction!;
-
-            if (item == 1)
-                createdAction = {Label: 'jump', ID: id, Executor: () => PressButton(eventPlayer, Button.Jump)};
-            else if (item == 2)
-                createdAction = {Label: 'start holding jump', ID: id, Executor: () => StartHoldingButton(eventPlayer, Button.Jump)};
-            else if (item == 3)
-                createdAction = {Label: 'stop holding jump', ID: id, Executor: () => StopHoldingButton(eventPlayer, Button.Jump)};
-            else if (item == 4)
-                createdAction = {Label: 'ability 1', ID: id, Executor: () => PressButton(eventPlayer, Button.Ability1)};
-            else if (item == 5)
-                createdAction = {Label: 'ability 2', ID: id, Executor: () => PressButton(eventPlayer, Button.Ability2)};
-            else if (item == 6)
-                createdAction = {Label: 'melee', ID: id, Executor: () => PressButton(eventPlayer, Button.Melee)};
-            else if (item == 7)
-                createdAction = {Label: 'stop walking', ID: id, Executor: () => StopThrottleInDirection(eventPlayer)};
-            else if (item == 8)
-                createdAction = {Label: 'walk to destination', ID: id, Executor: () => WalkToDestination()}; //TODO: WalkToDestination directly
-            else if (item == 9)
-                createdAction = {Label: 'look at floor', ID: id, Executor: () => StartFacing(
-                    eventPlayer,
-                    DirectionFromAngles(HorizontalFacingAngleOf(eventPlayer), 89),
-                    1000,
-                    Relative.ToWorld,
-                    FacingRev.None
-                )};
-            else if (item == 10)
-                createdAction = {Label: 'look at destination', ID: id, Executor: () => StartFacing(
-                    eventPlayer,
-                    EyePosition().DirectionTowards(walkingTo + Up() * 1.75),
-                    1000,
-                    Relative.ToWorld,
-                    FacingRev.DirectionAndTurnRate
-                )};
             
-            DocumentAction(id, createdAction);
+            DocumentAction(id, CreateAction(item, id));
             SetMenuState(MenuState.Rules);
         }
     });

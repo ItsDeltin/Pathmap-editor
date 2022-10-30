@@ -306,13 +306,13 @@ rule: 'Editor: tutorial'
     );
     AddControlText(
         editorState == EditorState.PlaceDummy ? 'Place dummy' :
-            SelectedSegment != -1 ? 'Delete path' :
-            connectingFromNode != -1 && SelectedNodeID != -1 ? (connectingFromNode == SelectedNodeIndex ? 'Cancel path' : 'Link path') :
-            connectingFromNode == -1 && SelectedNodeID != -1 ? 'Create path' : 'Create node',
+            SelectedSegment != -1 ? (attributeMode ? 'Connect attribute' : 'Delete path') :
+            connectingFromNode != -1 && SelectedNodeID != -1 ? (connectingFromNode == SelectedNodeIndex ? (attributeMode ? 'Cancel attribute' : 'Cancel path') : (attributeMode ? 'Connect Attribute' : 'Link path')) :
+            connectingFromNode == -1 && SelectedNodeID != -1 ? (attributeMode ? 'Create attribute' : 'Create path') : 'Create node',
         Button.PrimaryFire
     );
     AddControlText(
-        editorState == EditorState.Node ? 'Cancel path' : 'Cancel',
+        editorState == EditorState.Node ? (attributeMode ? 'Cancel attribute' : 'Cancel path') : 'Cancel',
         Button.SecondaryFire,
         (editorState == EditorState.Node && connectingFromNode != -1 && SelectedNodeID == -1) || editorState == EditorState.PlaceDummy
     );

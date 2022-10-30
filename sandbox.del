@@ -252,9 +252,9 @@ globalvar Number[] buttonCollectionHeroes! = [];
 void chooseHeroMenu(Hero => void callback) '(Subroutine) CM: Choose hero'
 {
     SetMenuState(MenuState.ChooseHero);
-    chooseHeroCallback = callback;
 
-    for (waitlessI = 0; AllHeroes().Length; 1)
+    for (Number i = 0; AllHeroes().Length; 1)
+    {
         buttonCollectionHeroes += createButton(
             label: HeroIconString(AllHeroes()[waitlessI]),
             primaryAction: [MenuAction.ChooseHero, AllHeroes()[waitlessI]],
@@ -262,13 +262,19 @@ void chooseHeroMenu(Hero => void callback) '(Subroutine) CM: Choose hero'
             posY: 0.5 - (waitlessI / 13 ~ Floor()) / 2,
             scale: 5
         );
+        MinWait();
+    }
+
+    chooseHeroCallback = callback;
 }
 
 rule: 'CM: Hero ready'
 Event.OngoingPlayer
 if (cm_currActionID[0] == MenuAction.ChooseHero)
+if (chooseHeroCallback)
 {
     destroyButtonCollection(buttonCollectionHeroes);
     chooseHeroCallback(cm_currActionID[1]);
     SetMenuState(MenuState.Main);
+    chooseHeroCallback = null;
 }

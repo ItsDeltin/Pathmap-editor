@@ -100,35 +100,35 @@ class Scrollbar
 
     public void Update() '(Subroutine) CM: Update scrollbar'
     {
-        for (waitlessI = 0; scrollItems.Length; 1)
+        for (Number i = 0; scrollItems.Length; 1)
         {
             // Out of range
-            if (waitlessI < position || waitlessI >= position + viewCount)
+            if (i < position || i >= position + viewCount)
             {
                 // Remove button
-                if (scrollItemButtons[waitlessI] != -1)
+                if (scrollItemButtons[i] != -1)
                 {
-                    DestroyButton(scrollItemButtons[waitlessI]);
-                    scrollItemButtons[waitlessI] = -1;
+                    DestroyButton(scrollItemButtons[i]);
+                    scrollItemButtons[i] = -1;
                 }
             }
             else
             {
-                Number posY! = topY - (waitlessI - position + 1) * itemY;
+                Number posY! = topY - (i - position + 1) * itemY;
 
                 // Create button
-                if (scrollItemButtons[waitlessI] == -1)
-                    scrollItemButtons[waitlessI] = createButton(
-                        scrollItems[waitlessI],
+                if (scrollItemButtons[i] == -1)
+                    scrollItemButtons[i] = createButton(
+                        scrollItems[i],
                         posX: posX,
                         posY: posY,
                         scale: 2,
-                        primaryAction: [MenuAction.ScrollbarItem, this, waitlessI],
-                        defaultColor: itemColors[waitlessI]
+                        primaryAction: [MenuAction.ScrollbarItem, this, i],
+                        defaultColor: itemColors[i]
                     );
                 // Update button position
                 else
-                    SetPosY(scrollItemButtons[waitlessI], posY);
+                    SetPosY(scrollItemButtons[i], posY);
             }
         }
 

@@ -254,7 +254,7 @@ if (cm_currActionID == MenuAction.DeleteAction)
     RuleAction[] deleting! = [];
     Number[] originalIndices! = [];
 
-    for (waitlessI = 0; actionsSelected.Length; 1)
+    for (waitlessI = 0; actionsSelected.Length; 1) 
         if (actionsSelected[waitlessI])
         {
             deleting += Rules[rulePage].Actions[waitlessI];
@@ -267,11 +267,11 @@ if (cm_currActionID == MenuAction.DeleteAction)
     
     Document({
         Set: () => {
-            for (waitlessI = 0; deleting.Length; 1)
+            for (Number i = 0; deleting.Length; 1)
             {
-                Number index! = actionIndexFromID(ruleIndex, deleting[waitlessI].ID);
+                Number index! = actionIndexFromID(ruleIndex, deleting[i].ID);
 
-                Rules[ruleIndex].ActionOrder -= deleting[waitlessI].ID;
+                Rules[ruleIndex].ActionOrder -= deleting[i].ID;
                 Rules[ruleIndex].Actions.ModRemoveByIndex(index);
 
                 if (menuState == MenuState.Rules && actionScrollBar)
@@ -279,16 +279,16 @@ if (cm_currActionID == MenuAction.DeleteAction)
             }
         },
         Revert: () => {
-            for (waitlessI = 0; deleting.Length; 1)
+            for (Number i = 0; deleting.Length; 1)
             {
-                Rules[ruleIndex].Actions += [deleting[waitlessI]];
+                Rules[ruleIndex].Actions += [deleting[i]];
                 Rules[ruleIndex].ActionOrder = Rules[ruleIndex].ActionOrder
-                    .Slice(0, originalIndices[waitlessI])
-                    .Append(deleting[waitlessI].ID)
-                    .Append(Rules[ruleIndex].ActionOrder.Slice(originalIndices[waitlessI], 9999));
+                    .Slice(0, originalIndices[i])
+                    .Append(deleting[i].ID)
+                    .Append(Rules[ruleIndex].ActionOrder.Slice(originalIndices[i], 9999));
 
                 if (menuState == MenuState.Rules && actionScrollBar)
-                    actionScrollBar.Insert(originalIndices[waitlessI], deleting[waitlessI].Label);
+                    actionScrollBar.Insert(originalIndices[i], deleting[i].Label);
             }
         }
     });

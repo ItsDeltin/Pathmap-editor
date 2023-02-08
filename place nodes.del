@@ -145,6 +145,50 @@ if (!host.cm_isInMenu)
     });
 }
 
+rule: 'Editor: Delete node'
+if (button(Button.Ultimate))
+if (editorState == EditorState.Node)
+if (SelectedNodeID != -1)
+if (!host.cm_isInMenu)
+{
+    Node deleteNode = Nodes[SelectedNodeIndex].Node;
+    Vector[] deleteSegments =
+        Segments.Map(segment => Vector(segment.ID, segment.Node1, segment.Node2))
+            .FilteredArray((v, i) => Segments[i].Node1 == deleteNode.UniqueID || Segments[i].Node2 == deleteNode.UniqueID);
+
+    Document({
+        Set: () => {
+            // Delete segments
+            for (waitlessI = 0; deleteSegments.Length; 1) {
+                RemoveSegmentByIndex(SegmentIndexFromID(deleteSegments[waitlessI].X));
+            }
+            // Delete node
+            define index = NodeIndexFromID(deleteNode.UniqueID);
+            RemoveNodeByIndex(index);
+            // Refresh all nodes with indices above the current node.
+            for (; index < Nodes.Length; index++) {
+                if (Nodes[index].Visibility)
+                {
+                    DestroyEffect(Nodes[index].BallEffect);
+                    DestroyEffect(Nodes[index].RingEffect);
+                    Nodes[index].Visibility = 0;
+                    MinWait();
+                }
+            }
+        },
+        Revert: () => {
+            // Add node
+            Nodes += { Node: deleteNode, Visibility: 0, Selected: false, BallEffect: null, RingEffect: null };
+            // Add segments
+            for (waitlessI = 0; deleteSegments.Length; 1)
+            {
+                Segments += { ID: deleteSegments[waitlessI].X, Node1: deleteSegments[waitlessI].Y, Node2: deleteSegments[waitlessI].Z, Effect: null };
+                UpdateSegmentVisibility(Segments.Length - 1);
+            }
+        }
+    });
+}
+
 rule: 'Editor: Select node'
 if (button(Button.SecondaryFire))
 if (editorState == EditorState.Node)
@@ -316,6 +360,11 @@ rule: 'Editor: tutorial'
         editorState == EditorState.Node ? (attributeMode ? 'Cancel attribute' : 'Cancel path') : 'Cancel',
         Button.SecondaryFire,
         (editorState == EditorState.Node && connectingFromNode != -1 && SelectedNodeID == -1) || editorState == EditorState.PlaceDummy
+    );
+    AddControlText(
+        'Destroy node',
+        Button.Ultimate,
+        SelectedNodeIndex != -1
     );
     AddControlText(
         'Pathfind to cursor',

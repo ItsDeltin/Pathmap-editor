@@ -14,7 +14,13 @@ void Document(in HistoryCatalog catalogItem)
 
     catalogItem.Set();
     historyItems += [catalogItem]; // TODO: catalogItem should not be surrounded by [], ostw should handle it natively
-    historyPage++;
+
+    // If above the maximum allowed items, remove oldest item.
+    if (historyPage == maxHistoryLength) {
+        historyItems.ModRemoveByIndex(0);
+    } else {
+        historyPage++;
+    }
 }
 
 // Represents a point in history

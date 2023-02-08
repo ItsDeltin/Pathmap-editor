@@ -32,22 +32,30 @@ RuleAction CreateAction(in Number item, in Number id)
     else if (item == 6)
         return {Label: 'melee', ID: id, Executor: () => PressButton(eventPlayer, Button.Melee)};
     
-    // Stop walking
+    // Primary fire
     else if (item == 7)
+        return {Label: 'primary fire', ID: id, Executor: () => PressButton(eventPlayer, Button.PrimaryFire)};
+
+    // Secondary fire
+    else if (item == 8)
+        return {Label: 'secondary fire', ID: id, Executor: () => PressButton(eventPlayer, Button.SecondaryFire)};
+    
+    // Stop walking
+    else if (item == 9)
         return {Label: 'stop walking', ID: id, Executor: () => {
             StopThrottleInDirection(eventPlayer);
             pfstateIsStopped = true;
         }};
     
     // Walk to destination
-    else if (item == 8)
+    else if (item == 10)
         return {Label: 'walk to destination', ID: id, Executor: () => {
             WalkToDestination();
             pfstateIsStopped = false;
         }};
 
     // Look at floor
-    else if (item == 9)
+    else if (item == 11)
         return {Label: 'look at floor', ID: id, Executor: () => StartFacing(
             eventPlayer,
             DirectionFromAngles(HorizontalFacingAngleOf(eventPlayer), 89),
@@ -57,7 +65,7 @@ RuleAction CreateAction(in Number item, in Number id)
         )};
     
     // Look at destination
-    else if (item == 10)
+    else if (item == 12)
         return {Label: 'look at destination', ID: id, Executor: () => StartFacing(
             eventPlayer,
             EyePosition().DirectionTowards(walkingTo + Up() * 1.75),

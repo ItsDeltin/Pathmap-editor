@@ -217,11 +217,13 @@ if (cm_currActionID == MenuAction.AddAction)
         'ability 1',
         'ability 2',
         'melee',
+        'primary fire',
+        'secondary fire',
         'stop walking',
         'walk to destination',
         'look at floor',
         'look at destination'
-    ], 4, item => {
+    ], 8, item => {
         DestroyScrollbar();
 
         // Wait length

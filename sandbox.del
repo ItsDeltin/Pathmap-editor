@@ -231,7 +231,9 @@ rule: 'CM: Add dummy'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.AddDummy)
 {
+    SmallMessage(AllPlayers(), "Opening hero menu");
     chooseHeroMenu(hero => {
+        SmallMessage(AllPlayers(), "Chose hero {0}".Format([hero]));
         editorState = EditorState.PlaceDummy;
         placingDummyHero = hero;
     });
@@ -266,10 +268,10 @@ void chooseHeroMenu(Hero => void callback) '(Subroutine) CM: Choose hero'
     for (Number i = 0; AllHeroes().Length; 1)
     {
         buttonCollectionHeroes += createButton(
-            label: HeroIconString(AllHeroes()[waitlessI]),
-            primaryAction: [MenuAction.ChooseHero, AllHeroes()[waitlessI]],
-            posX: -2 + (waitlessI % 13) / 3,
-            posY: 0.5 - (waitlessI / 13 ~ Floor()) / 2,
+            label: HeroIconString(AllHeroes()[i]),
+            primaryAction: [MenuAction.ChooseHero, AllHeroes()[i]],
+            posX: -2 + (i % 13) / 3,
+            posY: 0.5 - (i / 13 ~ Floor()) / 2,
             scale: 5
         );
         MinWait();

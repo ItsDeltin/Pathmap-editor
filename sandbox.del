@@ -41,7 +41,8 @@ enum MenuAction
     DeleteAction = 26,
     PathfinderSettings = 27,
     AddOrRemovePathfindingAttribute = 28,
-    ToggleAll = 29
+    ToggleAll = 29,
+    Guide = 30
 }
 
 enum MenuState
@@ -52,7 +53,8 @@ enum MenuState
     Rules,
     AddAction,
     ChooseWaitLength,
-    PathfinderSettings
+    PathfinderSettings,
+    Guide
 }
 
 rule: 'CM: Make buttons: Main'
@@ -122,6 +124,14 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             scale: 2.5,
             posX: 1.7,
             posY: 0.2,
+            defaultColor: Color.White);
+        
+        buttonCollectionMain += createButton(
+            'Guide',
+            primaryAction: MenuAction.Guide,
+            scale: 2.5,
+            posX: 1.7,
+            posY: 0,
             defaultColor: Color.White);
         
         freecamSwitchID = createButton(

@@ -267,43 +267,49 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
     }
 
     // Show connected attributes.
-    if (SelectedNodeID != -1)
+    Number useNode =
+        SelectedNodeID != -1 ? SelectedNodeID :
+        connectingFromNode != -1 ? Nodes[connectingFromNode].Node.UniqueID : -1;
+
+    if (useNode == -1)
     {
-        define attributeIndices = Attributes.Map((s, i) => i).FilteredArray(
-            i => Attributes[i].Node1 == SelectedNodeID || Attributes[i].Node2 == SelectedNodeID
+        return;
+    }
+
+    define attributeIndices = Attributes.Map((s, i) => i).FilteredArray(
+        i => Attributes[i].Node1 == useNode || Attributes[i].Node2 == useNode
+    );
+    
+    while (attributeIndices.Length)
+    {
+        Vector p1 = Nodes[NodeIndexFromID(Attributes[attributeIndices.First].Node1)].ShownPosition();
+        Vector p2 = Nodes[NodeIndexFromID(Attributes[attributeIndices.First].Node2)].ShownPosition();
+        Boolean isSource = Attributes[attributeIndices.First].Node1 == useNode;
+
+        define group = attributeIndices.FilteredArray(i =>
+            Attributes[attributeIndices.First].Node1 == Attributes[i].Node1 &&
+            Attributes[attributeIndices.First].Node2 == Attributes[i].Node2
         );
-        
-        while (attributeIndices.Length)
+
+        // Remove from attributeIndices the values in the current group.
+        attributeIndices -= group;
+
+        // Generate string
+        String string! = '';
+        while (group.Length)
         {
-            Vector p1 = Nodes[NodeIndexFromID(Attributes[attributeIndices.First].Node1)].ShownPosition();
-            Vector p2 = Nodes[NodeIndexFromID(Attributes[attributeIndices.First].Node2)].ShownPosition();
-            Boolean isSource = Attributes[attributeIndices.First].Node1 == SelectedNodeID;
-
-            define group = attributeIndices.FilteredArray(i =>
-                Attributes[attributeIndices.First].Node1 == Attributes[i].Node1 &&
-                Attributes[attributeIndices.First].Node2 == Attributes[i].Node2
-            );
-
-            // Remove from attributeIndices the values in the current group.
-            attributeIndices -= group;
-
-            // Generate string
-            String string! = '';
-            while (group.Length)
-            {
-                string = ' {0}\n{1}'.Format([string, Attributes[group.First].Value]);
-                group.ModRemoveByIndex(0);
-            }
-
-            AttributeTexts += CreateInWorldText(
-                VisibleTo: AllPlayers(),
-                Header: string,
-                Position: p1 + (p2 - p1) * 0.3,
-                Scale: 2.5,
-                Clipping: Clipping.DoNotClip,
-                Reevaluation: InworldTextRev.VisibleTo,
-                TextColor: isSource ? Color.Yellow : CustomColor(255, 115, 0, 100)
-            );
+            string = ' {0}\n{1}'.Format([string, Attributes[group.First].Value]);
+            group.ModRemoveByIndex(0);
         }
+
+        AttributeTexts += CreateInWorldText(
+            VisibleTo: AllPlayers(),
+            Header: string,
+            Position: p1 + (p2 - p1) * 0.3,
+            Scale: 2.5,
+            Clipping: Clipping.DoNotClip,
+            Reevaluation: InworldTextRev.VisibleTo,
+            TextColor: isSource ? Color.Yellow : CustomColor(255, 115, 0, 100)
+        );
     }
 }

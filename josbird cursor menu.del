@@ -333,7 +333,7 @@ if (cm_isInMenu == true)
 if (IsTrueForAny(cm_buttons, ArrayElement() && (ArrayElement()[15] || !ArrayElement()[12] && ArrayElement()[14] || ArrayElement()[12] && !ArrayElement()[14])) == true)
 {
     doButtonUpdate();
-    MinWait();
+    Wait(1/10);
 }
 
 rule: "Detect primary fire button press"

@@ -162,7 +162,7 @@ if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
         }
     }
 
-    MinWait();
+    Wait(0.1);
     LoopIfConditionIsTrue();
 }
 

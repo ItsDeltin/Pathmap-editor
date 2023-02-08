@@ -32,6 +32,14 @@ if (dummyOutlineState != dummySavedOutlineState)
         StartForcingPlayerOutlines(eventPlayer, host, true, Color.Turquoise, OutlineType.Always);
 }
 
+rule: 'Dummy: destroy'
+if (button(Button.Ultimate))
+{
+    define destroy = selectedDummies;
+    for (waitlessI = 0; destroy.Length; 1)
+        DestroyDummyBot(destroy[waitlessI]);
+}
+
 rule: 'Pathfind: Pathfind selected dummies'
 if (button(Button.Reload))
 if (selectedDummies.Length)
@@ -41,6 +49,8 @@ if (!pathfinderActive)
     Player[] players = selectedDummies;
     Number[] targetNodes = [];
     Number source = closestNodeToPosition(destination);
+
+    PlayEffect(AllPlayers(), PlayEffect.RingExplosion, Color.Orange, destination, 2);
 
     for (waitlessI = 0; players.Length; 1)
         targetNodes[waitlessI] = closestNodeToPosition(players[waitlessI].Position());

@@ -1,5 +1,4 @@
 import 'main.del';
-import 'cursor menu adapter.del';
 
 playervar MenuState menuState!;
 playervar Number freecamSwitchID!;
@@ -107,7 +106,7 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             primaryAction: MenuAction.AddDummy,
             scale: 2.5,
             posX: 1.7,
-            posY: 0.6,
+            posY: -0.6,
             defaultColor: Color.White);
         
         buttonCollectionMain += createButton(
@@ -125,7 +124,7 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             posX: 1.7,
             posY: 0.2,
             defaultColor: Color.White);
-        
+
         buttonCollectionMain += createButton(
             'Guide',
             primaryAction: MenuAction.Guide,
@@ -233,7 +232,6 @@ if (cm_currActionID == MenuAction.AddDummy)
 {
     SmallMessage(AllPlayers(), "Opening hero menu");
     chooseHeroMenu(hero => {
-        SmallMessage(AllPlayers(), "Chose hero {0}".Format([hero]));
         editorState = EditorState.PlaceDummy;
         placingDummyHero = hero;
     });
@@ -274,7 +272,6 @@ void chooseHeroMenu(Hero => void callback) '(Subroutine) CM: Choose hero'
             posY: 0.5 - (i / 13 ~ Floor()) / 2,
             scale: 5
         );
-        MinWait();
     }
 
     chooseHeroCallback = callback;
@@ -289,4 +286,5 @@ if (chooseHeroCallback)
     chooseHeroCallback(cm_currActionID[1]);
     SetMenuState(MenuState.Main);
     chooseHeroCallback = null;
+    cm_isInMenu = false;
 }

@@ -9,6 +9,7 @@ import 'rule.del';
 import 'scroll menu.del';
 import 'number selector.del';
 import 'pathfinder settings.del';
+import 'cursor menu.del';
 import 'settings.lobby';
 
 globalvar Number version = 1;
@@ -97,20 +98,20 @@ Number NodeIndexFromID(in Number id): Nodes.Map(node => node.Node.UniqueID).Inde
 Number SegmentIndexFromID(in Number id): Segments.Map(segment => segment.ID).IndexOf(id);
 Number AttributeIndexFromID(in Number id): Attributes.Map(attribute => attribute.ID).IndexOf(id);
 
-void RemoveNodeByIndex(Number index)
+void RemoveNodeByIndex(Number index) 'Subroutine: Remove node'
 {
     DestroyEffect(Nodes[index].BallEffect);
     DestroyEffect(Nodes[index].RingEffect);
     Nodes.ModRemoveByIndex(index);
 }
 
-void RemoveSegmentByIndex(Number index)
+void RemoveSegmentByIndex(in Number index)
 {
     DestroyEffect(Segments[index].Effect);
     Segments.ModRemoveByIndex(index);
 }
 
-void RemoveAttributeByIndex(Number index)
+void RemoveAttributeByIndex(in Number index)
 {
     Attributes.ModRemoveByIndex(index);
 }
@@ -121,6 +122,8 @@ if (!IsDummyBot())
 {
     DisallowButton(eventPlayer, Button.PrimaryFire);
     DisallowButton(eventPlayer, Button.SecondaryFire);
+    DisallowButton(eventPlayer, Button.Ultimate);
+    DisallowButton(eventPlayer, Button.Ability1);
 }
 
 disabled rule: 'debug button'

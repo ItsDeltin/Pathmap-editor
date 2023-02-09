@@ -1,132 +1,362 @@
-import 'utility.del';
-
-struct CursorButton
-{
-    // The actual text shown by the button.
-    public String Label;
-
-    public (() => void) PrimaryAction;
-
-    public (() => void) SecondaryAction;
-
-    // The size of the button text. Uses the same scale system as any other In-World Text. Maximum is 4.
-    public Number Scale;
-
-    // The x coordinate of the button on the menu in screen units.
-    // By default, the center of the menu is at X = 0, and the bounds are ±2.5.
-    // Positive direction is towards the right of the screen.
-    public Number PositionX;
-
-    // The y coordinate of the button on the menu in screen units.
-    // By default, the center of the menu is at Y = 0, and the bounds are ±1.25.
-    // Positive direction is towards the top of the screen.
-    public Number PositionY;
-
-    // The width of the clickable area of the button in screen units.
-    public Number ClickWidth;
-
-    // The height of the clickable area of the button in screen units.
-    public Number ClickHeight;
-
-    // The color of the button when the cursor is not hovering over it, or when it is non-clickable. Can be a Custom Color.
-    public Color DefaultColor;
-
-    // The color of the button when the cursor is hovering over it, indicating it can be clicked. Can be a Custom Color.
-    public Color HoverColor;
-
-    // If set to true, the script will force the button to use the alternate, thinner font for In-World Texts.
-    // Note that if you have certain characters in the label text, the button may render as the alternate font even with this value set to false.
-    public Boolean UseDefaultFont;
-
-    // If set to false, the button will not be clickable and the hover color will not be used. Useful for making menu labels.
-    public Boolean Interactable;
-
-    // If set to false, the button will not be rendered. Useful for hiding buttons to save text budget without destroying the button entirely.
-    public Boolean ButtonIsVisible;
-
-    public Any a13 = null;
-    public Any a14 = null;
-    public Any a15 = null;
-}
-
-globalvar Number cm_textBudget! = 128;
-globalvar Number cm_menuWidth! = WorkshopSettingReal("Josbird's Cursor Menu", "Menu Width", 5, 0, 10, 1); // [1]
-globalvar Number cm_menuHeight! = WorkshopSettingReal("Josbird's Cursor Menu", "Menu Height", 2.5, 0, 5, 2); // [2]
-globalvar Number cm_buttonClickSounds! = WorkshopSettingToggle("Josbird's Cursor Menu", "Button click sounds", true, 3); // [6]
-globalvar Number cm_debugMode! = WorkshopSettingToggle("Josbird's Cursor Menu", "Debug mode (show button click areas)", false, 4); // [5]
-globalvar Number cm_menuDisablesGameHud! = WorkshopSettingToggle("Josbird's Cursor Menu", "Menu disables game hud", true, 7); // [7]
-globalvar CursorButton[] cm_buttons;
-
-String ext3: '━'; // [3]
-String ext4: '┃\n'; // [4]
-
-playervar Boolean isInMenu;
-playervar Number pExt2;
-playervar Any[] cm_menuFrame = [];
-playervar Vector cm_menuOriginalFacing;
-
-void createMenuButton(in CursorButton button)
-{
-    Number newButtonId = cm_buttons.Length;
-    pExt2 = 0;
-    while (pExt2 < cm_buttons.Length)
-    {
-        if (cm_buttons[pExt2].Label == null)
-        {
-            newButtonId = pExt2;
-            pExt2 = cm_buttons.Length;
-        }
-        pExt2++;
-    }
-    cm_buttons[newButtonId] = button;
-}
-
-void destroyMenuButton(in Number buttonID)
-{
-    if (buttonID >= cm_buttons.Length || cm_buttons[buttonID].Label == null)
-        LogToInspector(<"[CursorMenu.destroyMenuButton] Error: tried to destroy an invalid button ID (<0>)", buttonID>);
-    else
-        cm_buttons[buttonID].a15 = true;
-}
-
-rule: 'Toggle menu'
-Event.OngoingPlayer
-if (!IsDummyBot())
-if (button(Button.Interact))
-if (!IsCommunicatingAnyEmote())
-{
-    isInMenu = !isInMenu;
-}
-
-void createCursor()
-{
-    const Number => void segment = step => {
-        cm_menuFrame += CreateInWorldText(
-            VisibleTo: Invalidate(eventPlayer, step),
-            Header: "▲",
-            Position: UpdateEveryFrame(
-                eyePos + 100 * (AngleDifference(facing.HorizontalAngle, cm_menuOriginalFacing.HorizontalAngle) *
-                    facing.CrossProduct(DirectionFromAngles(
-                        facing.HorizontalAngle,
-                        facing.VerticalAngle - 90
-                    )) + (AngleDifference(facing.VerticalAngle, cm_menuOriginalFacing.VerticalAngle) - 0.2) *
-                    DirectionFromAngles(facing.HorizontalAngle, facing.VerticalAngle - 90) + 3 * facing)),
-            Scale: 3,
-            Clipping: Clipping.DoNotClip,
-        );
-        cm_textBudget -= 1;
-    };
-
-    segment(TotalTimeElapsed() % 0.032 < 0.016);
-    segment(TotalTimeElapsed() % 0.032 >= 0.016);
-}
-
 /*
 
-EyePosition(EventPlayer()) +
-    100 * (
-        cm_menuWidth * -1 /
-        2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90))
-            + (cm_extendedGlobalCollection[2] / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))
-
+13: ?
+14: ?
+15: Mark button to delete
 */
+
+struct CursorMenuButton
+{
+    // TODO: combine some booleans and numbers into vectors to save variable space.
+    public String Label; // [0] *
+    public Any PrimaryAction; // [1]
+    public Any SecondaryAction; // [2]
+    public Number Scale; // [3] *
+    public Number PosX; // [4]
+    public Number PosY; // [5]
+    public Number ClickWidth; // [6]
+    public Number ClickHeight; // [7]
+    public Color DefaultColor; // [8]
+    public Color HoverColor; // [9]
+    // [10] == use default font?
+    public Boolean Interactable; // [11]
+    public Boolean Visible; // [12] (NOTICE: only used in debug clickWidth/height visual right now)
+    public Any TextID; // [13]
+    // [14] == is text id existing?
+    // [15] == is marked to delete?
+    public Number ID; // mine :)
+}
+
+globalvar Number cm_textBudget!; // Starts at 128, decreases for each text added to the game.
+globalvar Number cm_uniqueButtonID!; // Assigns each button a unique value :D
+
+playervar CursorMenuButton[] cm_buttons;
+playervar Boolean cm_isInMenu;
+playervar Any[] cm_menuFrame;
+playervar Number cm_i; // ext player [2]?
+playervar Vector cm_menuOriginalFacing;
+playervar Any cm_exitIconEntity!; // ext global [0]
+playervar Any cm_currActionID;
+
+globalvar Number cm_s_menuWidth!; // ext global [1]
+globalvar Number cm_s_menuHeight!; // ext global [2]
+globalvar Boolean cm_s_buttonClickSounds!; // ext global [6]
+globalvar Boolean cm_s_debugMode!; // ext global [5]
+globalvar Boolean cm_s_disableGameHud!; // ext global [7]
+globalvar Any[] cm_exitButtonProperties; // ?
+
+String cm_c_horizontalLine: "━"; // ext global [3]
+String cm_c_verticalLine: "┃\n"; // ext global [4]
+
+rule: "▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒【Josbird's Cursor Menu】▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒" {}
+rule: "Global init"
+{
+    cm_textBudget = 128;
+    CreateHudText(FilteredArray(AllPlayers(Team.All), ArrayElement().cm_isInMenu), null, null, <"Cursor Menu created by Josbird <0> Code: GETVX", AbilityIconString(Hero.Mercy, Button.Ultimate)>, Location.Right, -100, Color.White, Color.White, Color.Turquoise, HudTextRev.VisibleToAndString, Spectators.DefaultVisibility);
+    cm_textBudget -= 1;
+    if (WorkshopSettingToggle("Josbird's Cursor Menu", "Menu prompt hud", true, 5))
+    {
+        CreateHudText(FilteredArray(AllPlayers(Team.All), !ArrayElement().cm_isInMenu), <"<0>", <"Press Interact [<0>] to open menu", InputBindingString(Button.Interact)>>, null, null, Location.Top, 1, Color.Yellow, Color.White, Color.White, HudTextRev.VisibleToAndString, Spectators.DefaultVisibility);
+        cm_textBudget -= 1;
+    }
+    cm_s_menuWidth = WorkshopSettingReal("Josbird's Cursor Menu", "Menu Width", 5, 0, 10, 1);
+    cm_s_menuHeight = WorkshopSettingReal("Josbird's Cursor Menu", "Menu Height", 2.5, 0, 5, 2);
+    cm_s_buttonClickSounds = WorkshopSettingToggle("Josbird's Cursor Menu", "Button click sounds", true, 3);
+    cm_s_debugMode = WorkshopSettingToggle("Josbird's Cursor Menu", "Debug mode (show button click areas)", false, 4);
+    cm_s_disableGameHud = WorkshopSettingToggle("Josbird's Cursor Menu", "Menu disables game hud", true, 7);
+    cm_exitButtonProperties = ["exit menu", cm_s_menuWidth / 2 - 0.15, cm_s_menuHeight / 2 - 0.15, 0.35];
+}
+
+Number ButtonIndexFromID(Number id): cm_buttons.Map(button => button.ID).IndexOf(id);
+
+Number createButton(
+    in String label = null,
+    in Any primaryAction = 0,
+    in Any secondaryAction = 0,
+    in Number scale = 1.75,
+    in Number posX = 0,
+    in Number posY = 0,
+    in Number clickWidth = 0.2,
+    in Number clickHeight = 0.2,
+    in Color defaultColor = Color.White,
+    in Color hoverColor = Color.Turquoise,
+    in Boolean useDefaultFont = true,
+    in Boolean interactable = true,
+    in Boolean visible = true
+) {
+    return __createButtonSubroutine([label, primaryAction, secondaryAction, scale, posX, posY, clickWidth, clickHeight, defaultColor, hoverColor, useDefaultFont, interactable, visible]);
+}
+
+Number __createButtonSubroutine(Any[] input) "CM: Create button"
+{
+    cm_uniqueButtonID++;
+
+    define label: input[0]; define primaryAction: input[1]; define secondaryAction: input[2]; define scale: input[3]; define posX: input[4]; define posY: input[5]; define clickWidth: input[6];
+    define clickHeight: input[7]; define defaultColor: input[8]; define hoverColor: input[9]; define useDefaultFont: input[10]; define interactable: input[11]; define visible: input[12];
+
+    cm_buttons += { Label: label, PrimaryAction: [primaryAction], SecondaryAction: [secondaryAction], Scale: scale, PosX: posX, PosY: posY, ClickWidth: clickWidth,
+        ClickHeight: clickHeight, DefaultColor: defaultColor, HoverColor: hoverColor, Interactable: interactable, Visible: visible, TextID: null, ID: cm_uniqueButtonID };
+
+    Number index: ButtonIndexFromID(EvaluateOnce(cm_uniqueButtonID));
+
+    cm_buttons[cm_buttons.Length - 1].TextID = CreateInWorldText(
+        // REEVALUATION ENABLED
+        VisibleTo: EventPlayer(),
+        // todo: I think there was supposed to be a special unicode for this.
+        // REEVALUATION ENABLED
+        Header: useDefaultFont ? <"<0>", cm_buttons[index].Label> : cm_buttons[index].Label,
+        // REEVALUATION ENABLED
+        Position: <Vector>UpdateEveryFrame(
+            EyePosition() + 100 * (
+                cm_buttons[index].PosX * CrossProduct(
+                    FacingDirectionOf(),
+                    DirectionFromAngles(
+                        HorizontalAngleFromDirection(FacingDirectionOf()),
+                        VerticalAngleFromDirection(FacingDirectionOf()) - 90
+                    )
+                ) + (cm_buttons[index].PosY - 0.2) * DirectionFromAngles(
+                        HorizontalAngleFromDirection(FacingDirectionOf()),
+                        VerticalAngleFromDirection(FacingDirectionOf()) - 90
+                ) + 3 * FacingDirectionOf()
+            )
+        ),
+        // NOTICE: Scale reevaluation is disabled.
+        Scale: EvaluateOnce(scale),
+        Clipping: Clipping.DoNotClip,
+        Reevaluation: InworldTextRev.VisibleToPositionStringAndColor,
+        // NOTICE: clickWidth and clickHeight reevaluation is disabled.
+        // REEVALUATION ENABLED
+        TextColor: cm_buttons[index].Interactable
+            && AbsoluteValue(AngleDifference(
+                HorizontalAngleFromDirection(FacingDirectionOf()),
+                HorizontalAngleFromDirection(cm_menuOriginalFacing)
+            ) - cm_buttons[index].PosX) <= EvaluateOnce(clickWidth) / 2
+            && AbsoluteValue(AngleDifference(
+                VerticalAngleFromDirection(FacingDirectionOf()),
+                VerticalAngleFromDirection(cm_menuOriginalFacing)
+            ) - cm_buttons[index].PosY) <= EvaluateOnce(clickHeight) / 2
+            ? cm_buttons[index].HoverColor : cm_buttons[index].DefaultColor,
+            Spectators.DefaultVisibility
+    );
+    cm_textBudget -= 1;
+
+    return cm_uniqueButtonID;
+}
+
+void DestroyButton(Number buttonID) "CM: Destroy button"
+{
+    Number removeButtonIndex = ButtonIndexFromID(buttonID);
+    DestroyInWorldText(cm_buttons[removeButtonIndex].TextID);
+    cm_buttons.ModRemoveByIndex(removeButtonIndex);
+}
+
+void SetLabel(in Number buttonID, in String label)
+{
+    cm_buttons[ButtonIndexFromID(buttonID)].Label = label;
+}
+
+void SetColor(in Number buttonID, in Color color)
+{
+    cm_buttons[ButtonIndexFromID(buttonID)].DefaultColor = color;
+}
+
+void SetPosY(in Number buttonID, in Number posY)
+{
+    cm_buttons[ButtonIndexFromID(buttonID)].PosY = posY;
+}
+
+void SetInteractability(in Number buttonID, in Boolean interactable)
+{
+    cm_buttons[ButtonIndexFromID(buttonID)].Interactable = interactable;
+}
+
+void SetVisible(in Number buttonID, in Boolean visible)
+{
+    cm_buttons[ButtonIndexFromID(buttonID)].Visible = visible;
+}
+
+rule: "Toggle menu"
+Event.OngoingPlayer
+if (!IsDummyBot(EventPlayer()) == true)
+if (IsButtonHeld(EventPlayer(), Button.Interact) == true)
+if (!IsCommunicatingAnyEmote(EventPlayer()) == true)
+{
+    cm_isInMenu = !cm_isInMenu;
+}
+
+void createCursor() "Create menu cursor"
+{
+    cm_menuFrame += CreateInWorldText(FilteredArray(EventPlayer(), TotalTimeElapsed() % 0.032 < 0.016), "▲", UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 3, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, Color.White, Spectators.DefaultVisibility);
+    cm_menuFrame += CreateInWorldText(FilteredArray(EventPlayer(), TotalTimeElapsed() % 0.032 >= 0.016), "▲", UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 3, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, Color.White, Spectators.DefaultVisibility);
+    cm_textBudget -= 2;
+}
+
+void createBorderCorners() "Create menu border corners"
+{
+    cm_menuFrame += CreateInWorldText(EventPlayer(), "┌", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth * -1 / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    cm_menuFrame += CreateInWorldText(EventPlayer(), "┐", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    cm_menuFrame += CreateInWorldText(EventPlayer(), "└", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth * -1 / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight * -1 / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    cm_menuFrame += CreateInWorldText(EventPlayer(), "┘", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight * -1 / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    cm_textBudget -= 4;
+}
+
+void createBorderEdges() "Create menu border edges"
+{
+    String stringBuilder = "";
+    for (cm_i = 0; 4.6 * cm_s_menuWidth - 1; 1)
+        stringBuilder = "{0}{1}".Format([stringBuilder, cm_c_horizontalLine]);
+    
+    cm_menuFrame += MakeHorizontalLine(stringBuilder, 1);
+    cm_menuFrame += MakeHorizontalLine(stringBuilder, -1);
+
+    stringBuilder = "";
+    for (cm_i = 0.3; cm_s_menuHeight; 0.3)
+        stringBuilder = "{0}{1}".Format([stringBuilder, cm_c_verticalLine]);
+
+    cm_menuFrame += MakeVerticalLine(stringBuilder, 1);
+    cm_menuFrame += MakeVerticalLine(stringBuilder, -1);
+        
+    cm_textBudget -= 4;
+}
+
+Any MakeHorizontalLine(in String str, in Number multiplier)
+{
+    CreateInWorldText(
+        EventPlayer(),
+        str,
+        <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * ((cm_s_menuHeight * multiplier / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))),
+        4,
+        Clipping.DoNotClip,
+        InworldTextRev.VisibleToAndPosition,
+        Color.White,
+        Spectators.DefaultVisibility
+    );
+}
+
+Any MakeVerticalLine(in String str, in Number multiplier) {
+    CreateInWorldText(
+        EventPlayer(),
+        str,
+        <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth * multiplier / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (-0.095 * RoundToInteger(cm_s_menuHeight / 0.3, Rounding.Down) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))),
+        4,
+        Clipping.DoNotClip,
+        InworldTextRev.VisibleToAndPosition,
+        Color.White,
+        Spectators.DefaultVisibility
+    );
+}
+
+void createExitButton() "Create exit button"
+{
+    CreateIcon(EventPlayer(), <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_exitButtonProperties[1] * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_exitButtonProperties[2] - 0.25) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), Icon.X, IconRev.PositionAndColor, AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[1]) <= cm_exitButtonProperties[3] / 2 && AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[2]) <= cm_exitButtonProperties[3] / 2 ? Color.Yellow : Color.Red, false);
+    cm_exitIconEntity = LastCreatedEntity();
+}
+
+void createClickAreas() "Create click areas"
+{
+    for (cm_i = 0; cm_buttons.Length; 1)
+    {
+        cm_menuFrame += CreateInWorldText(EventPlayer(), "┌", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * ((cm_buttons[EvaluateOnce(cm_i)].PosX - cm_buttons[EvaluateOnce(cm_i)].ClickWidth / 2) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_buttons[EvaluateOnce(cm_i)].PosY + cm_buttons[EvaluateOnce(cm_i)].ClickHeight / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 2, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, !cm_buttons[EvaluateOnce(cm_i)].Visible ? CustomColor(0, 0, 0, 0) : cm_buttons[EvaluateOnce(cm_i)].Interactable ? Color.Yellow : Color.White, Spectators.DefaultVisibility);        
+        cm_menuFrame += CreateInWorldText(EventPlayer(), "┘", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * ((cm_buttons[EvaluateOnce(cm_i)].PosX + cm_buttons[EvaluateOnce(cm_i)].ClickWidth / 2) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_buttons[EvaluateOnce(cm_i)].PosY - cm_buttons[EvaluateOnce(cm_i)].ClickHeight / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 2, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, !cm_buttons[EvaluateOnce(cm_i)].Visible ? CustomColor(0, 0, 0, 0) : cm_buttons[EvaluateOnce(cm_i)].Interactable ? Color.Yellow : Color.White, Spectators.DefaultVisibility);
+        cm_textBudget -= 2;
+    }
+}
+
+rule: "Open menu"
+Event.OngoingPlayer
+if (!IsDummyBot(EventPlayer()))
+if (cm_isInMenu)
+{
+    SetAimSpeed(EventPlayer(), 15);
+    cm_menuOriginalFacing = FacingDirectionOf(EventPlayer());
+    SetPrimaryFireEnabled(EventPlayer(), false);
+    SetSecondaryFireEnabled(EventPlayer(), false);
+    if (cm_s_disableGameHud)
+    {
+        DisableHeroHud(EventPlayer());
+        DisableGameModeHud(EventPlayer());
+    }
+    cm_menuFrame = [];
+    createCursor();
+    MinWait();
+    createBorderCorners();
+    createBorderEdges();
+    MinWait();
+    createExitButton();
+    MinWait();
+    if (cm_s_debugMode)
+    {
+        createClickAreas();
+    }
+}
+
+rule: "Menu loading hud"
+Event.OngoingPlayer
+if (WorkshopSettingToggle("Josbird's Cursor Menu", "Loading hud", true, 6))
+if (cm_isInMenu)
+{
+    CreateHudText(EventPlayer(), "ｌｏａｄｉｎｇ ｍｅｎｕ．．．", null, null, Location.Top, 3, Color.Turquoise, Color.White, Color.White, HudTextRev.None, Spectators.DefaultVisibility);
+    define cm_loadingHudEntity = LastTextID();
+    cm_textBudget -= 1;
+    Wait(1, WaitBehavior.IgnoreCondition);
+    DestroyHudText(cm_loadingHudEntity);
+    cm_textBudget += 1;
+}
+
+rule: "Close menu"
+Event.OngoingPlayer
+if (!IsDummyBot())
+if (!cm_isInMenu)
+{
+    SetAimSpeed(EventPlayer(), 100);
+    SetPrimaryFireEnabled(EventPlayer(), true);
+    SetSecondaryFireEnabled(EventPlayer(), true);
+    if (cm_s_disableGameHud)
+    {
+        EnableHeroHud(EventPlayer());
+        EnableGameModeHud(EventPlayer());
+    }
+    for (cm_i; cm_menuFrame.Length; 1) {
+        DestroyInWorldText(cm_menuFrame[cm_i]);
+        cm_textBudget += 1;
+    }
+    DestroyIcon(cm_exitIconEntity);
+}
+
+rule: "Detect button press"
+Event.OngoingPlayer
+if (cm_isInMenu)
+if (IsButtonHeld(EventPlayer(), Button.PrimaryFire) || IsButtonHeld(EventPlayer(), Button.SecondaryFire))
+{
+    define primary = IsButtonHeld(EventPlayer(), Button.PrimaryFire);
+
+    if (AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[1]) <= cm_exitButtonProperties[3] / 2 && AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[2]) <= cm_exitButtonProperties[3] / 2)
+        cm_currActionID = FirstOf(cm_exitButtonProperties);
+
+    for (define i = 0; cm_buttons.Length; 1)
+        if (cm_buttons[i].Interactable && AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) - cm_buttons[i].PosX) <= cm_buttons[i].ClickWidth / 2 && AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - cm_buttons[i].PosY) <= cm_buttons[i].ClickHeight / 2)
+            cm_currActionID = primary ? cm_buttons[i].PrimaryAction : cm_buttons[i].SecondaryAction;
+
+    if (cm_currActionID && cm_s_buttonClickSounds)
+        PlayEffect(EventPlayer(), PlayEffect.ExplosionSound, Color.White, EventPlayer(), 30);
+
+    MinWait();
+    cm_currActionID = null;
+}
+
+rule: "Action ID: Exit menu"
+Event.OngoingPlayer
+if (cm_currActionID == "exit menu")
+{
+    cm_isInMenu = false;
+}
+
+rule: "Cursor bounds"
+Event.OngoingPlayer
+if (cm_isInMenu == true)
+if ((AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing))) > cm_s_menuWidth / 2 + 0.05 || AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing))) > cm_s_menuHeight / 2 + 0.05) == true)
+{
+    SetFacing(EventPlayer(), DirectionFromAngles(Min(Max(HorizontalAngleFromDirection(cm_menuOriginalFacing) - AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)), HorizontalAngleFromDirection(cm_menuOriginalFacing) - cm_s_menuWidth / 2), HorizontalAngleFromDirection(cm_menuOriginalFacing) + cm_s_menuWidth / 2), Min(Max(VerticalAngleFromDirection(cm_menuOriginalFacing) - AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)), VerticalAngleFromDirection(cm_menuOriginalFacing) - cm_s_menuHeight / 2), VerticalAngleFromDirection(cm_menuOriginalFacing) + cm_s_menuHeight / 2)), Relative.ToWorld);
+    MinWait();
+    LoopIfConditionIsTrue();
+}

@@ -1,3 +1,5 @@
+import 'main.del';
+
 globalvar define cm_extendedGlobalCollection;
 globalvar define cm_arrayBuilder;
 globalvar define cm_textBudget;
@@ -21,11 +23,6 @@ rule: "▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒�
 rule: "Global init"
 {
     cm_textBudget = 128;
-    if (WorkshopSettingToggle("Extra", "Server load hud", false, 0))
-    {
-        CreateHudText(HostPlayer(), ServerLoadAverage(), "Server Load", null, Location.Right, -1, Color.Turquoise, Color.White, Color.White, HudTextRev.VisibleToAndString, Spectators.DefaultVisibility);
-        cm_textBudget -= 1;
-    }
     CreateHudText(FilteredArray(AllPlayers(Team.All), ArrayElement().cm_isInMenu), null, null, <"Cursor Menu created by Josbird <0> Code: GETVX", AbilityIconString(Hero.Mercy, Button.Ultimate)>, Location.Right, -100, Color.White, Color.White, Color.Turquoise, HudTextRev.VisibleToAndString, Spectators.DefaultVisibility);
     cm_textBudget -= 1;
     if (WorkshopSettingToggle("Josbird's Cursor Menu", "Menu prompt hud", true, 5))
@@ -243,6 +240,7 @@ void doButtonUpdate() "Do button update"
             }
         }
         cm_extendedPlayerCollection[2] += 1;
+        Wait(0.015);
     }
 }
 
@@ -333,7 +331,8 @@ if (cm_isInMenu == true)
 if (IsTrueForAny(cm_buttons, ArrayElement() && (ArrayElement()[15] || !ArrayElement()[12] && ArrayElement()[14] || ArrayElement()[12] && !ArrayElement()[14])) == true)
 {
     doButtonUpdate();
-    Wait(1/10);
+    Wait(1/20);
+    LoopIfConditionIsTrue();
 }
 
 rule: "Detect primary fire button press"

@@ -1,3 +1,4 @@
+import 'main.del';
 import 'josbird cursor menu.del';
 
 Number createButton(

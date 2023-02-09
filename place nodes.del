@@ -158,6 +158,9 @@ if (!host.cm_isInMenu)
 
     Document({
         Set: () => {
+            SelectedNodeIndex = -1;
+            SelectedNodeID = -1;
+
             // Delete segments
             for (waitlessI = 0; deleteSegments.Length; 1) {
                 RemoveSegmentByIndex(SegmentIndexFromID(deleteSegments[waitlessI].X));

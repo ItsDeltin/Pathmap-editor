@@ -342,7 +342,7 @@ if (!host.cm_isInMenu)
     SelectedPlayer.dummySelected = !SelectedPlayer.dummySelected;
 }
 
-rule: 'Editor: tutorial'
+rule: 'Editor: tutorial' 1000
 {
     CreateHudText(
         HostPlayer(),

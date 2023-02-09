@@ -177,7 +177,7 @@ void updateHeroIcon(in Number index)
     );
 }
 
-rule: 'CM: Enable delete action button'
+rule: 'CM: Enable delete action button' 1000
 Event.OngoingPlayer
 if (menuState == MenuState.Rules)
 if (pagerInitialized)
@@ -187,7 +187,7 @@ if (actionsSelected.IsTrueForAny(action => action))
     SetColor(deleteActionText, deleteActionEnabledColor);
 }
 
-rule: 'CM: Disable delete action button'
+rule: 'CM: Disable delete action button' 1000
 Event.OngoingPlayer
 if (menuState == MenuState.Rules)
 if (pagerInitialized)

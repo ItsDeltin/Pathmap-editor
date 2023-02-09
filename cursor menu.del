@@ -101,7 +101,7 @@ Number __createButtonSubroutine(Any[] input) "CM: Create button"
 
     cm_buttons[cm_buttons.Length - 1].TextID = CreateInWorldText(
         // REEVALUATION ENABLED
-        VisibleTo: EventPlayer(),
+        VisibleTo: cm_isInMenu ? EventPlayer() : null,
         // todo: I think there was supposed to be a special unicode for this.
         // REEVALUATION ENABLED
         Header: useDefaultFont ? <"<0>", cm_buttons[index].Label> : cm_buttons[index].Label,
@@ -221,7 +221,7 @@ void createBorderEdges() "Create menu border edges"
 
 Any MakeHorizontalLine(in String str, in Number multiplier)
 {
-    CreateInWorldText(
+    return CreateInWorldText(
         EventPlayer(),
         str,
         <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * ((cm_s_menuHeight * multiplier / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))),
@@ -234,7 +234,7 @@ Any MakeHorizontalLine(in String str, in Number multiplier)
 }
 
 Any MakeVerticalLine(in String str, in Number multiplier) {
-    CreateInWorldText(
+    return CreateInWorldText(
         EventPlayer(),
         str,
         <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth * multiplier / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (-0.095 * RoundToInteger(cm_s_menuHeight / 0.3, Rounding.Down) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))),

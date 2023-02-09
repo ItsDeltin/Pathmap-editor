@@ -63,7 +63,7 @@ rule: "Global init"
     cm_exitButtonProperties = ["exit menu", cm_s_menuWidth / 2 - 0.15, cm_s_menuHeight / 2 - 0.15, 0.35];
 }
 
-Number ButtonIndexFromID(Number id): cm_buttons.Map(button => button.ID).IndexOf(id);
+Number ButtonIndexFromID(Number id, Player player = EventPlayer()): player.cm_buttons.Map(button => button.ID).IndexOf(id);
 
 Number createButton(
     in String label = null,
@@ -166,9 +166,16 @@ void SetPosY(in Number buttonID, in Number posY)
     cm_buttons[ButtonIndexFromID(buttonID)].PosY = posY;
 }
 
-void SetInteractability(in Number buttonID, in Boolean interactable)
+void SetInteractability(in Number buttonID, in Boolean interactable, in Player player = EventPlayer())
 {
-    cm_buttons[ButtonIndexFromID(buttonID)].Interactable = interactable;
+    player.cm_buttons[ButtonIndexFromID(buttonID, player)].Interactable = interactable;
+}
+
+void SetInteractabilityAndColor(in Number buttonID, in Boolean interactable, in Color color, in Player player = EventPlayer())
+{
+    Number buttonIndex! = ButtonIndexFromID(buttonID, player);
+    player.cm_buttons[buttonIndex].Interactable = interactable;
+    player.cm_buttons[buttonIndex].DefaultColor = color;
 }
 
 void SetVisible(in Number buttonID, in Boolean visible)

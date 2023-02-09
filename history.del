@@ -21,6 +21,8 @@ void Document(in HistoryCatalog catalogItem)
     } else {
         historyPage++;
     }
+
+    UpdateUndoInteractability();
 }
 
 // Represents a point in history
@@ -34,10 +36,12 @@ void Undo()
 {
     historyPage--;
     historyItems[historyPage].Revert();
+    UpdateUndoInteractability();
 }
 
 void Redo()
 {
     historyItems[historyPage].Set();
     historyPage++;
+    UpdateUndoInteractability();
 }

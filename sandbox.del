@@ -67,7 +67,7 @@ if (eventPlayer == host)
         scale: 2,
         posX: 0,
         posY: 1,
-        defaultColor: Color.Yellow,
+        defaultColor: Color.Gray,
         interactable: false);
     createButton(
         'back',
@@ -197,18 +197,17 @@ if (menuState == MenuState.Main || menuState == MenuState.Rules)
         posY: -1,
         clickWidth: 0.4,
         clickHeight: 0.3,
-        defaultColor: Color.Yellow,
-        hoverColor: Color.Orange);
+        defaultColor: Color.Yellow);
     redoText = createButton(
         'redo →',
         primaryAction: MenuAction.Redo,
         scale: 2,
-        posX: -1.6,
+        posX: -1.5,
         posY: -1,
         clickWidth: 0.4,
         clickHeight: 0.3,
-        defaultColor: Color.Aqua,
-        hoverColor: Color.SkyBlue);
+        defaultColor: Color.Aqua);
+    UpdateUndoInteractability();
 }
 
 rule: 'CM: Disable undo menu'
@@ -220,6 +219,15 @@ if (undoText != -1)
     DestroyButton(redoText);
     undoText = -1;
     redoText = -1;
+}
+
+void UpdateUndoInteractability() globalvar 'CM: Update undo interactability'
+{
+    if (undoText != -1)
+    {
+        SetInteractabilityAndColor(undoText, CanUndo, CanUndo ? Color.Aqua : Color.Gray, HostPlayer());
+        SetInteractabilityAndColor(redoText, CanRedo, CanRedo ? Color.Yellow : Color.Gray, HostPlayer());
+    }
 }
 
 rule: 'CM: Change link mode'

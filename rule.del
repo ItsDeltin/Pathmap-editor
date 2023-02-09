@@ -337,15 +337,15 @@ Event.OngoingPlayer
 if (cm_currActionID == MenuAction.WaitTimeDown || cm_currActionID == MenuAction.WaitTimeUp || cm_currActionID == MenuAction.WaitTimeDownBig || cm_currActionID == MenuAction.WaitTimeUpBig)
 {
     if (cm_currActionID == MenuAction.WaitTimeDown)
-        waitTime -= 0.016;
+        waitTime -= 0.02;
     else if (cm_currActionID == MenuAction.WaitTimeUp)
-        waitTime += 0.016;
+        waitTime += 0.02;
     else if (cm_currActionID == MenuAction.WaitTimeDownBig)
         waitTime -= 0.5;
     else if (cm_currActionID == MenuAction.WaitTimeUpBig)
         waitTime += 0.5;
     
-    ModifyVariable(waitTime, Operation.Max, 0.016);
+    ModifyVariable(waitTime, Operation.Max, 0.02);
     SetLabel(waitTimeText, 'wait time: ' + waitTime + ' seconds');
 }
 

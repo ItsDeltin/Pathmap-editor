@@ -7,11 +7,10 @@
 
 struct CursorMenuButton
 {
-    // TODO: combine some booleans and numbers into vectors to save variable space.
+    // TODO: maybe combine some booleans and numbers into vectors to save variable space.
     public String Label; // [0] *
     public Any PrimaryAction; // [1]
     public Any SecondaryAction; // [2]
-    public Number Scale; // [3] *
     public Number PosX; // [4]
     public Number PosY; // [5]
     public Number ClickWidth; // [6]
@@ -21,10 +20,7 @@ struct CursorMenuButton
     // [10] == use default font?
     public Boolean Interactable; // [11]
     public Boolean Visible; // [12] (NOTICE: only used in debug clickWidth/height visual right now)
-    public Any TextID; // [13]
-    // [14] == is text id existing?
-    // [15] == is marked to delete?
-    public Number ID; // mine :)
+    public Number ID;
 }
 
 globalvar Number cm_textBudget!; // Starts at 128, decreases for each text added to the game.
@@ -84,18 +80,18 @@ Number createButton(
     in Boolean interactable = true,
     in Boolean visible = true
 ) {
-    return __createButtonSubroutine([label, primaryAction, secondaryAction, scale, posX, posY, clickWidth, clickHeight, defaultColor, hoverColor, useDefaultFont, interactable, visible]);
+    return __createButtonSubroutine([label, primaryAction, secondaryAction, posX, posY, clickWidth, clickHeight, defaultColor, hoverColor, useDefaultFont, interactable, visible]);
 }
 
 Number __createButtonSubroutine(Any[] input) "CM: Create button"
 {
     cm_uniqueButtonID++;
 
-    define label: input[0]; define primaryAction: input[1]; define secondaryAction: input[2]; define scale: input[3]; define posX: input[4]; define posY: input[5]; define clickWidth: input[6];
-    define clickHeight: input[7]; define defaultColor: input[8]; define hoverColor: input[9]; define useDefaultFont: input[10]; define interactable: input[11]; define visible: input[12];
+    define label: input[0]; define primaryAction: input[1]; define secondaryAction: input[2]; define posX: input[3]; define posY: input[4]; define clickWidth: input[5];
+    define clickHeight: input[6]; define defaultColor: input[7]; define hoverColor: input[8]; define useDefaultFont: input[9]; define interactable: input[10]; define visible: input[11];
 
-    cm_buttons += { Label: label, PrimaryAction: [primaryAction], SecondaryAction: [secondaryAction], Scale: scale, PosX: posX, PosY: posY, ClickWidth: clickWidth,
-        ClickHeight: clickHeight, DefaultColor: defaultColor, HoverColor: hoverColor, Interactable: interactable, Visible: visible, TextID: null, ID: cm_uniqueButtonID };
+    cm_buttons += { Label: label, PrimaryAction: [primaryAction], SecondaryAction: [secondaryAction], PosX: posX, PosY: posY, ClickWidth: clickWidth,
+        ClickHeight: clickHeight, DefaultColor: defaultColor, HoverColor: hoverColor, Interactable: interactable, Visible: visible, ID: cm_uniqueButtonID };
 
     return cm_uniqueButtonID;
 }
@@ -152,7 +148,6 @@ if (EventPlayer() == HostPlayer())
 void DestroyButton(Number buttonID) "CM: Destroy button"
 {
     Number removeButtonIndex = ButtonIndexFromID(buttonID);
-    DestroyInWorldText(cm_buttons[removeButtonIndex].TextID);
     cm_buttons.ModRemoveByIndex(removeButtonIndex);
 }
 

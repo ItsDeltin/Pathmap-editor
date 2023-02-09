@@ -76,7 +76,6 @@ Event.OngoingPlayer
 if (isPathfinding)
 if (PositionOf().DistanceTo(currentPathfindingNodePosition) < 0.4)
 {
-    EnableInspectorRecording();
     Number previous! = currentPathNode;
     currentPathNode = travelPath[currentPathNode];
 
@@ -97,9 +96,7 @@ if (PositionOf().DistanceTo(currentPathfindingNodePosition) < 0.4)
         a.Node1 == Nodes[travelPath[previous]].Node.UniqueID &&
         a.Node2 == Nodes[travelPath[currentPathNode]].Node.UniqueID)
         .Map(a => a.Value);
-    
-    LogToInspector('node attributes [0]: ' + attributes[0]);
-    
+        
     // Execute the rules that contain the attributes.
     Number[] executeRules = Rules
         .Map((r, i) => i)
@@ -112,8 +109,6 @@ if (PositionOf().DistanceTo(currentPathfindingNodePosition) < 0.4)
         for (define a = 0; Rules[executeRules.First].Actions.Length; 1)
             Rules[executeRules.First].Actions[actionIndexFromID(executeRules.First, Rules[executeRules.First].ActionOrder[a])].Executor();
     }
-    
-    DisableInspectorRecording();
 }
 
 rule: 'Pathfind: Destination reached'

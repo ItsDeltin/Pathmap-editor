@@ -11,6 +11,10 @@ import 'number selector.del';
 import 'pathfinder settings.del';
 import 'settings.lobby';
 
+globalvar Number version = 1;
+
+globalvar Map map = CurrentMap();
+
 class what {} globalvar what whaat! = new what();
 
 globalvar Number maxHistoryLength!;
@@ -20,6 +24,15 @@ rule: 'Setup: Inspector, Performance HUD, and Settings' -1
     DisableInspectorRecording();
     CreateHudText(AllPlayers(), Text: "cap: {0} {1} {2}".Format([ServerLoad(), ServerLoadAverage(), ServerLoadPeak()]));
     maxHistoryLength = WorkshopSettingInteger("Pathmap Editor", "Undo history length", 10, 0, 100);
+}
+
+rule: 'Snapshot'
+Event.OngoingPlayer
+if (host == eventPlayer)
+if (button(Button.Crouch))
+{
+    EnableInspectorRecording();
+    DisableInspectorRecording();
 }
 
 struct Node

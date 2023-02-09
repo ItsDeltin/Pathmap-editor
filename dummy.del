@@ -34,10 +34,18 @@ if (dummyOutlineState != dummySavedOutlineState)
 
 rule: 'Dummy: destroy'
 if (button(Button.Ultimate))
+if (SelectedNodeID == -1)
 {
     define destroy = selectedDummies;
     for (waitlessI = 0; destroy.Length; 1)
         DestroyDummyBot(destroy[waitlessI]);
+}
+
+rule: 'Dummy: select/deselect all'
+if (button(Button.Ability1))
+{
+    Boolean flip = !selectedDummies.Length;
+    AllPlayers().FilteredArray(p => p.IsDummy()).dummySelected = flip;
 }
 
 rule: 'Pathfind: Pathfind selected dummies'

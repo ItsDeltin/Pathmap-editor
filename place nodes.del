@@ -48,7 +48,7 @@ rule: 'Editor: dummy mode enter'
 if (editorState == EditorState.PlaceDummy)
 {
     cursorMarkerEffect = CreateEffect(
-        AllPlayers().FilteredArray(p => !host.cm_isInMenu),
+        !host.cm_isInMenu && SelectedPlayer == null && SelectedNodeID == -1 ? AllPlayers() : null,
         Effect.Ring,
         Color.SkyBlue,
         UpdateEveryFrame(watchPoint),
@@ -56,7 +56,7 @@ if (editorState == EditorState.PlaceDummy)
         EffectRev.VisibleToPositionRadiusAndColor);
     
     dummyBotHeroIcon = CreateInWorldText(
-        AllPlayers(),
+        !host.cm_isInMenu && SelectedPlayer == null && SelectedNodeID == -1 ? AllPlayers() : null,
         HeroIconString(placingDummyHero),
         UpdateEveryFrame(watchPoint),
         2,
@@ -322,6 +322,9 @@ rule: 'Editor: Place dummy'
 if (button(Button.PrimaryFire))
 if (editorState == EditorState.PlaceDummy)
 if (!host.cm_isInMenu)
+if (!host.releasePrimary)
+if (SelectedPlayer == null)
+if (SelectedNodeID == -1)
 {
     CreateDummyBot(placingDummyHero, Team.Team1, -1, watchPoint, facing);
 }
@@ -377,6 +380,11 @@ rule: 'Editor: tutorial' 1000
     AddControlText(
         'Destroy dummy bot',
         Button.Ultimate,
+        AllPlayers().IsTrueForAny(p => p.dummySelected)
+    );
+    AddControlText(
+        'Teleport to cursor',
+        Button.Melee,
         AllPlayers().IsTrueForAny(p => p.dummySelected)
     );
     AddControlText(

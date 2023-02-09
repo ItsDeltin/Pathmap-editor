@@ -48,6 +48,12 @@ if (button(Button.Ability1))
     AllPlayers().FilteredArray(p => p.IsDummy()).dummySelected = flip;
 }
 
+rule: 'Dummy: teleport to cursor'
+if (button(Button.Melee))
+{
+    Teleport(selectedDummies, watchPoint);
+}
+
 rule: 'Pathfind: Pathfind selected dummies'
 if (button(Button.Reload))
 if (selectedDummies.Length)

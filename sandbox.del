@@ -230,7 +230,6 @@ rule: 'CM: Add dummy'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.AddDummy)
 {
-    SmallMessage(AllPlayers(), "Opening hero menu");
     chooseHeroMenu(hero => {
         editorState = EditorState.PlaceDummy;
         placingDummyHero = hero;
@@ -287,4 +286,5 @@ if (chooseHeroCallback)
     SetMenuState(MenuState.Main);
     chooseHeroCallback = null;
     cm_isInMenu = false;
+    releasePrimary = true;
 }

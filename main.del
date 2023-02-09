@@ -333,3 +333,13 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
         );
     }
 }
+
+playervar Boolean releasePrimary;
+
+rule: 'Release primary'
+Event.OngoingPlayer
+if (releasePrimary)
+if (!IsButtonHeld(EventPlayer(), Button.PrimaryFire))
+{
+    releasePrimary = !releasePrimary;
+}

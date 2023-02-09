@@ -97,50 +97,56 @@ Number __createButtonSubroutine(Any[] input) "CM: Create button"
     cm_buttons += { Label: label, PrimaryAction: [primaryAction], SecondaryAction: [secondaryAction], Scale: scale, PosX: posX, PosY: posY, ClickWidth: clickWidth,
         ClickHeight: clickHeight, DefaultColor: defaultColor, HoverColor: hoverColor, Interactable: interactable, Visible: visible, TextID: null, ID: cm_uniqueButtonID };
 
-    Number index: ButtonIndexFromID(EvaluateOnce(cm_uniqueButtonID));
-
-    cm_buttons[cm_buttons.Length - 1].TextID = CreateInWorldText(
-        // REEVALUATION ENABLED
-        VisibleTo: cm_isInMenu ? EventPlayer() : null,
-        // todo: I think there was supposed to be a special unicode for this.
-        // REEVALUATION ENABLED
-        Header: useDefaultFont ? <"<0>", cm_buttons[index].Label> : cm_buttons[index].Label,
-        // REEVALUATION ENABLED
-        Position: <Vector>UpdateEveryFrame(
-            EyePosition() + 100 * (
-                cm_buttons[index].PosX * CrossProduct(
-                    FacingDirectionOf(),
-                    DirectionFromAngles(
-                        HorizontalAngleFromDirection(FacingDirectionOf()),
-                        VerticalAngleFromDirection(FacingDirectionOf()) - 90
-                    )
-                ) + (cm_buttons[index].PosY - 0.2) * DirectionFromAngles(
-                        HorizontalAngleFromDirection(FacingDirectionOf()),
-                        VerticalAngleFromDirection(FacingDirectionOf()) - 90
-                ) + 3 * FacingDirectionOf()
-            )
-        ),
-        // NOTICE: Scale reevaluation is disabled.
-        Scale: EvaluateOnce(scale),
-        Clipping: Clipping.DoNotClip,
-        Reevaluation: InworldTextRev.VisibleToPositionStringAndColor,
-        // NOTICE: clickWidth and clickHeight reevaluation is disabled.
-        // REEVALUATION ENABLED
-        TextColor: cm_buttons[index].Interactable
-            && AbsoluteValue(AngleDifference(
-                HorizontalAngleFromDirection(FacingDirectionOf()),
-                HorizontalAngleFromDirection(cm_menuOriginalFacing)
-            ) - cm_buttons[index].PosX) <= EvaluateOnce(clickWidth) / 2
-            && AbsoluteValue(AngleDifference(
-                VerticalAngleFromDirection(FacingDirectionOf()),
-                VerticalAngleFromDirection(cm_menuOriginalFacing)
-            ) - cm_buttons[index].PosY) <= EvaluateOnce(clickHeight) / 2
-            ? cm_buttons[index].HoverColor : cm_buttons[index].DefaultColor,
-            Spectators.DefaultVisibility
-    );
-    cm_textBudget -= 1;
-
     return cm_uniqueButtonID;
+}
+
+rule: 'CM: Host Just-In-Time Preload Optimization'
+Event.OngoingPlayer
+if (EventPlayer() == HostPlayer())
+{
+    for (define i = 0; 40; 1) {
+        Number index: EvaluateOnce(i);
+
+        CreateInWorldText(
+            // REEVALUATION ENABLED
+            VisibleTo: cm_isInMenu && index < cm_buttons.Length ? EventPlayer() : null,
+            // todo: I think there was supposed to be a special unicode for this.
+            // REEVALUATION ENABLED
+            Header: cm_buttons[index].Label,
+            // REEVALUATION ENABLED
+            Position: <Vector>UpdateEveryFrame(
+                EyePosition() + 100 * (
+                    cm_buttons[index].PosX * CrossProduct(
+                        FacingDirectionOf(),
+                        DirectionFromAngles(
+                            HorizontalAngleFromDirection(FacingDirectionOf()),
+                            VerticalAngleFromDirection(FacingDirectionOf()) - 90
+                        )
+                    ) + (cm_buttons[index].PosY - 0.2) * DirectionFromAngles(
+                            HorizontalAngleFromDirection(FacingDirectionOf()),
+                            VerticalAngleFromDirection(FacingDirectionOf()) - 90
+                    ) + 3 * FacingDirectionOf()
+                )
+            ),
+            //Scale: cm_buttons[index].Scale, blizzard whyyyyyy let me reevaluateeee
+            Scale: 2.8,
+            Clipping: Clipping.DoNotClip,
+            Reevaluation: InworldTextRev.VisibleToPositionStringAndColor,
+            TextColor: cm_buttons[index].Interactable
+                && AbsoluteValue(AngleDifference(
+                    HorizontalAngleFromDirection(FacingDirectionOf()),
+                    HorizontalAngleFromDirection(cm_menuOriginalFacing)
+                ) - cm_buttons[index].PosX) <= cm_buttons[index].ClickWidth / 2
+                && AbsoluteValue(AngleDifference(
+                    VerticalAngleFromDirection(FacingDirectionOf()),
+                    VerticalAngleFromDirection(cm_menuOriginalFacing)
+                ) - cm_buttons[index].PosY) <= cm_buttons[index].ClickHeight / 2
+                ? cm_buttons[index].HoverColor : cm_buttons[index].DefaultColor,
+                Spectators.DefaultVisibility
+        );
+        MinWait();
+    }
+    cm_textBudget -= 40;
 }
 
 void DestroyButton(Number buttonID) "CM: Destroy button"

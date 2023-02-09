@@ -4,59 +4,59 @@ RuleAction CreateAction(in Number item, in Number id)
 {
     // Jump
     if (item == 1)
-        return {Label: 'jump', ID: id, Executor: () => PressButton(eventPlayer, Button.Jump)};
+        return {Label: ' jump ', ID: id, Executor: () => PressButton(eventPlayer, Button.Jump)};
     
     // Start holding jump
     else if (item == 2)
-        return {Label: 'start holding jump', ID: id, Executor: () => {
+        return {Label: ' start holding jump ', ID: id, Executor: () => {
             StartHoldingButton(eventPlayer, Button.Jump);
             pfstateIsJumping = true;
         }};
     
     // Stop holding jump
     else if (item == 3)
-        return {Label: 'stop holding jump', ID: id, Executor: () => {
+        return {Label: ' stop holding jump', ID: id, Executor: () => {
             StopHoldingButton(eventPlayer, Button.Jump);
             pfstateIsJumping = false;
         }};
     
     // Ability 1
     else if (item == 4)
-        return {Label: 'ability 1', ID: id, Executor: () => PressButton(eventPlayer, Button.Ability1)};
+        return {Label: ' ability 1', ID: id, Executor: () => PressButton(eventPlayer, Button.Ability1)};
     
     // Ability 2
     else if (item == 5)
-        return {Label: 'ability 2', ID: id, Executor: () => PressButton(eventPlayer, Button.Ability2)};
+        return {Label: ' ability 2', ID: id, Executor: () => PressButton(eventPlayer, Button.Ability2)};
     
     // Melee
     else if (item == 6)
-        return {Label: 'melee', ID: id, Executor: () => PressButton(eventPlayer, Button.Melee)};
+        return {Label: ' melee', ID: id, Executor: () => PressButton(eventPlayer, Button.Melee)};
     
     // Primary fire
     else if (item == 7)
-        return {Label: 'primary fire', ID: id, Executor: () => PressButton(eventPlayer, Button.PrimaryFire)};
+        return {Label: ' primary fire', ID: id, Executor: () => PressButton(eventPlayer, Button.PrimaryFire)};
 
     // Secondary fire
     else if (item == 8)
-        return {Label: 'secondary fire', ID: id, Executor: () => PressButton(eventPlayer, Button.SecondaryFire)};
+        return {Label: ' secondary fire', ID: id, Executor: () => PressButton(eventPlayer, Button.SecondaryFire)};
     
     // Stop walking
     else if (item == 9)
-        return {Label: 'stop walking', ID: id, Executor: () => {
+        return {Label: ' stop walking', ID: id, Executor: () => {
             StopThrottleInDirection(eventPlayer);
             pfstateIsStopped = true;
         }};
     
     // Walk to destination
     else if (item == 10)
-        return {Label: 'walk to destination', ID: id, Executor: () => {
+        return {Label: ' walk to destination', ID: id, Executor: () => {
             WalkToDestination();
             pfstateIsStopped = false;
         }};
 
     // Look at floor
     else if (item == 11)
-        return {Label: 'look at floor', ID: id, Executor: () => StartFacing(
+        return {Label: ' look at floor', ID: id, Executor: () => StartFacing(
             eventPlayer,
             DirectionFromAngles(HorizontalFacingAngleOf(eventPlayer), 89),
             1000,
@@ -66,7 +66,7 @@ RuleAction CreateAction(in Number item, in Number id)
     
     // Look at destination
     else if (item == 12)
-        return {Label: 'look at destination', ID: id, Executor: () => StartFacing(
+        return {Label: ' look at destination', ID: id, Executor: () => StartFacing(
             eventPlayer,
             EyePosition().DirectionTowards(walkingTo + Up() * 1.75),
             1000,

@@ -125,6 +125,7 @@ class Scrollbar
                         posX: posX,
                         posY: posY,
                         scale: scale,
+                        clickWidth: 1.4,
                         primaryAction: [MenuAction.ScrollbarItem, this, i],
                         defaultColor: itemColors[i]
                     );
@@ -169,8 +170,6 @@ class Scrollbar
         
         DestroyButton(upButton);
         DestroyButton(downButton);
-
-        LogToInspector('deleting ' + this);
         delete this;
     }
 }

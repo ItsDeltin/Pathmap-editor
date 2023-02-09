@@ -83,30 +83,29 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
     if (newState == menuState) return;
 
     // Cleanup
+    if (attributeSelector)
+    {
+        attributeSelector.Dispose();
+        attributeSelector = null;
+    }
+
     destroyButtonCollection(buttonCollectionMain);
 
-    if (menuState == MenuState.Main)
-    {
-        if (attributeSelector)
-        {
-            attributeSelector.Dispose();
-            attributeSelector = null;
-        }
-    }
-    else if (menuState == MenuState.Rules)
+    if (menuState == MenuState.Rules)
         DestroyPager();
         
     menuState = newState;
     
     // Setup
     if (newState == MenuState.Main)
-    {   
+    {
         buttonCollectionMain += createButton(
             'add dummy bot',
             primaryAction: MenuAction.AddDummy,
             scale: 2.5,
             posX: 1.7,
             posY: -0.6,
+            clickWidth: 1.2,
             defaultColor: Color.White);
         
         buttonCollectionMain += createButton(
@@ -115,6 +114,7 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             scale: 2.5,
             posX: 1.7,
             posY: 0.4,
+            clickWidth: 0.8,
             defaultColor: Color.White);
         
         buttonCollectionMain += createButton(
@@ -123,12 +123,14 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             scale: 2.5,
             posX: 1.7,
             posY: 0.2,
+            clickWidth: 1.4,
             defaultColor: Color.White);
 
         buttonCollectionMain += createButton(
             'Guide',
             primaryAction: MenuAction.Guide,
             scale: 2.5,
+            clickWidth: 0.4,
             posX: 1.7,
             posY: 0,
             defaultColor: Color.White);
@@ -140,15 +142,19 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             scale: 2.5,
             posX: -1.7,
             posY: 0.6,
+            clickWidth: 1.0,
             defaultColor: Color.White);
         
         linkModeID = createButton(
             'Node link mode (segment)',
+            clickWidth: 1.7,
             primaryAction: MenuAction.LinkMode,
             scale: 2.5,
             posY: 0.7);
         
-        attributeSelector = new NumberSelector(attribute, 0, 0.5, false, value => attribute = value);        
+        updateFreecamLabel();
+        
+        attributeSelector = new NumberSelector(attribute, 0, 0.5, false, value => attribute = value);
         buttonCollectionMain += [freecamSwitchID, linkModeID];
     }
     else if (newState == MenuState.Rules)

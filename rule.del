@@ -55,7 +55,7 @@ void SetupRuleMenu() 'Setup rule menu'
 // When a new rule is selected, this updates the content.
 void updateRuleContent() 'CM: Update rule content'
 {
-    SetLabel(rulePageText, 'rule ' + (rulePage + 1));
+    SetLabel(rulePageText, ' rule ' + (rulePage + 1));
     
     SetInteractability(previousRuleText, rulePage != 0);
     SetColor(previousRuleText, rulePage != 0 ? Color.White : Color.Gray);
@@ -101,6 +101,7 @@ void initiatePager() 'CM: Initiate pager'
     pagerButtons += createButton(
         'add action...',
         primaryAction: MenuAction.AddAction,
+        clickWidth: 1.2,
         posY: 0.8,
         posX: -2,
         scale: 2
@@ -108,7 +109,8 @@ void initiatePager() 'CM: Initiate pager'
     pagerButtons += createButton(
         'executes on attribute',
         posY: 0.3,
-        scale: 1.75
+        scale: 1.75,
+        interactable: false
     );
     ruleAttributeSelector = new NumberSelector(Rules[rulePage].ExecutesOnAttribute, 0, 0.175, true, value => Rules[rulePage].ExecutesOnAttribute = value);
     deleteActionText = createButton(
@@ -116,14 +118,16 @@ void initiatePager() 'CM: Initiate pager'
         primaryAction: MenuAction.DeleteAction,
         posY: -0.6,
         posX: -0.725,
+        clickWidth: 1.3,
         scale: 2,
         defaultColor: deleteActionDisabledColor,
         hoverColor: Color.Rose,
         interactable: false
     );
     rulePageText = createButton(
-        'rule 1',
+        ' rule 1',
         posY: 0.55,
+        clickWidth: 0.7,
         scale: 3,
         interactable: false
     );
@@ -143,6 +147,7 @@ void initiatePager() 'CM: Initiate pager'
         'toggle all',
         posX: 1.75,
         posY: 0.7,
+        clickWidth: 0.8,
         scale: 1.75,
         primaryAction: MenuAction.ToggleAll
     );

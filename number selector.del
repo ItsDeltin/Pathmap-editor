@@ -70,8 +70,6 @@ class NumberSelector
         DestroyButton(numberText);
         DestroyButton(incrementText);
         DestroyButton(decrementText);
-
-        LogToInspector('deleting numberselector ' + this);
         delete this;
     }
 }

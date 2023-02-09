@@ -425,8 +425,11 @@ void DestroyPager()
         ruleAttributeSelector = null;
     }
 
-    heroScrollBar.Dispose();
-    heroScrollBar = null;
+    if (heroScrollBar != null)
+    {
+        heroScrollBar.Dispose();
+        heroScrollBar = null;
+    }
 }
 
 void DestroyScrollbar()

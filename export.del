@@ -324,11 +324,13 @@ void ExportDecompresserToWorkshop(Number beginVariableRange) playervar "EXPORT: 
     Number vr: beginVariableRange;
     # Variables
     LogToInspector(<'variables { global: <0>: pathfinder_compressed <1>: pathfinder_matcher <2>: pathfinder_parent_map <3>: pathfinder_i_node /*', vr, vr + 1, vr + 2, vr + 3>);
-    LogToInspector(<'*/ <0>: pathfinder_current_node_array <1>: pathfinder_i_string <2>: pathfinder_index_mapper } /*', vr + 4, vr + 5, vr + 6>);
+    LogToInspector(<'*/ <0>: pathfinder_current_node_array <1>: pathfinder_i_string <2>: pathfinder_index_mapper <3>: pathfinder_nodes } /*', vr + 4, vr + 5, vr + 6, vr + 7>);
     # Add rule and event
     LogToInspector('*/ rule(\"GENERATED: decompress map\") { event { Ongoing - Global; } /*');
-    # No conditions :)
+    # Conditions
     LogToInspector('*/ conditions { /*');
+    # Wait for pathfinder_compressed to contain a value before starting.
+    LogToInspector('*/     global.pathfinder_compressed != Null; /*');
     # Start actions
     LogToInspector('*/ } actions { /*');
     # Create the Matcher

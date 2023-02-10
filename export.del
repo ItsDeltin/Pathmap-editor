@@ -265,6 +265,7 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     }
     # End action & rule block
     LogToInspector('*/ } } /*');
+
     # Nodes rule
     LogToInspector('*/ rule(\"GENERATED: {0} nodes\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
     # Conditions
@@ -273,7 +274,7 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     LogToInspector(mapCondition);
     # Start actions
     LogToInspector('*/ } actions { /*');
-    # Set compressed data
+    # Set pathfinder_nodes
     LogToInspector('*/     global.pathfinder_nodes = Array( /*');
     # For each node
     for (Number a = 0; Nodes.Length; 10) {
@@ -295,6 +296,23 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     }
     # End action & rule block
     LogToInspector('*/ } } /*');
+
+    # Attributes rule
+    LogToInspector('*/ rule(\"GENERATED: {0} attributes\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
+    # Conditions
+    LogToInspector('*/ conditions { /*');
+    # Make sure this is the correct map
+    LogToInspector(mapCondition);
+    # Start actions
+    LogToInspector('*/ } actions { /*');
+    # Set pathfinder_attributes
+    LogToInspector('*/     global.pathfinder_attributes = Array( /*');
+    # For each attribute
+    ExportArray(Attributes, 10, (attribute, isLast) => <'Vector(<0>, <1>, <2>)<3>',
+        NodeIndexFromID(attribute.Node1), NodeIndexFromID(attribute.Node2), attribute.Value,
+        isLast ? '); ' : ', '>);
+    # End action & rule block
+    LogToInspector('*/ } } /*');
     
     DisableInspectorRecording();
 }
@@ -305,6 +323,12 @@ if (button(Button.Ability2))
 {
     ExportDecompresserToWorkshop(0);
 }
+rule: 'Test'
+Event.OngoingPlayer
+if (button(Button.Melee))
+{
+    ExportCompressedDataToWorkshop();
+}
 
 void ExportDecompresserToWorkshop(Number beginVariableRange) playervar "EXPORT: decompresser to workshop"
 {
@@ -313,6 +337,7 @@ void ExportDecompresserToWorkshop(Number beginVariableRange) playervar "EXPORT: 
 
     // Variables:
     // ~~global.pathfinder_nodes~~
+    // ~~global.pathfinder_attributes~~
     // *global.pathfinder_compressed
     // global.pathfinder_matcher
     // global.pathfinder_parent_map
@@ -324,7 +349,8 @@ void ExportDecompresserToWorkshop(Number beginVariableRange) playervar "EXPORT: 
     Number vr: beginVariableRange;
     # Variables
     LogToInspector(<'variables { global: <0>: pathfinder_compressed <1>: pathfinder_matcher <2>: pathfinder_parent_map <3>: pathfinder_i_node /*', vr, vr + 1, vr + 2, vr + 3>);
-    LogToInspector(<'*/ <0>: pathfinder_current_node_array <1>: pathfinder_i_string <2>: pathfinder_index_mapper <3>: pathfinder_nodes } /*', vr + 4, vr + 5, vr + 6, vr + 7>);
+    LogToInspector(<'*/ <0>: pathfinder_current_node_array <1>: pathfinder_i_string <2>: pathfinder_index_mapper <3>: pathfinder_nodes /*', vr + 4, vr + 5, vr + 6, vr + 7>);
+    LogToInspector(<'*/ <0>: pathfinder_attributes } /*', vr + 8>);
     # Add rule and event
     LogToInspector('*/ rule(\"GENERATED: decompress map\") { event { Ongoing - Global; } /*');
     # Conditions
@@ -377,6 +403,21 @@ void ExportDecompresserToWorkshop(Number beginVariableRange) playervar "EXPORT: 
     LogToInspector('*/ } } /*');
 
     DisableInspectorRecording();
+}
+
+playervar String exportArrayStub;
+playervar Number exportArrayNumA;
+playervar Number exportArrayNumB;
+void ExportArray<T>(in T[] array, in Number step, const (T, Boolean) => String valueToString)
+{
+    for (exportArrayNumA = 0; array.Length; step) {
+        exportArrayStub = '';
+        for (exportArrayNumB = exportArrayNumA; Min(exportArrayNumA + step, array.Length); 1) {
+            exportArrayStub = exportArrayStub + valueToString(array[exportArrayNumB], exportArrayNumB == array.Length - 1);
+        }
+        LogToInspector('*/{0}/*'.Format([exportArrayStub]));
+        MinWait();
+    }
 }
 
 void ExportStatement(in OutputLanguage language, in String workshop, in String deltinscript, in String overpy)

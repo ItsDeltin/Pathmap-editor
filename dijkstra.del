@@ -71,13 +71,6 @@ struct DijkstraResult
     public Number[] Parents;
 }
 
-rule: 'ok'
-Event.OngoingPlayer
-if (button(Button.Ability2))
-{
-    MakeBake();
-}
-
 void MakeBake() playervar 'Subroutine: Make Bake'
 {
     bakeResult = [];
@@ -133,8 +126,6 @@ void MakeBake() playervar 'Subroutine: Make Bake'
 
     DestroyProgressBarHudText(progressBar);
     bakeMatcher = null;
-
-    ExportCompressedDataToWorkshop();
 }
 
 void InitializeBakeMatcher() 'Subroutine: Initialize Bake Matcher' {

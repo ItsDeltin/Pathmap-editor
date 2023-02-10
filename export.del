@@ -226,6 +226,8 @@ void Export(OutputLanguage lang) playervar 'EXPORT: Export'
 
 void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to workshop" 
 {
+    // This function assumes MakeBake() was already executed.
+
     EnableInspectorRecording();
     // String variableCompatibleMapName = '{0}'.Format([CurrentMap()])
     //     .Replace(' ', '')
@@ -235,9 +237,8 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     
     String mapCondition: '*/     Current Map == Map({0}) /*'.Format([CurrentMap()]);
 
-    // assuming MakeBake was executed
     # Add rule and event
-    LogToInspector('*/ rule(\"GENERATED: {0} compressed map data\") { event { Ongoing - Global } /*'.Format([CurrentMap()]));
+    LogToInspector('rule(\"GENERATED: {0} compressed map data\") { event { Ongoing - Global } /*'.Format([CurrentMap()]));
     # Conditions
     LogToInspector('*/ conditions { /*');
     # Make sure this is the correct map
@@ -295,6 +296,45 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     # End action & rule block
     LogToInspector('*/ } } /*');
     
+    DisableInspectorRecording();
+}
+
+rule: 'Test'
+Event.OngoingPlayer
+if (button(Button.Ability2))
+{
+    ExportDecompresserToWorkshop();
+}
+
+void ExportDecompresserToWorkshop() playervar "EXPORT: decompresser to workshop"
+{
+    InitializeBakeMatcher();
+    EnableInspectorRecording();
+
+    # Add rule and event
+    LogToInspector('rule(\"GENERATED: decompress map\") { event { Ongoing - Global } /*');
+    # No conditions :)
+    LogToInspector('*/ conditions { /*');
+    # Start actions
+    LogToInspector('*/ } actions { /*');
+    # Create the Matcher
+    LogToInspector('*/     global.pathfinder_matcher = Array( /*');
+    # Add matcher elements
+    for (Number a = 0; bakeMatcher.Length; 20) {
+        String stub = '';
+        for (Number b = a; Min(a + 20, bakeMatcher.Length); 1) {
+            stub = stub + <
+                'Custom String(\"<0>\")<1>',
+                bakeMatcher[b],
+                b < bakeMatcher.Length - 1 ? ', ' : '); '
+            >;
+        }
+        LogToInspector('*/{0}/*'.Format([stub]));
+        MinWait();
+    }
+    # End action & rule block
+    LogToInspector('*/ } } /*');
+
     DisableInspectorRecording();
 }
 

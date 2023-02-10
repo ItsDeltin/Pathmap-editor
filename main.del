@@ -10,6 +10,7 @@ import 'scroll menu.del';
 import 'number selector.del';
 import 'pathfinder settings.del';
 import 'cursor menu.del';
+import 'export.del';
 import 'settings.lobby';
 
 globalvar Number version = 1;
@@ -125,13 +126,6 @@ if (!IsDummyBot())
     DisallowButton(eventPlayer, Button.SecondaryFire);
     DisallowButton(eventPlayer, Button.Ultimate);
     DisallowButton(eventPlayer, Button.Ability1);
-}
-
-disabled rule: 'debug button'
-Event.OngoingPlayer
-if (host == eventPlayer)
-{
-    createButton('db');
 }
 
 rule: 'Main: Selection loop'

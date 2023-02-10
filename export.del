@@ -1,0 +1,309 @@
+import 'main.del';
+
+enum OutputLanguage
+{
+    Workshop,
+    OSTW,
+    OverPy
+}
+
+Boolean IsWorkshopOrOstw(OutputLanguage language): language < OutputLanguage.OverPy;
+
+void ExportMenu() 'EXPORT: create export menu'
+{
+    setMainLabel("main / export");
+    
+    buttonCollectionMain += createButton(
+        label: "┏━ Generate ━┓",
+        posX: 1.5,
+        posY: .6,
+        defaultColor: Color.White,
+        interactable: false
+    );
+    buttonCollectionMain += createButton(
+        label: "Workshop code",
+        posX: 1.5,
+        posY: .3,
+        defaultColor: Color.Green,
+        primaryAction: MenuAction.ExportWorkshop
+    );
+    buttonCollectionMain += createButton(
+        label: "OSTW code",
+        posX: 1.5,
+        posY: 0.,
+        defaultColor: Color.SkyBlue,
+        primaryAction: MenuAction.ExportOstw
+    );
+    buttonCollectionMain += createButton(
+        label: "Overpy code",
+        posX: 1.5,
+        posY: -.3,
+        defaultColor: Color.Yellow,
+        primaryAction: MenuAction.ExportOverpy
+    );
+}
+
+rule: 'EXPORT: open export menu'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.Export)
+{
+    SetMenuState(MenuState.Export);
+}
+
+rule: 'EXPORT: Workshop'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.ExportWorkshop)
+{
+    Export(OutputLanguage.Workshop);
+}
+
+rule: 'EXPORT: OSTW'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.ExportOstw)
+{
+    Export(OutputLanguage.OSTW);
+}
+
+rule: 'EXPORT: OverPy'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.ExportOverpy)
+{
+    Export(OutputLanguage.OverPy);
+}
+
+void Export(OutputLanguage lang) playervar 'EXPORT: Export'
+{
+    // OngoingPlayer is not vital, it's just so we can use player variables here
+    // since we are clean out of global ones :')
+    EnableInspectorRecording();
+    SmallMessage(AllPlayers(), 'Exporting rules');
+    
+    Boolean is_ow: lang == OutputLanguage.Workshop;
+    Boolean is_ostw: lang == OutputLanguage.OSTW;
+
+    LogToInspector('\n\n/*********\n* BEGIN *\n*********');
+    LogToInspector('* You can use the following regex expression to remove the timestamps:');
+    LogToInspector('* \"^\\[[0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}\\] \*\/ \"');
+
+    for(define i = 0; Rules.Length; 1) {
+        # Rule syntax
+        ExportStatement(lang,
+            '*/ rule(\"Custom Pathfinding Rule #{0}\") {        /*'.Format([i + 1]),
+            '*/ rule: \"Custom Pathfinding Rule #{0}\"        /*'.Format([i + 1]),
+            '*/\nrule \"Custom Pathfinding Rule #{0}\": @Event eachPlayer        /*'.Format([i + 1])
+        );
+
+        # Add event (ostw)
+        if (is_ow) {
+            LogToInspector('*/ event { Ongoing - Player; All; All; }        /*');
+        } else if (is_ostw) {
+            LogToInspector('*/ Event.OngoingPlayer        /*');
+        }
+
+        # Add the attribute condition if it is required.
+        if (Rules[i].ExecutesOnAttribute != 0) {
+            # Workshop code
+            if (lang == OutputLanguage.Workshop) {
+                // TODO
+                LogToInspector('*/ conditions {        /*');
+                LogToInspector('*/ TODO        /*');
+                LogToInspector('*/ }        /*');
+            }
+            # OSTW code
+            else if (lang == OutputLanguage.OSTW) {
+                LogToInspector('*/ if (Pathmap.CurrentSegmentAttribute().Contains({0}))        /*'.Format([Rules[i].ExecutesOnAttribute]));
+            }
+            # Overpy code
+            else if (lang == OutputLanguage.OverPy) {
+                // TODO
+                LogToInspector('*/\n    @Condition get_current_segment.contains({0})        /*'.Format([Rules[i].ExecutesOnAttribute]));
+            }
+        }
+
+        # Begin actions for the c-like languages 
+        if (IsWorkshopOrOstw(lang))
+            LogToInspector('*/ {        /*');
+        
+        # Loop through each action in the rule.
+        for(define a = 0; Rules[i].Actions.Length; 1) {
+            # Extract the action ID.
+            define actionID = Rules[i].Actions[actionIndexFromID(i, Rules[i].ActionOrder[a])].ID;
+
+            # Jump
+            if (actionID == 1) {
+                ExportAction(lang,
+                    'Press Button(Event Player, Button(Jump));',
+                    'PressButton(EventPlayer(), Button.Jump);',
+                    'eventPlayer.forceButtonPress(Button.JUMP)');
+            }
+            # Start holding jump
+            else if (actionID == 2) {
+                ExportAction(lang,
+                    'Start Holding Button(Event Player, Button(Jump));',
+                    'StartHoldingButton(EventPlayer(), Button.Jump);',
+                    'eventPlayer.startForcingButton(Button.JUMP)');
+            }
+            # Stop holding jump
+            else if (actionID == 3) {
+                ExportAction(lang,
+                    'Stop Holding Button(Event Player, Button(Jump));',
+                    'StopHoldingButton(EventPlayer(), Button.Jump);',
+                    'eventPlayer.stopForcingButton(Button.JUMP)');
+            }
+            # Ability 1
+            else if (actionID == 4) {
+                ExportAction(lang,
+                    'Press Button(Event Player, Button(Ability 1));',
+                    'PressButton(EventPlayer(), Button.Ability1);',
+                    'eventPlayer.forceButtonPress(Button.ABILITY_1)');
+            }
+            # Ability 2
+            else if (actionID == 5) {
+                ExportAction(lang,
+                    'Press Button(Event Player, Button(Ability 2));',
+                    'PressButton(EventPlayer(), Button.Ability2);',
+                    'eventPlayer.forceButtonPress(Button.ABILITY_2)');
+            }
+            # Melee
+            else if (actionID == 6) {
+                ExportAction(lang,
+                    'Press Button(Event Player, Button(Melee));',
+                    'PressButton(EventPlayer(), Button.Melee);',
+                    'eventPlayer.forceButtonPress(Button.MELEE)');
+            }
+            # Primary fire
+            else if (actionID == 7) {
+                ExportAction(lang,
+                    'Press Button(Event Player, Button(Primary Fire));',
+                    'PressButton(EventPlayer(), Button.PrimaryFire);',
+                    'eventPlayer.forceButtonPress(Button.PRIMARY_FIRE)');
+            }
+            # Secondary fire
+            else if (actionID == 8) {
+                ExportAction(lang,
+                    'Press Button(Event Player, Button(Secondary Fire));',
+                    'PressButton(EventPlayer(), Button.SecondaryFire);',
+                    'eventPlayer.forceButtonPress(Button.SECONDARY_FIRE)');
+            }
+            # Stop walking
+            else if (actionID == 9) {
+                ExportAction(lang,
+                    'top Throttle In Direction(Event Player);',
+                    'topThrottleInDirection();',
+                    'ventPlayer.stopThrottleInDirection()');
+            }
+            # Walk to destination
+            else if (actionID == 10) {
+                ExportAction(lang, "uhh;", "uhh();", "uhh()");
+            }
+            # Look at floor
+            else if (actionID == 11) {
+                ExportAction(lang,
+                    "Start Facing(Event Player, Direction From Angles(Horizontal Facing Angle Of(Event Player), 89), 1000, To World, None);",
+                    "StartFacing(EventPlayer(), DirectionFromAngles(HorizontalFacingAngleOf(), 89), 1000, Relative.ToWorld, FacingRev.None);",
+                    "eventPlayer.startFacing(angleToDirection(eventPlayer.getHorizontalFacingAngle(), 89), 1000, Relativity.TO_WORLD, FacingReeval.NONE)");
+            }
+            # Look at destination
+            else if (actionID == 12) {
+                ExportAction(lang, "uhh;", "uhh();", "uhh()");
+            }
+
+            MinWait();
+        }
+
+        # End actions for the c-like languages 
+        if (IsWorkshopOrOstw(lang))
+            LogToInspector('*/ }        /*');
+        
+        MinWait();
+    }
+
+    LogToInspector('*/');
+
+    SmallMessage(AllPlayers(), "Rules exported!");
+    DisableInspectorRecording();
+}
+
+void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to workshop" 
+{
+    EnableInspectorRecording();
+    // String variableCompatibleMapName = '{0}'.Format([CurrentMap()])
+    //     .Replace(' ', '')
+    //     .Replace('(', '')
+    //     .Replace(')', '')
+    //     .Replace(':', '');
+    
+    String mapCondition: '*/     Current Map == Map({0}) /*'.Format([CurrentMap()]);
+
+    // assuming MakeBake was executed
+    # Add rule and event
+    LogToInspector('*/ rule(\"GENERATED: {0} compressed map data\") { event { Ongoing - Global } /*'.Format([CurrentMap()]));
+    # Conditions
+    LogToInspector('*/ conditions { /*');
+    # Make sure this is the correct map
+    LogToInspector(mapCondition);
+    # Start actions
+    LogToInspector('*/ } actions { /*');
+    # Set compressed data
+    LogToInspector('*/     global.pathfinder_compressed = Array(Array(Custom String( /*');
+
+    # For each node
+    for (define a = 0; bakeResult.Length; 1) {
+        # Add each stub
+        for (define b = 0; bakeResult[a].Length; 1) {
+            # String value
+            LogToInspector('*/\"{0}\"/*'.Format([bakeResult[a][b]]));
+            # End string
+            LogToInspector('*/         ){0} /*'.Format([
+                b < bakeResult[a].Length - 1 ? ', Custom String(' :
+                a < bakeResult.Length - 1 ? '), Array(Custom String(' : '));'
+            ]));
+            MinWait();
+        }
+        MinWait();
+    }
+    # End action & rule block
+    LogToInspector('*/ } } /*');
+    # Nodes rule
+    LogToInspector('*/ rule(\"GENERATED: {0} nodes\") { event { Ongoing - Global } /*'.Format([CurrentMap()]));
+    # Conditions
+    LogToInspector('*/ conditions { /*');
+    # Make sure this is the correct map
+    LogToInspector(mapCondition);
+    # Start actions
+    LogToInspector('*/ } actions { /*');
+    # Set compressed data
+    LogToInspector('*/     global.pathfinder_nodes = Array( /*');
+    # For each node
+    for (Number a = 0; Nodes.Length; 10) {
+        String stub = '';
+        for (Number b = a; Min(a + 10, Nodes.Length); 1) {
+            define vector = Nodes[b].Node.Position;
+            stub = stub + <'Vector(<0>, <1><4><5><6>, <2>)<3>',
+                vector.X,
+                vector.Y,
+                vector.Z,
+                b < Nodes.Length - 1 ? ', ' : ');',
+                vector.Y == vector.Y.Floor() ? '.00' : '',
+                b < 10 ? '00' : b < 100 ? '0' : '',
+                b
+            >;
+        }
+        LogToInspector('*/{0}/*'.Format([stub]));
+        MinWait();
+    }
+    # End action & rule block
+    LogToInspector('*/ } } /*');
+    
+    DisableInspectorRecording();
+}
+
+void ExportStatement(in OutputLanguage language, in String workshop, in String deltinscript, in String overpy)
+{
+    LogToInspector([workshop, deltinscript, overpy][language]);
+}
+
+void ExportAction(in OutputLanguage language, in String workshop, in String deltinScript, in String overpy)
+{
+    LogToInspector("*/{0}        /*".Format([[" " + workshop, "     " + deltinScript, "\n    " + overpy][language]]));
+}

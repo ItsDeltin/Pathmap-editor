@@ -41,7 +41,11 @@ enum MenuAction
     PathfinderSettings = 27,
     AddOrRemovePathfindingAttribute = 28,
     ToggleAll = 29,
-    Guide = 30
+    Guide = 30,
+    Export = 31,
+    ExportWorkshop = 32,
+    ExportOstw = 33,
+    ExportOverpy = 34
 }
 
 enum MenuState
@@ -53,7 +57,8 @@ enum MenuState
     AddAction,
     ChooseWaitLength,
     PathfinderSettings,
-    Guide
+    Guide,
+    Export
 }
 
 rule: 'CM: Make buttons: Main'
@@ -134,6 +139,15 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             posX: 1.7,
             posY: 0,
             defaultColor: Color.White);
+
+        buttonCollectionMain += createButton(
+            'Export',
+            primaryAction: MenuAction.Export,
+            scale: 2.5,
+            clickWidth: 0.4,
+            posX: 0,
+            posY: -1.,
+            defaultColor: Color.White);
         
         freecamSwitchID = createButton(
             'noclip: off',
@@ -159,6 +173,8 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
     }
     else if (newState == MenuState.Rules)
         SetupRuleMenu();
+    else if (newState == MenuState.Export)
+        ExportMenu();
 }
 
 rule: 'CM: Freecam increment'

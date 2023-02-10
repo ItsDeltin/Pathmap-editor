@@ -372,7 +372,7 @@ if (cm_currActionID == MenuAction.ToggleAll)
 rule: 'CM: Exit rule menu'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.Back)
-if (menuState == MenuState.Rules || menuState == MenuState.Guide)
+if (menuState == MenuState.Rules || menuState == MenuState.Guide || menuState == MenuState.Export)
 {
     SetMenuState(MenuState.Main);
 }

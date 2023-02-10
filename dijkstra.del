@@ -2,7 +2,8 @@ import 'main.del';
 
 Number closestNodeToPosition(Vector position): Nodes.Map((node, i) => i).SortedArray(i => Nodes[i].Node.Position.DistanceTo(position)).First;
 
-globalvar Boolean pathfinderActive = false;
+globalvar Boolean pathfinderActive! = false;
+globalvar Number dijkstraProgressReport = 0;
 
 DijkstraResult Dijkstra(
     Number source,
@@ -16,6 +17,7 @@ DijkstraResult Dijkstra(
         return { Parents: null };
     }
     pathfinderActive = true;
+    dijkstraProgressReport = 0;
 
     // WorldNode to actual node
     Number[] unvisited = Nodes.Map((node, i) => i);
@@ -42,13 +44,13 @@ DijkstraResult Dijkstra(
         {
             Number neighborIndex = neighbors[i];
             Number neighborID = Nodes[neighborIndex].Node.UniqueID;
-            Number[] nieghborAttributes = Attributes.FilteredArray(
+            Number[] neighborAttributes = Attributes.FilteredArray(
                 attribute => attribute.Node1 == neighborID && attribute.Node2 == currentID
             ).Map(a => a.Value);
 
             Number newDistance = distances[current] + Nodes[current].Node.Position.DistanceTo(Nodes[neighborIndex].Node.Position);
             if (newDistance < distances[neighborIndex] &&
-                (nieghborAttributes.Length == 0 || nieghborAttributes.IsTrueForAny(attribute => attributes.Contains(attribute)))
+                (neighborAttributes.Length == 0 || neighborAttributes.IsTrueForAny(attribute => attributes.Contains(attribute)))
             )
             {
                 distances[neighborIndex] = newDistance;
@@ -56,6 +58,7 @@ DijkstraResult Dijkstra(
             }
         }
 
+        dijkstraProgressReport++;
         MinWait();
     }
 
@@ -67,3 +70,76 @@ struct DijkstraResult
 {
     public Number[] Parents;
 }
+
+rule: 'ok'
+Event.OngoingPlayer
+if (button(Button.Ability2))
+{
+    MakeBake();
+}
+
+void MakeBake() playervar 'Subroutine: Make Bake'
+{
+    bakeResult = [];
+    Number n = 0;
+
+    define progressBar = CreateProgressBarHudText(
+        AllPlayers(),
+        (n / EvaluateOnce(Nodes.Length) + dijkstraProgressReport / EvaluateOnce(Nodes.Length) ^ 2) * 100,
+        "Baking...",
+        Location.Right,
+        15,
+        ProgressBarColor: Color.Orange,
+        TextColor: Color.White
+    );
+
+    InitializeBakeMatcher();
+
+    # For each node
+    for (n = 0; Nodes.Length; 1) {
+        # Node 'n's compressed data is stored in here.
+        String[] compressed = [];
+        # Will be appended to the end of compressed when it is large enough.
+        String stub = '';
+        # Pathfind current node.
+        Number[] parents = Dijkstra(n, null, pathfinderAttributes).Parents;
+        # Loop through each node relation.
+        Number p;
+        for (p = 0; parents.Length; 1) {
+            # Compress value.
+            stub = stub + bakeMatcher[parents[p]];
+            # Append stub to compressed every 256 characters.
+            if (p && !(p % 256)) {
+                compressed += stub;
+                stub = '';
+            }
+            MinWait();
+        }
+
+        # If this condition is true, then stub still has contents that should be added to the
+        # compressed data before we continue.
+        if (p && p % 256) {
+            compressed += stub;
+            stub = '';
+        }
+
+        # Add compressed data.
+        bakeResult[n] = compressed;
+        # For good measure.
+        compressed = null;
+
+        Wait(0.2);
+    }
+
+    DestroyProgressBarHudText(progressBar);
+    bakeMatcher = null;
+
+    ExportCompressedDataToWorkshop();
+}
+
+void InitializeBakeMatcher() 'Subroutine: Initialize Bake Matcher' {
+    bakeMatcher = BakemapStruct.GenerateMatchArray(500);
+}
+
+playervar String[][] bakeResult;
+playervar String[] bakeMatcher;

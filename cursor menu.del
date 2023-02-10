@@ -1,9 +1,5 @@
-/*
-
-13: ?
-14: ?
-15: Mark button to delete
-*/
+// Slightly modified version of Josbird's cursor menu
+// https://workshop.codes/GETVX
 
 struct CursorMenuButton
 {

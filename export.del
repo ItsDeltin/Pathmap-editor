@@ -238,7 +238,7 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     String mapCondition: '*/     Current Map == Map({0}) /*'.Format([CurrentMap()]);
 
     # Add rule and event
-    LogToInspector('rule(\"GENERATED: {0} compressed map data\") { event { Ongoing - Global } /*'.Format([CurrentMap()]));
+    LogToInspector('rule(\"GENERATED: {0} compressed map data\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
     # Conditions
     LogToInspector('*/ conditions { /*');
     # Make sure this is the correct map
@@ -266,7 +266,7 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     # End action & rule block
     LogToInspector('*/ } } /*');
     # Nodes rule
-    LogToInspector('*/ rule(\"GENERATED: {0} nodes\") { event { Ongoing - Global } /*'.Format([CurrentMap()]));
+    LogToInspector('*/ rule(\"GENERATED: {0} nodes\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
     # Conditions
     LogToInspector('*/ conditions { /*');
     # Make sure this is the correct map
@@ -303,16 +303,30 @@ rule: 'Test'
 Event.OngoingPlayer
 if (button(Button.Ability2))
 {
-    ExportDecompresserToWorkshop();
+    ExportDecompresserToWorkshop(0);
 }
 
-void ExportDecompresserToWorkshop() playervar "EXPORT: decompresser to workshop"
+void ExportDecompresserToWorkshop(Number beginVariableRange) playervar "EXPORT: decompresser to workshop"
 {
     InitializeBakeMatcher();
     EnableInspectorRecording();
 
+    // Variables:
+    // ~~global.pathfinder_nodes~~
+    // *global.pathfinder_compressed
+    // global.pathfinder_matcher
+    // global.pathfinder_parent_map
+    // global.pathfinder_i_node
+    // global.pathfinder_current_node_array
+    // global.pathfinder_i_string
+    // global.pathfinder_index_mapper
+
+    Number vr: beginVariableRange;
+    # Variables
+    LogToInspector(<'variables { global: <0>: pathfinder_compressed <1>: pathfinder_matcher <2>: pathfinder_parent_map <3>: pathfinder_i_node /*', vr, vr + 1, vr + 2, vr + 3>);
+    LogToInspector(<'*/ <0>: pathfinder_current_node_array <1>: pathfinder_i_string <2>: pathfinder_index_mapper } /*', vr + 4, vr + 5, vr + 6>);
     # Add rule and event
-    LogToInspector('rule(\"GENERATED: decompress map\") { event { Ongoing - Global } /*');
+    LogToInspector('*/ rule(\"GENERATED: decompress map\") { event { Ongoing - Global; } /*');
     # No conditions :)
     LogToInspector('*/ conditions { /*');
     # Start actions
@@ -332,6 +346,31 @@ void ExportDecompresserToWorkshop() playervar "EXPORT: decompresser to workshop"
         LogToInspector('*/{0}/*'.Format([stub]));
         MinWait();
     }
+
+    # Initialize pathfinder_parent_map
+    LogToInspector('*/     global.pathfinder_parent_map = Empty Array; /*');
+    # Start the node loop
+    LogToInspector('*/     For Global Variable(pathfinder_i_node, 0, Count Of(global.pathfinder_compressed), 1); /*');
+    # Initialize global.pathfinder_current_node_array
+    LogToInspector('*/         global.pathfinder_current_node_array = Empty Array; /*');
+    # Start the string loop
+    LogToInspector('*/         For Global Variable(pathfinder_i_string, 0, Count Of(global.pathfinder_compressed[global.pathfinder_i_node]), 1); /*');
+    # Initialize the index matcher
+    LogToInspector('*/             global.pathfinder_index_mapper = Empty Array; /*');
+    # Stretch index matcher to length of string.
+    LogToInspector('*/             global.pathfinder_index_mapper[String Length(global.pathfinder_compressed[global.pathfinder_i_node] /*');
+    LogToInspector('*/                 [global.pathfinder_i_string]) - 1] = 0; /*');
+    # Append the stub to the current node array.
+    LogToInspector('*/             Modify Global Variable(pathfinder_current_node_array, Append To Array, Mapped Array( /*');
+    LogToInspector('*/                 global.pathfinder_index_mapper, Index Of Array Value(global.pathfinder_matcher, /*');
+    LogToInspector('*/                 String Slice(global.pathfinder_compressed[global.pathfinder_i_node][global.pathfinder_i_string], /*');
+    LogToInspector('*/                 Current Array Index, 1)))); /*');
+    # End the string loop
+    LogToInspector('*/         end; /*');
+    # Add pathfinder_current_node_array to pathfinder_parent_map
+    LogToInspector('*/     Modify Global Variable(pathfinder_parent_map, Append To Array, Array(Global.pathfinder_current_node_array)); /*');
+    # End the node loop
+    LogToInspector('*/     end; /*');
     # End action & rule block
     LogToInspector('*/ } } /*');
 

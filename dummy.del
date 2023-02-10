@@ -44,7 +44,7 @@ if (SelectedNodeID == -1)
 rule: 'Dummy: select/deselect all'
 if (button(Button.Ability1))
 {
-    Boolean flip = !selectedDummies.Length;
+    Boolean flip! = !selectedDummies.Length;
     AllPlayers().FilteredArray(p => p.IsDummy()).dummySelected = flip;
 }
 

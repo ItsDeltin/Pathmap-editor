@@ -282,7 +282,7 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
     }
 
     // Show connected attributes.
-    Number useNode =
+    Number useNode! =
         SelectedNodeID != -1 ? SelectedNodeID :
         connectingFromNode != -1 ? Nodes[connectingFromNode].Node.UniqueID : -1;
 
@@ -324,7 +324,7 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
             Scale: 2.5,
             Clipping: Clipping.DoNotClip,
             Reevaluation: InworldTextRev.VisibleTo,
-            TextColor: isSource ? Color.Yellow : CustomColor(255, 115, 0, 100)
+            TextColor: isSource ? Color.SkyBlue : CustomColor(255, 115, 0, 100)
         );
     }
 }

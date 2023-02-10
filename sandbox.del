@@ -288,7 +288,7 @@ void setMainLabel(String label) '(Subroutine) CM: Set main label'
 globalvar Hero => void chooseHeroCallback;
 globalvar Number[] buttonCollectionHeroes! = [];
 
-void chooseHeroMenu(Hero => void callback) '(Subroutine) CM: Choose hero'
+void chooseHeroMenu(Hero => void callback) playervar '(Subroutine) CM: Choose hero'
 {
     SetMenuState(MenuState.ChooseHero);
 

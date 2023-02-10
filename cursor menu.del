@@ -35,7 +35,7 @@ globalvar Number cm_s_menuHeight!; // ext global [2]
 globalvar Boolean cm_s_buttonClickSounds!; // ext global [6]
 globalvar Boolean cm_s_debugMode!; // ext global [5]
 globalvar Boolean cm_s_disableGameHud!; // ext global [7]
-globalvar Any[] cm_exitButtonProperties; // ?
+globalvar Any[] cm_exitButtonProperties!; // ?
 
 String cm_c_horizontalLine: "━"; // ext global [3]
 String cm_c_verticalLine: "┃\n"; // ext global [4]

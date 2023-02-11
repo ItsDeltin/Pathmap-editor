@@ -86,8 +86,6 @@ void MakeBake() playervar 'Subroutine: Make Bake'
         TextColor: Color.White
     );
 
-    InitializeBakeMatcher();
-
     # For each node
     for (n = 0; Nodes.Length; 1) {
         # Node 'n's compressed data is stored in here.
@@ -125,10 +123,12 @@ void MakeBake() playervar 'Subroutine: Make Bake'
     }
 
     DestroyProgressBarHudText(progressBar);
-    bakeMatcher = null;
 }
 
-void InitializeBakeMatcher() 'Subroutine: Initialize Bake Matcher' {
+rule: 'Initialize Bake Matcher'
+Event.OngoingPlayer
+if (eventPlayer == host)
+{
     bakeMatcher = BakemapStruct.GenerateMatchArray(500);
 }
 

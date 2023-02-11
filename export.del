@@ -235,10 +235,10 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     //     .Replace(')', '')
     //     .Replace(':', '');
     
-    String mapCondition: '*/     Current Map == Map({0}) /*'.Format([CurrentMap()]);
+    String mapCondition: '*/     Current Map == Map({0}); /*'.Format([CurrentMap()]);
 
     # Add rule and event
-    LogToInspector('rule(\"GENERATED: {0} compressed map data\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
+    LogToInspector('*/ rule(\"GENERATED: {0} compressed map data\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
     # Conditions
     LogToInspector('*/ conditions { /*');
     # Make sure this is the correct map
@@ -286,7 +286,8 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
                 vector.Y,
                 vector.Z,
                 b < Nodes.Length - 1 ? ', ' : ');',
-                vector.Y == vector.Y.Floor() ? '.00' : '',
+                // Rounding down a whole number subtracts by 1 sometimes???
+                (vector.Y - 1 == vector.Y.Floor()) || vector.Y == vector.Y.Floor() ? '.00' : '',
                 b < 10 ? '00' : b < 100 ? '0' : '',
                 b
             >;
@@ -297,42 +298,40 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     # End action & rule block
     LogToInspector('*/ } } /*');
 
-    # Attributes rule
-    LogToInspector('*/ rule(\"GENERATED: {0} attributes\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
-    # Conditions
-    LogToInspector('*/ conditions { /*');
-    # Make sure this is the correct map
-    LogToInspector(mapCondition);
-    # Start actions
-    LogToInspector('*/ } actions { /*');
-    # Set pathfinder_attributes
-    LogToInspector('*/     global.pathfinder_attributes = Array( /*');
-    # For each attribute
-    ExportArray(Attributes, 10, (attribute, isLast) => <'Vector(<0>, <1>, <2>)<3>',
-        NodeIndexFromID(attribute.Node1), NodeIndexFromID(attribute.Node2), attribute.Value,
-        isLast ? '); ' : ', '>);
-    # End action & rule block
-    LogToInspector('*/ } } /*');
+    if (Attributes.Length)
+    {
+        # Attributes rule
+        LogToInspector('*/ rule(\"GENERATED: {0} attributes\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
+        # Conditions
+        LogToInspector('*/ conditions { /*');
+        # Make sure this is the correct map
+        LogToInspector(mapCondition);
+        # Start actions
+        LogToInspector('*/ } actions { /*');
+        # Set pathfinder_attributes
+        LogToInspector('*/     global.pathfinder_attributes = Array( /*');
+        # For each attribute
+        ExportArray(Attributes, 10, (attribute, isLast) => <'Vector(<0>, <1>, <2>)<3>',
+            NodeIndexFromID(attribute.Node1), NodeIndexFromID(attribute.Node2), attribute.Value,
+            isLast ? '); ' : ', '>);
+        # End action & rule block
+        LogToInspector('*/ } } /*');
+    }
     
     DisableInspectorRecording();
 }
 
 rule: 'Test'
 Event.OngoingPlayer
-if (button(Button.Ability2))
-{
-    ExportDecompresserToWorkshop(0);
-}
-rule: 'Test'
-Event.OngoingPlayer
 if (button(Button.Melee))
 {
+    MakeBake();
+    ExportCorePathfinderComponents(0, 0, 0);
     ExportCompressedDataToWorkshop();
 }
 
-void ExportDecompresserToWorkshop(Number beginVariableRange) playervar "EXPORT: decompresser to workshop"
+void ExportCorePathfinderComponents(Number globalRange, Number playerRange, Number subroutineRange) playervar "EXPORT: decompresser to workshop"
 {
-    InitializeBakeMatcher();
     EnableInspectorRecording();
 
     // Variables:
@@ -346,11 +345,29 @@ void ExportDecompresserToWorkshop(Number beginVariableRange) playervar "EXPORT: 
     // global.pathfinder_i_string
     // global.pathfinder_index_mapper
 
-    Number vr: beginVariableRange;
+    // Subroutine params:
+    // global.pathfind_players
+    // global.pathfind_destination
+    
+    // Player variables:
+    // player.pf_path_index (parent array)
+    // player.pf_destination
+    // player.pf_update_path
+    // player.pf_current_node
+    // player.pf_attributes
+
+    // Subroutines:
+    // pathfind
+
+    Number gr: globalRange;
+    Number pr: playerRange;
     # Variables
-    LogToInspector(<'variables { global: <0>: pathfinder_compressed <1>: pathfinder_matcher <2>: pathfinder_parent_map <3>: pathfinder_i_node /*', vr, vr + 1, vr + 2, vr + 3>);
-    LogToInspector(<'*/ <0>: pathfinder_current_node_array <1>: pathfinder_i_string <2>: pathfinder_index_mapper <3>: pathfinder_nodes /*', vr + 4, vr + 5, vr + 6, vr + 7>);
-    LogToInspector(<'*/ <0>: pathfinder_attributes } /*', vr + 8>);
+    LogToInspector(<'variables { global: <0>: pathfinder_compressed <1>: pathfinder_matcher <2>: pathfinder_parent_map <3>: pathfinder_i_node /*', gr, gr + 1, gr + 2, gr + 3>);
+    LogToInspector(<'*/ <0>: pathfinder_current_node_array <1>: pathfinder_i_string <2>: pathfinder_index_mapper <3>: pathfinder_nodes /*', gr + 4, gr + 5, gr + 6, gr + 7>);
+    LogToInspector(<'*/ <0>: pathfinder_attributes <1>: pathfind_players <2>: pathfind_destination /*', gr + 8, gr + 9, gr + 10>);
+    LogToInspector(<'*/ player: <0>: pf_path_index <1>: pf_destination <2>: pf_update_path <3>: pf_current_node <4>: pf_attributes } /*', pr, pr + 1, pr + 2, pr + 3, pr + 4>);
+    # Subroutines
+    LogToInspector(<'*/ subroutines { <0>: pathfind } /*', subroutineRange>);
     # Add rule and event
     LogToInspector('*/ rule(\"GENERATED: decompress map\") { event { Ongoing - Global; } /*');
     # Conditions
@@ -362,19 +379,7 @@ void ExportDecompresserToWorkshop(Number beginVariableRange) playervar "EXPORT: 
     # Create the Matcher
     LogToInspector('*/     global.pathfinder_matcher = Array( /*');
     # Add matcher elements
-    for (Number a = 0; bakeMatcher.Length; 20) {
-        String stub = '';
-        for (Number b = a; Min(a + 20, bakeMatcher.Length); 1) {
-            stub = stub + <
-                'Custom String(\"<0>\")<1>',
-                bakeMatcher[b],
-                b < bakeMatcher.Length - 1 ? ', ' : '); '
-            >;
-        }
-        LogToInspector('*/{0}/*'.Format([stub]));
-        MinWait();
-    }
-
+    ExportArray(bakeMatcher, 20, (char, isLast) => <'Custom String(\"<0>\")<1>', char, isLast ? '); ' : ', '>);
     # Initialize pathfinder_parent_map
     LogToInspector('*/     global.pathfinder_parent_map = Empty Array; /*');
     # Start the node loop
@@ -387,7 +392,7 @@ void ExportDecompresserToWorkshop(Number beginVariableRange) playervar "EXPORT: 
     LogToInspector('*/             global.pathfinder_index_mapper = Empty Array; /*');
     # Stretch index matcher to length of string.
     LogToInspector('*/             global.pathfinder_index_mapper[String Length(global.pathfinder_compressed[global.pathfinder_i_node] /*');
-    LogToInspector('*/                 [global.pathfinder_i_string]) - 1] = 0; /*');
+    LogToInspector('*/                 [global.pathfinder_i_string]) /*- 1*/] = 0; /*');
     # Append the stub to the current node array.
     LogToInspector('*/             Modify Global Variable(pathfinder_current_node_array, Append To Array, Mapped Array( /*');
     LogToInspector('*/                 global.pathfinder_index_mapper, Index Of Array Value(global.pathfinder_matcher, /*');
@@ -399,6 +404,74 @@ void ExportDecompresserToWorkshop(Number beginVariableRange) playervar "EXPORT: 
     LogToInspector('*/     Modify Global Variable(pathfinder_parent_map, Append To Array, Array(Global.pathfinder_current_node_array)); /*');
     # End the node loop
     LogToInspector('*/     end; /*');
+    # End action & rule block
+    LogToInspector('*/ } } /*');
+
+    # Pathfind subroutine
+    LogToInspector('*/ rule(\"GENERATED: pathfind Subroutine\") { event { subroutine; pathfind; } /*');
+    # Actions
+    LogToInspector('*/ actions { /*');
+    // todo: should we set the pathmap that the player is using?
+    # Set player's path index
+    LogToInspector('*/     global.pathfind_players.pf_path_index = First Of(Mapped Array(Array(First Of(Sorted Array(global.pathfinder_nodes, /*');
+    LogToInspector('*/         Distance Between(Current Array Element, Global.pathfind_destination)))), (Current Array Element * 100 - /*');
+    LogToInspector('*/         Round To Integer(Current Array Element * 100, Down)) * 100)); /*');
+    # Set each player's destination
+    LogToInspector('*/     global.pathfind_players.pf_destination = global.pathfind_destination; /*');
+    # Update each player's path
+    LogToInspector('*/     global.pathfind_players.pf_update_path = True; /*');
+    # End action & rule block
+    LogToInspector('*/ } } /*');
+
+    # Player Update Path rule
+    LogToInspector('*/ rule(\"GENERATED: PLAYER: update path\") { event { Ongoing - Each Player; All; All; } /*');
+    # Conditions
+    LogToInspector('*/ conditions { /*');
+    # Execute when pf_update_path
+    LogToInspector('*/     Event Player.pf_update_path == True; /*');
+    # Start actions
+    LogToInspector('*/ } actions { /*');
+    # Update current node
+    LogToInspector('*/     Event Player.pf_current_node = First Of(Mapped Array(Array(First Of(Sorted Array(global.pathfinder_nodes, /*');
+    LogToInspector('*/         Distance Between(Current Array Element, Position Of(Event Player))))), (Current Array Element * 100 - /*');
+    LogToInspector('*/         Round To Integer(Current Array Element * 100, Down)) * 100)); /*');
+    # Throttle
+    LogToInspector('*/     Start Throttle In Direction(Event Player, Direction Towards(Position Of(Event Player), /*');
+    LogToInspector('*/         Event Player.pf_current_node == -1 ? Event Player.pf_destination : global.pathfinder_nodes[ /*');
+    LogToInspector('*/         Event Player.pf_current_node]), 1, To World, Replace existing throttle, Direction and Magnitude); /*');
+    # Reset pf_update_path
+    LogToInspector('*/     Event Player.pf_update_path = False; /*');
+    # End action & rule block
+    LogToInspector('*/ } } /*');
+
+    # Player Next Node rule
+    LogToInspector('*/ rule(\"GENERATED: PLAYER: next node\") { event { Ongoing - Each Player; All; All; } /*');
+    # Conditions
+    LogToInspector('*/ conditions { /*');
+    # Execute when node reached
+    LogToInspector('*/     Distance Between(Position Of(Event Player), Event Player.pf_current_node == -1 ? /*');
+    LogToInspector('*/         Event Player.pf_destination : Global.pathfinder_nodes[Event Player.pf_current_node]) <= 0.400; /*');
+    # Is pathfinding?
+    LogToInspector('*/     Event Player.pf_path_index != 0; /*'); // todo: bad for 0th node :D
+    # Start actions
+    LogToInspector('*/ } actions { /*');
+    # Is destination reached?
+    LogToInspector('*/     If (Event Player.pf_current_node == -1); /*');
+    # Destination reached, stop moxing.
+    LogToInspector('*/         Stop Throttle In Direction(Event Player); /*');
+    # Set next node
+    LogToInspector('*/     Else; /*');
+    # Set current attribute
+    LogToInspector('*/         Event Player.pf_attributes = Mapped Array(Filtered Array(Global.pathfinder_attributes, /*');
+    LogToInspector('*/             X Component Of(Current Array Element) == Event Player.pf_current_node && /*');
+    LogToInspector('*/             Y Component Of(Current Array Element) == global.pathfinder_compressed[Event Player.pf_path_index] /*');
+    LogToInspector('*/             [Event Player.pf_current_node] /*- 1*/), Z Component Of(Current Array Element)); /*');
+    # Set current node
+    LogToInspector('*/         Event Player.pf_current_node = global.pathfinder_compressed[Event Player.pf_path_index]' + '[Event Player.pf_current_node] - 1; /*');
+    LogToInspector('*/     End; /*');
+    # Loop if needed
+    LogToInspector('*/     Wait(0.250, Ignore Condition); /*');
+    LogToInspector('*/     Loop If Condition Is True(); /*');
     # End action & rule block
     LogToInspector('*/ } } /*');
 

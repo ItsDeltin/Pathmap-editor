@@ -98,7 +98,7 @@ void MakeBake() playervar 'Subroutine: Make Bake'
         Number p;
         for (p = 0; parents.Length; 1) {
             # Compress value.
-            stub = stub + bakeMatcher[parents[p]];
+            stub = stub + bakeMatcher[parents[p] + 1]; // ! Add one so that we do not encode negative values. Exporter will need to adjust.
             # Append stub to compressed every 256 characters.
             if (p && !(p % 256)) {
                 compressed += stub;

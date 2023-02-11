@@ -11,7 +11,6 @@ class Scrollbar
     Any upButton;
     Any downButton;
     Number viewCount;
-    Number scale;
     Number position;
     Number => void itemSelected;
 
@@ -20,7 +19,7 @@ class Scrollbar
 
     Boolean isRendered(Number item): item >= position && item < position + viewCount;
 
-    public constructor(in Number posX, in Number topY, in String[] items, in Number viewCount, in Number scale, in Number => void itemSelected)
+    public constructor(in Number posX, in Number topY, in String[] items, in Number viewCount, in Number => void itemSelected)
     {
         this.posX = posX;
         this.topY = topY;
@@ -29,7 +28,6 @@ class Scrollbar
         scrollItemButtons = scrollItems.Map(item => -1);
         this.itemSelected = itemSelected;
         this.viewCount = viewCount;
-        this.scale = scale;
 
         upButton = createButton(
             '↑',
@@ -37,7 +35,6 @@ class Scrollbar
             posY: topY,
             primaryAction: [MenuAction.ScrollbarUp, this, 1],
             secondaryAction: [MenuAction.ScrollbarUp, this, viewCount],
-            scale: 4
         );
         downButton = createButton(
             '↓',
@@ -45,7 +42,6 @@ class Scrollbar
             posY: topY - (viewCount + 1) * itemY,
             primaryAction: [MenuAction.ScrollbarDown, this, 1],
             secondaryAction: [MenuAction.ScrollbarDown, this, viewCount],
-            scale: 4
         );
         Update();
     }
@@ -124,7 +120,6 @@ class Scrollbar
                         scrollItems[i],
                         posX: posX,
                         posY: posY,
-                        scale: scale,
                         clickWidth: 1.4,
                         primaryAction: [MenuAction.ScrollbarItem, this, i],
                         defaultColor: itemColors[i]

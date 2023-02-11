@@ -138,7 +138,6 @@ void initiatePager() 'CM: Initiate pager'
         0.5,
         AllHeroes().Map((hero, i) => '{0} {1}'.Format([HeroIconString(hero), Rules[rulePage].EnabledHeroes[i] ? 'yes' : 'no'])),
         4,
-        3,
         toggleHero => {
             Rules[rulePage].EnabledHeroes[toggleHero] = !Rules[rulePage].EnabledHeroes[toggleHero];
             updateHeroIcon(toggleHero);
@@ -165,7 +164,6 @@ void loadActionScrollbar() '(Subroutine) CM: Load action scrollbar'
         0.5,
         Rules[rulePage].ActionOrder.Map(actionID => Rules[rulePage].Actions[Rules[rulePage].Actions.Map(action => action.ID).IndexOf(actionID)].Label),
         4,
-        2.5,
         item => {
             actionsSelected[item] = !actionsSelected[item];
             actionScrollBar.SetButtonColor(item, actionsSelected[item] ? Color.Green : Color.White);
@@ -232,7 +230,7 @@ if (cm_currActionID == MenuAction.AddAction)
         'walk to destination',
         'look at floor',
         'look at destination'
-    ], 8, 2.5, item => {
+    ], 8, item => {
         DestroyScrollbar();
 
         // Wait length

@@ -88,49 +88,50 @@ void Export(OutputLanguage lang) playervar 'EXPORT: Export'
     for(define i = 0; Rules.Length; 1) {
         # Rule syntax
         ExportStatement(lang,
-            '*/ rule(\"Custom Pathfinding Rule #{0}\") {        /*'.Format([i + 1]),
-            '*/ rule: \"Custom Pathfinding Rule #{0}\"        /*'.Format([i + 1]),
-            '*/\nrule \"Custom Pathfinding Rule #{0}\": @Event eachPlayer        /*'.Format([i + 1])
+            '*/ rule(\"Custom Pathfinding Rule #{0}\") { /*'.Format([i + 1]),
+            '*/ rule: \"Custom Pathfinding Rule #{0}\" /*'.Format([i + 1]),
+            '*/\nrule \"Custom Pathfinding Rule #{0}\": @Event eachPlayer /*'.Format([i + 1])
         );
 
         # Add event (ostw)
         if (is_ow) {
-            LogToInspector('*/ event { Ongoing - Player; All; All; }        /*');
+            LogToInspector('*/ event { Ongoing - Each Player; All; All; } /*');
         } else if (is_ostw) {
-            LogToInspector('*/ Event.OngoingPlayer        /*');
+            LogToInspector('*/ Event.OngoingPlayer /*');
         }
 
-        # Add the attribute condition if it is required.
-        if (Rules[i].ExecutesOnAttribute != 0) {
-            # Workshop code
-            if (lang == OutputLanguage.Workshop) {
-                // TODO
-                LogToInspector('*/ conditions {        /*');
-                LogToInspector('*/ TODO        /*');
-                LogToInspector('*/ }        /*');
-            }
-            # OSTW code
-            else if (lang == OutputLanguage.OSTW) {
-                LogToInspector('*/ if (Pathmap.CurrentSegmentAttribute().Contains({0}))        /*'.Format([Rules[i].ExecutesOnAttribute]));
-            }
-            # Overpy code
-            else if (lang == OutputLanguage.OverPy) {
-                // TODO
-                LogToInspector('*/\n    @Condition get_current_segment.contains({0})        /*'.Format([Rules[i].ExecutesOnAttribute]));
-            }
+        # Workshop code
+        if (lang == OutputLanguage.Workshop) {
+            LogToInspector('*/ conditions { /*');
+            LogToInspector('*/     Array Contains(Event Player.pf_attributes, {0}) == True; /*'.Format([Rules[i].ExecutesOnAttribute]));
+            LogToInspector('*/ } actions { /*');
         }
-
-        # Begin actions for the c-like languages 
-        if (IsWorkshopOrOstw(lang))
-            LogToInspector('*/ {        /*');
+        # OSTW code
+        else if (lang == OutputLanguage.OSTW) {
+            LogToInspector('*/ if (Pathmap.CurrentSegmentAttribute().Contains({0})) /*'.Format([Rules[i].ExecutesOnAttribute]));
+            LogToInspector('*/ { /*');
+        }
+        # Overpy code
+        else if (lang == OutputLanguage.OverPy) {
+            // TODO
+            LogToInspector('*/\n    @Condition get_current_segment.contains({0}) /*'.Format([Rules[i].ExecutesOnAttribute]));
+        }            
         
         # Loop through each action in the rule.
         for(define a = 0; Rules[i].Actions.Length; 1) {
             # Extract the action ID.
-            define actionID = Rules[i].Actions[actionIndexFromID(i, Rules[i].ActionOrder[a])].ID;
+            define export = Rules[i].Actions[actionIndexFromID(i, Rules[i].ActionOrder[a])].Export;
+            define actionID: export.X;
 
+            # Wait
+            if (actionID == 0) {
+                ExportAction(lang,
+                    <'Wait(<0>, Ignore Condition);', export.Y>,
+                    <'Wait(<0>);', export.Y>,
+                    <'wait(<0>)', export.Y>);
+            }
             # Jump
-            if (actionID == 1) {
+            else if (actionID == 1) {
                 ExportAction(lang,
                     'Press Button(Event Player, Button(Jump));',
                     'PressButton(EventPlayer(), Button.Jump);',
@@ -188,9 +189,9 @@ void Export(OutputLanguage lang) playervar 'EXPORT: Export'
             # Stop walking
             else if (actionID == 9) {
                 ExportAction(lang,
-                    'top Throttle In Direction(Event Player);',
-                    'topThrottleInDirection();',
-                    'ventPlayer.stopThrottleInDirection()');
+                    'Stop Throttle In Direction(Event Player);',
+                    'StopThrottleInDirection();',
+                    'eventPlayer.stopThrottleInDirection()');
             }
             # Walk to destination
             else if (actionID == 10) {
@@ -211,9 +212,11 @@ void Export(OutputLanguage lang) playervar 'EXPORT: Export'
             MinWait();
         }
 
-        # End actions for the c-like languages 
-        if (IsWorkshopOrOstw(lang))
-            LogToInspector('*/ }        /*');
+        # End rule & actions for the c-like languages 
+        if (lang == OutputLanguage.Workshop)
+            LogToInspector('*/ } } /*');
+        else if (lang == OutputLanguage.OSTW)
+            LogToInspector('*/ } /*');
         
         MinWait();
     }
@@ -317,6 +320,7 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
 rule: 'Test'
 Event.OngoingPlayer
 if (button(Button.Melee))
+if (host == eventPlayer)
 {
     MakeBake();
     ExportCorePathfinderComponents(0, 0, 0);
@@ -417,6 +421,16 @@ void ExportCorePathfinderComponents(Number globalRange, Number playerRange, Numb
     LogToInspector('*/ } } /*');
     MinWait();
 
+    # Player init rule
+    LogToInspector('*/ rule(\"GENERATED: PLAYER: update path\") { event { Ongoing - Each Player; All; All; } /*');
+    # Start actions
+    LogToInspector('*/ actions { /*');
+    # Init pf_path_index
+    LogToInspector('*/     Event Player.pf_path_index = -1; /*');
+    # End action & rule block
+    LogToInspector('*/ } } /*');
+    MinWait();
+
     # Player Update Path rule
     LogToInspector('*/ rule(\"GENERATED: PLAYER: update path\") { event { Ongoing - Each Player; All; All; } /*');
     # Conditions
@@ -445,13 +459,15 @@ void ExportCorePathfinderComponents(Number globalRange, Number playerRange, Numb
     LogToInspector('*/     Distance Between(Position Of(Event Player), Event Player.pf_current_node == -1 ? /*');
     LogToInspector('*/         Event Player.pf_destination : Global.pathfinder_nodes[Event Player.pf_current_node]) <= 0.400; /*');
     # Is pathfinding?
-    LogToInspector('*/     Event Player.pf_path_index != 0; /*'); // todo: bad for 0th node :D
+    LogToInspector('*/     Event Player.pf_path_index != -1; /*');
     # Start actions
     LogToInspector('*/ } actions { /*');
     # Is destination reached?
     LogToInspector('*/     If (Event Player.pf_current_node == -1); /*');
     # Destination reached, stop moxing.
     LogToInspector('*/         Stop Throttle In Direction(Event Player); /*');
+    # Stop pathfinding.
+    LogToInspector('*/         Event Player.pf_path_index = -1; /*');
     # Set next node
     LogToInspector('*/     Else; /*');
     # Set current attribute
@@ -493,5 +509,5 @@ void ExportStatement(in OutputLanguage language, in String workshop, in String d
 
 void ExportAction(in OutputLanguage language, in String workshop, in String deltinScript, in String overpy)
 {
-    LogToInspector("*/{0}        /*".Format([[" " + workshop, "     " + deltinScript, "\n    " + overpy][language]]));
+    LogToInspector("*/{0} /*".Format([[" " + workshop, "     " + deltinScript, "\n    " + overpy][language]]));
 }

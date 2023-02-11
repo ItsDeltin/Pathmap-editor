@@ -14,6 +14,7 @@ struct RuleAction
     public String Label;
     public Number ID;
     public () => void Executor;
+    public Vector Export;
 }
 
 globalvar Rule[] Rules = [];
@@ -356,7 +357,7 @@ if (cm_currActionID == MenuAction.WaitConfirm)
     uniqueActionID++;
     Number id! = uniqueActionID;
     Number wait! = waitTime;
-    DocumentAction(id, { Label: 'wait ' + wait, ID: id, Executor: () => Wait(wait) });
+    DocumentAction(id, { Label: 'wait ' + wait, ID: id, Executor: () => Wait(wait), Export: Vector(0, wait, 0) });
     SetMenuState(MenuState.Rules);
 }
 

@@ -119,7 +119,7 @@ void MakeBake() playervar 'Subroutine: Make Bake'
         # For good measure.
         compressed = null;
 
-        Wait(0.2);
+        MinWait();
     }
 
     DestroyProgressBarHudText(progressBar);

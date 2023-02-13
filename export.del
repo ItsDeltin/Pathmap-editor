@@ -7,8 +7,6 @@ enum OutputLanguage
     OverPy
 }
 
-Boolean IsWorkshopOrOstw(OutputLanguage language): language < OutputLanguage.OverPy;
-
 void ExportMenu() 'EXPORT: create export menu'
 {
     setMainLabel("main / export");

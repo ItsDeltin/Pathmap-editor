@@ -107,13 +107,13 @@ void RemoveNodeByIndex(Number index) 'Subroutine: Remove node'
     Nodes.ModRemoveByIndex(index);
 }
 
-void RemoveSegmentByIndex(in Number index)
+void RemoveSegmentByIndex(Number index) 'Subroutine: Remove segment'
 {
     DestroyEffect(Segments[index].Effect);
     Segments.ModRemoveByIndex(index);
 }
 
-void RemoveAttributeByIndex(in Number index)
+void RemoveAttributeByIndex(Number index) 'Subroutine: Remove attribute'
 {
     Attributes.ModRemoveByIndex(index);
 }

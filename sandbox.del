@@ -285,7 +285,7 @@ void setMainLabel(String label) '(Subroutine) CM: Set main label'
     SetLabel(mainText, label);
 }
 
-globalvar Hero => void chooseHeroCallback;
+globalvar Hero => void chooseHeroCallback!;
 globalvar Number[] buttonCollectionHeroes! = [];
 
 void chooseHeroMenu(Hero => void callback) playervar '(Subroutine) CM: Choose hero'

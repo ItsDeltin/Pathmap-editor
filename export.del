@@ -78,6 +78,7 @@ void Export(OutputLanguage lang) playervar 'EXPORT: Export'
     
     Boolean is_ow: lang == OutputLanguage.Workshop;
     Boolean is_ostw: lang == OutputLanguage.OSTW;
+    Boolean is_overpy: lang == OutputLanguage.OverPy;
 
     LogToInspector('\n\n/*********\n* BEGIN *\n*********');
     LogToInspector('* You can use the following regex expression to remove the timestamps:');
@@ -91,12 +92,36 @@ void Export(OutputLanguage lang) playervar 'EXPORT: Export'
             '*/\nrule \"Custom Pathfinding Rule #{0}\": @Event eachPlayer /*'.Format([i + 1])
         );
 
-        # Add event (ostw)
+        Number numberOfEnabledHeroes! = Rules[i].EnabledHeroes.FilteredArray(x => x).Length;
+        Number firstEnabledHero! = Rules[i].EnabledHeroes.IndexOf(true);
+
+        # Add event (ow)
         if (is_ow) {
-            LogToInspector('*/ event { Ongoing - Each Player; All; All; } /*');
-        } else if (is_ostw) {
-            LogToInspector('*/ Event.OngoingPlayer /*');
+            LogToInspector(<'*/ event { Ongoing - Each Player; All; <0>; } /*',
+                numberOfEnabledHeroes != 1 ? 'All' : AllHeroes()[firstEnabledHero]>);
         }
+        # Add event (ostw)
+        else if (is_ostw) {
+            LogToInspector('*/ Event.OngoingPlayer /*');
+            if (numberOfEnabledHeroes == 1) {
+                LogToInspector(<'*/ Player.<0> /*', <'<0>',
+                    AllHeroes()[firstEnabledHero]>
+                    .Replace(' ', '') // wrecking ball/junker queen
+                    .Replace(':', '') // soldier
+                    .Replace('ú', '') // lucio
+                    .Replace('.', '') // dva
+                    .Replace('ö', '')>); // torb
+            }
+        }
+        # Add event (overpy)
+        else if (is_overpy && numberOfEnabledHeroes == 1) {
+            LogToInspector(<'*/\n    @hero <0> /*',
+                // todo: this needs to be in the same order as the heroes in AllHeroes().
+                ['ana', 'ashe', 'baptiste', 'bastion', 'brigitte', 'doomfist', 'dva', 'echo', 'genji', 'hammond', 'hanzo',
+                'junkerQueen', 'junkrat', 'kiriko', 'lucio', 'mccree', 'mei', 'mercy', 'moira', 'orisa', 'pharah', 'reaper',
+                'reinhardt', 'roadhog', 'sigma', 'sojourn', 'soldier', 'sombra', 'torbjorn', 'tracer', 'widowmaker', 'winston',
+                'zarya', 'zenyatta', 'ramattra'][firstEnabledHero]>);
+        } 
 
         # Workshop code
         if (lang == OutputLanguage.Workshop) {
@@ -235,8 +260,6 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     //     .Replace('(', '')
     //     .Replace(')', '')
     //     .Replace(':', '');
-    
-    String mapCondition: '*/     Current Map == Map({0}); /*'.Format([CurrentMap()]);
 
     # Add rule and event
     LogToInspector('*/ rule(\"GENERATED: {0} compressed map data\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
@@ -311,6 +334,19 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
         # End action & rule block
         LogToInspector('*/ } } /*');
     }
+
+    // Export segments if the user needs a strategem other than baking.
+    if (Segments.Length && true)
+    {
+        ExportMapBlock('segments', () => {
+            # Set pathfinder_segments
+            LogToInspector('*/     global.pathfinder_segments = Array( /*');
+            # For each attribute
+            ExportArray(Segments, 10, (segment, isLast) => <'Vector(<0>, <1>, <2>)<3>',
+                NodeIndexFromID(segment.Node1), NodeIndexFromID(segment.Node2), 0,
+                isLast ? '); ' : ', '>);
+        });
+    } 
     
     DisableInspectorRecording();
 }
@@ -374,6 +410,7 @@ void ExportCorePathfinderComponents(Number globalRange, Number playerRange, Numb
     # Create the Matcher
     LogToInspector('*/     global.pathfinder_matcher = Array( /*');
     MinWait();
+    // todo: splice bake matcher to only export as much as required. 
     # Add matcher elements
     ExportArray(bakeMatcher, 20, (char, isLast) => <'Custom String(\"<0>\")<1>', char, isLast ? '); ' : ', '>);
     # Initialize pathfinder_parent_map
@@ -394,10 +431,14 @@ void ExportCorePathfinderComponents(Number globalRange, Number playerRange, Numb
     LogToInspector('*/                 global.pathfinder_index_mapper, Index Of Array Value(global.pathfinder_matcher, /*');
     LogToInspector('*/                 String Slice(global.pathfinder_compressed[global.pathfinder_i_node][global.pathfinder_i_string], /*');
     LogToInspector('*/                 Current Array Index, 1)) - 1)); /*'); // - 1 is adjustment
+    # Wait
+    LogToInspector('*/             Wait(0.016, Ignore Condition)');
     # End the string loop
     LogToInspector('*/         end; /*');
     # Add pathfinder_current_node_array to pathfinder_parent_map
     LogToInspector('*/     Modify Global Variable(pathfinder_parent_map, Append To Array, Array(Global.pathfinder_current_node_array)); /*');
+    # Wait
+    LogToInspector('*/         Wait(0.016, Ignore Condition)');
     # End the node loop
     LogToInspector('*/     end; /*');
     # End action & rule block
@@ -500,6 +541,22 @@ void ExportArray<T>(in T[] array, in Number step, const (T, Boolean) => String v
     }
 }
 
+void ExportMapBlock(in String blockName, const () => void exportActions)
+{
+    # Attributes rule
+    LogToInspector('*/ rule(\"GENERATED: {0} {1}\") { event { Ongoing - Global; } /*'.Format([CurrentMap(), blockName]));
+    # Conditions
+    LogToInspector('*/ conditions { /*');
+    # Make sure this is the correct map
+    LogToInspector(mapCondition);
+    # Start actions
+    LogToInspector('*/ } actions { /*');
+    # Export inner actions
+    exportActions();
+    # End action & rule block
+    LogToInspector('*/ } } /*');
+}
+
 void ExportStatement(in OutputLanguage language, in String workshop, in String deltinscript, in String overpy)
 {
     LogToInspector([workshop, deltinscript, overpy][language]);
@@ -509,3 +566,5 @@ void ExportAction(in OutputLanguage language, in String workshop, in String delt
 {
     LogToInspector("*/{0} /*".Format([[" " + workshop, "     " + deltinScript, "\n    " + overpy][language]]));
 }
+
+String mapCondition: '*/     Current Map == Map({0}); /*'.Format([CurrentMap()]);

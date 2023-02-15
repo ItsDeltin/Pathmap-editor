@@ -85,6 +85,15 @@ void MakeBake() playervar 'Subroutine: Make Bake'
         ProgressBarColor: Color.Orange,
         TextColor: Color.White
     );
+    // Note: making dijkstra not wait on every single iteration would reduce the compile time by quite a lot.
+    define endTime = TotalTimeElapsed() + Nodes.Length * (0.016 + Nodes.Length / 40 * 0.016 + Nodes.Length * 0.016);
+    define timeRemaining: endTime - TotalTimeElapsed();
+
+    define timeRemainingText = CreateHudText(
+        AllPlayers(),
+        Text: <'Time remaining: <0>:<2><1>', Max(timeRemaining / 60~Floor(), 0), Max(timeRemaining % 60~Floor(), 0), timeRemaining % 60 < 10 ? '0' : ''>,
+        SortOrder: 16,
+        Location: Location.Right);
 
     # For each node
     for (n = 0; Nodes.Length; 1) {
@@ -104,7 +113,10 @@ void MakeBake() playervar 'Subroutine: Make Bake'
                 compressed += stub;
                 stub = '';
             }
-            MinWait();
+
+            // wait every 40 iterations
+            if (!(p % 40))
+                MinWait();
         }
 
         # If this condition is true, then stub still has contents that should be added to the
@@ -123,6 +135,7 @@ void MakeBake() playervar 'Subroutine: Make Bake'
     }
 
     DestroyProgressBarHudText(progressBar);
+    DestroyHudText(timeRemainingText);
 }
 
 rule: 'Initialize Bake Matcher'

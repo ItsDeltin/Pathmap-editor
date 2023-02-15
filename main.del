@@ -21,6 +21,12 @@ class what {} globalvar what whaat! = new what();
 
 globalvar Number maxHistoryLength!;
 
+rule: '┏━【◈ Paste the actions to load a previous save here!! ◈】━┓' -3
+if (HasSpawned(HostPlayer()))
+{
+    
+}
+
 rule: 'Setup: Inspector, Performance HUD, and Settings' -1
 {
     if (!WorkshopSettingToggle('Pathmap Editor', 'Enable inspector recording', false, 1))

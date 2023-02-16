@@ -44,6 +44,15 @@ if (button(Button.Crouch))
     DisableInspectorRecording();
 }
 
+rule: 'Chunk up previous save'
+Event.OngoingPlayer
+if (host == eventPlayer)
+{
+    Wait(5);
+    for (Number chunker = 0; Nodes.Length; 1)
+        host.chunks[chunkFromPosition(Nodes[chunker].Node.Position)] += Nodes[chunker].Node.UniqueID;
+}
+
 struct Node
 {
     public Number UniqueID;
@@ -102,6 +111,19 @@ globalvar Number SelectedSegment! = -1;
 globalvar Player SelectedPlayer!;
 globalvar Any[] AttributeTexts = [];
 
+globalvar Vector mapOffset!;
+globalvar Vector mapRange!;
+playervar Number[][] chunks;
+playervar Number currentChunk;
+playervar Number[] loadedChunks;
+globalvar Number chunkRow! = 30;
+Number chunkSize: 15;
+Number chunkFromPosition(in Vector pos)
+{
+    return((pos.X - mapOffset.X) / chunkSize).Floor() * chunkRow
+        + ((pos.Z - mapOffset.Z) / chunkSize).Floor();
+}
+
 Number NodeIndexFromID(in Number id): Nodes.Map(node => node.Node.UniqueID).IndexOf(id);
 Number SegmentIndexFromID(in Number id): Segments.Map(segment => segment.ID).IndexOf(id);
 Number AttributeIndexFromID(in Number id): Attributes.Map(attribute => attribute.ID).IndexOf(id);
@@ -134,7 +156,75 @@ if (!IsDummyBot())
     DisallowButton(eventPlayer, Button.Ability1);
 }
 
-rule: 'Main: Selection loop'
+rule: 'Calculate map bounds'
+if (HasSpawned(host))
+{
+    Number buffer: 1.2;
+    Number maxSize: 1000;
+    Vector sw! = NearestWalkablePosition(Vector(-maxSize, 0, -maxSize)) * buffer;
+    Vector nw! = NearestWalkablePosition(Vector(-maxSize, 0, maxSize)) * buffer;
+    Vector se! = NearestWalkablePosition(Vector(maxSize, 0, -maxSize)) * buffer;
+    Vector ne! = NearestWalkablePosition(Vector(maxSize, 0, maxSize)) * buffer;
+    mapOffset = Vector(Min(sw.X, nw.X), 0, Min(sw.Z, se.Z));
+    mapRange = Vector(Max(se.X, ne.X), 0, Max(nw.Z, ne.Z)) - mapOffset;
+    chunkRow = (Max(mapRange.X, mapRange.Z) / chunkSize).Ceil();
+
+    CreateHudText(AllPlayers(), 'chunk: ' + chunkFromPosition(PositionOf(host)) + ' position: ' + PositionOf(host));
+}
+
+rule: 'Entered new chunk'
+Event.OngoingPlayer
+if (host == eventPlayer)
+if (currentChunk != chunkFromPosition(PositionOf()))
+{
+    Number chunk = chunkFromPosition(PositionOf());
+    Number[] loadChunks = [
+        chunk - chunkRow - 1, chunk - chunkRow, chunk - chunkRow + 1,
+        chunk - 1, chunk, chunk + 1,
+        chunk + chunkRow - 1, chunk + chunkRow, chunkRow + chunkRow + 1];
+    
+    Number[] unloadChunks = loadedChunks.FilteredArray(c => !loadChunks.Contains(c));
+
+    // Unload previous chunk.
+    Number li;
+    Number ri;
+    Number ni;
+    for (li = 0; unloadChunks.Length; 1) {
+        for (ri = 1; chunks[unloadChunks[li]].Length; 1) {
+            ni = NodeIndexFromID(chunks[unloadChunks[li]][ri]);
+            if (Nodes[ni].Visibility) {
+                DestroyEffect(Nodes[ni].BallEffect);
+                DestroyEffect(Nodes[ni].RingEffect);
+                Nodes[ni].Visibility = 0;
+            }
+        }
+        MinWait();
+    }
+    // Load next chunks.
+    for (li = 0; loadChunks.Length; 1) {
+        for (ri = 1; chunks[loadChunks[li]].Length; 1) {
+            ni = NodeIndexFromID(chunks[loadChunks[li]][ri]);
+            if (!Nodes[ni].Visibility) {
+                Nodes[ni].BallEffect = makeEffect(Effect.Sphere, Nodes[EvaluateOnce(ni)].Color(), Nodes[EvaluateOnce(ni)].ShownPosition(), NodeSize);
+                Nodes[ni].Visibility = 1;
+            }
+        }
+        MinWait();
+    }
+    // Segments
+    // for (li = 0; Segments.Length; 1)
+    // {
+    //     UpdateSegmentVisibility(li);
+    //     MinWait();
+    // }
+
+    currentChunk = chunk;
+    loadedChunks = loadChunks;
+    Wait(0.25);
+    LoopIfConditionIsTrue();
+}
+
+disabled rule: 'Main: Selection loop'
 if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
 {
     // Find player
@@ -187,7 +277,7 @@ if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
     LoopIfConditionIsTrue();
 }
 
-rule: 'Main: Renderer'
+disabled rule: 'Main: Renderer'
 if (Nodes.Length)
 {
     // Nodes
@@ -211,6 +301,7 @@ if (Nodes.Length)
 
 public void UpdateNodeVisibility(Number index) 'Subroutine: Update node visibility'
 {
+    return;
     // Not visible.
     if (!Nodes[index].ShownPosition().IsInLineOfSight(eye))
     {

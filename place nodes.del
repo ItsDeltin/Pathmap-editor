@@ -137,10 +137,12 @@ if (!host.cm_isInMenu)
     Document({
         Set: () => {
             Nodes += { Node: {Position: pos, UniqueID: id}, Visibility: 0, Selected: false, BallEffect: null, RingEffect: null };
+            host.chunks[chunkFromPosition(pos)] += id;
             UpdateNodeVisibility(Nodes.Length - 1);
         },
         Revert: () => {
             RemoveNodeByIndex(NodeIndexFromID(id));
+            host.chunks[chunkFromPosition(pos)] -= id;
         }
     });
 }

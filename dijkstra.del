@@ -32,13 +32,8 @@ DijkstraResult Dijkstra(
         Number currentID = Nodes[current].Node.UniqueID;
         unvisited -= current;
 
-        define neighbors = Segments
-            // Get the list of segments that contain the current node.
-            .FilteredArray(segment => segment.Node1 == currentID || segment.Node2 == currentID)
-            // Select the opposite node in the segment to get the list of neighbors.
-            .Map(segment => NodeIndexFromID(segment.Node1 == currentID ? segment.Node2 : segment.Node1))
-            // Only use the unvisited neighbors
-            .FilteredArray(node => unvisited.Contains(node));
+        // Only use the unvisited neighbors
+        define neighbors = getNodeNeighbors(currentID).FilteredArray(node => unvisited.Contains(node));
         
         for (Number i = 0; neighbors.Length; 1)
         {
@@ -65,6 +60,12 @@ DijkstraResult Dijkstra(
     pathfinderActive = false;
     return { Parents: parents };
 }
+
+// Get the list of segments that contain the current node.
+// Select the opposite node in the segment to get the list of neighbors.
+Number[] getNodeNeighbors(Number nodeID): Segments
+    .FilteredArray(segment => segment.Node1 == nodeID || segment.Node2 == nodeID)
+    .Map(segment => NodeIndexFromID(segment.Node1 == nodeID ? segment.Node2 : segment.Node1));
 
 struct DijkstraResult
 {
@@ -147,3 +148,138 @@ if (eventPlayer == host)
 
 playervar String[][] bakeResult;
 playervar String[] bakeMatcher;
+
+rule: 'ostwmake'
+Event.OngoingPlayer
+if (host == eventPlayer)
+if (button(Button.Ability2))
+{
+    PfHierarchy();
+}
+
+playervar Number[][] heirarchies;
+
+Number hashVector(in Vector vec, in Number chunkSize): (vec / chunkSize).X.Floor() * 100 + (vec / chunkSize).Z.Floor();
+
+void PfHierarchy() playervar 'Subroutine: Heirarchy'
+{
+    define tilesToNodes = MakeLowestLayer();
+    Wait(1);
+    define tiles = EnsureConnectivity(tilesToNodes);
+    // Create node to node table
+
+    // debug
+    while (true) {
+        for (define i = 0; tiles.ComponentsToNodes.Length; 1) {
+            SmallMessage(AllPlayers(), <'highlighting component <0> in tile <1>', i, 
+                tiles.TilesToComponents.keyWhereValue(nodes => nodes.Contains(i))>);
+            for (define n = 0; tiles.ComponentsToNodes[i].Length; 1) {
+                Nodes[tiles.ComponentsToNodes[i][n]].Selected = true;
+                if (n == 0)
+                    Teleport(AllPlayers(), Nodes[tiles.ComponentsToNodes[i][n]].Node.Position);
+                MinWait();
+            }
+
+            WaitUntil(button(Button.SecondaryFire), 9999);
+            WaitUntil(!button(Button.SecondaryFire), 9999);
+
+            for (define n = 0; tiles.ComponentsToNodes[i].Length; 1) {
+                Nodes[tiles.ComponentsToNodes[i][n]].Selected = false;
+                MinWait();
+            }
+        }
+        MinWait();
+    }
+}
+
+void ComputeConnectivity() {
+
+}
+
+void AddHierarchy() {
+}
+
+void PolyTable(in Tile tiles) {
+}
+
+Tile EnsureConnectivity(ref Table<Number, Number[]> tilesToNodes) {
+    SmallMessage(AllPlayers(), 'grouping connectivity');
+
+    Number componentId = 0;
+    // Tiles to components
+    define newTiles = Table<Number, Number[]>.newTable(tilesToNodes.Keys);
+    // Components to nodes
+    Number[][] components = [];
+
+    for (Number i = 0; tilesToNodes.length(); 1) {
+        Number[] componentGraph: tilesToNodes.Values[i];
+
+        // Copy the graph to a temporary variable.
+        define unvisited = componentGraph;
+        while (unvisited.Length) {
+            // The buffer of nodes that will be visited.
+            Number[] checkWeb = [unvisited.First];
+            // The nodes that have been visited.
+            Number[] web = [];
+            // The accumulative midpoint of the visited nodes.
+            Vector midpoint = Vector.Zero;
+            while (checkWeb.Length) {
+                // Add to midpoint
+                midpoint += Nodes[checkWeb.First].Node.Position;
+                // get connected nodes.
+                // todo: it might be a good idea to ignore segments with attributes.
+                checkWeb += getNodeNeighbors(Nodes[checkWeb.First].Node.UniqueID)
+                    .FilteredArray(n => unvisited.Contains(n) && !checkWeb.Contains(n));
+                // Add newly found nodes to the current web.
+                web += checkWeb.First;
+                // The current node has been visited.
+                unvisited -= checkWeb.First;
+                // Prepare the next node
+                checkWeb.ModRemoveByIndex(0);
+                MinWait();
+            }
+            midpoint /= web.Length;
+            // Get the node closest to the component's midpoint.
+            define middlestNode = web.SortedArray(n => Nodes[n].Node.Position.DistanceTo(midpoint)).First;
+
+            components[componentId] = web;
+            tableAppendValue(newTiles, tilesToNodes.Keys[i], componentId);
+            componentId++;
+            MinWait();
+        }
+        MinWait();
+    }
+
+    SmallMessage(AllPlayers(), 'connectivity grouped');
+
+    return { TilesToComponents: newTiles, ComponentsToNodes: components };
+}
+
+Table<Number, Number[]> MakeLowestLayer()
+{
+    define tiles = Table<Number, Number[]>.newTable();
+
+    SmallMessage(AllPlayers(), 'grouping');
+
+    // Group nodes.
+    for (Number i = 0; Nodes.Length; 1)
+    {
+        define node: Nodes[i];
+
+        // Get the group this node will be going in.
+        define hash = hashVector(node.Node.Position, 30);
+        // Add the node index to the group.
+        tableAppendValue(tiles, hash, i);
+        MinWait();
+    }
+
+    SmallMessage(AllPlayers(), 'group completed');
+
+    return tiles;
+}
+
+struct Tile
+{
+    public Number[][] ComponentsToNodes;
+    public Table<Number, Number[]> TilesToComponents;
+}

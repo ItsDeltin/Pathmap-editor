@@ -11,6 +11,7 @@ import 'number selector.del';
 import 'pathfinder settings.del';
 import 'cursor menu.del';
 import 'export.del';
+import 'table.del';
 import 'settings.lobby';
 
 globalvar Number version = 1;

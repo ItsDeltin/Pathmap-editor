@@ -2,7 +2,7 @@ import 'main.del';
 
 globalvar Any[] controlTexts;
 globalvar Number controlTextOrder = 1;
-globalvar Number connectingFromNode = -1;
+globalvar Number ConnectingFromNodeIndex = -1;
 globalvar Boolean attributeMode!;
 globalvar Number attribute!;
 globalvar Any blueVisual!;
@@ -84,7 +84,7 @@ rule: 'Editor: path mode enter'
 if (!attributeMode)
 if (editorState == EditorState.Node)
 {
-    MakeVisualBeams(BeamType.TorbjornTurretSightBeam, SelectedSegment == -1);
+    MakeVisualBeams(BeamType.TorbjornTurretSightBeam, SelectedSegmentID == -1);
 }
 
 rule: 'Editor: attribute mode enter'
@@ -93,9 +93,9 @@ if (editorState == EditorState.Node)
 {
     MakeVisualBeams(BeamType.SymmetraTurretBeam, true);
     attributeFloatText = CreateInWorldText(
-        VisibleTo: connectingFromNode != -1 && connectingFromNode != SelectedNodeIndex ? AllPlayers() : null,
+        VisibleTo: ConnectingFromNodeIndex != -1 && ConnectingFromNodeIndex != SelectedNodeIndex ? AllPlayers() : null,
         Header: " \n{0}".Format([attribute]),
-        Position: Nodes[connectingFromNode].ShownPosition() - Vector(0, 0.3, 0) + ((SelectedNodeID == -1 ? watchPoint : Nodes[SelectedNodeIndex].ShownPosition()) - Nodes[connectingFromNode].ShownPosition()) * 0.3,
+        Position: Nodes[ConnectingFromNodeIndex].ShownPosition() - Vector(0, 0.3, 0) + ((SelectedNodeID == -1 ? watchPoint : Nodes[SelectedNodeIndex].ShownPosition()) - Nodes[ConnectingFromNodeIndex].ShownPosition()) * 0.3,
         Scale: 2.5,
         Clipping: Clipping.DoNotClip,
         Reevaluation: InworldTextRev.VisibleToPositionStringAndColor,
@@ -108,16 +108,16 @@ void MakeVisualBeams(BeamType beamType, in Boolean visualCondition)
     DestroyEffect(blueVisual);
     DestroyEffect(redVisual);
     blueVisual = CreateBeamEffect(
-        UpdateEveryFrame(visualCondition && connectingFromNode != -1 && SelectedNodeID != -1 ? AllPlayers() : null),
+        UpdateEveryFrame(visualCondition && ConnectingFromNodeIndex != -1 && SelectedNodeID != -1 ? AllPlayers() : null),
         beamType,
-        Nodes[connectingFromNode].ShownPosition(),
+        Nodes[ConnectingFromNodeIndex].ShownPosition(),
         Nodes[SelectedNodeIndex].ShownPosition(),
         Color.Team1,
         EffectRev.VisibleToPositionRadiusAndColor);
     redVisual = CreateBeamEffect(
-        UpdateEveryFrame(visualCondition && connectingFromNode != -1 && SelectedNodeID == -1 ? AllPlayers() : null),
+        UpdateEveryFrame(visualCondition && ConnectingFromNodeIndex != -1 && SelectedNodeID == -1 ? AllPlayers() : null),
         beamType,
-        Nodes[connectingFromNode].ShownPosition(),
+        Nodes[ConnectingFromNodeIndex].ShownPosition(),
         UpdateEveryFrame(watchPoint),
         Color.Team2,
         EffectRev.VisibleToPositionRadiusAndColor);
@@ -136,13 +136,17 @@ if (!host.cm_isInMenu)
 
     Document({
         Set: () => {
-            Nodes += { Node: {Position: pos, UniqueID: id}, Visibility: 0, Selected: false, BallEffect: null, RingEffect: null };
-            host.chunks[chunkFromPosition(pos)] += id;
-            UpdateNodeVisibility(Nodes.Length - 1);
+            Nodes += { Node: {Position: pos, UniqueID: id, Neighbors: [[]]}, Visibility: 0, Selected: false, BallEffect: null, RingEffect: null };
+            Number chunk! = chunkFromPosition(pos);
+            tableAppendValue(host.chunks, chunk, id);
+            tryMakeNode(chunk, Nodes.Length - 1);
         },
         Revert: () => {
-            RemoveNodeByIndex(NodeIndexFromID(id));
-            host.chunks[chunkFromPosition(pos)] -= id;
+            Number index! = NodeIndexFromID(id);
+            RemoveNodeByIndex(index);
+            Number chunk! = chunkFromPosition(pos);
+            tableRemoveValue(host.chunks, chunk, id);
+            destroyNodeEffect(index);
         }
     });
 }
@@ -153,20 +157,13 @@ if (editorState == EditorState.Node)
 if (SelectedNodeID != -1)
 if (!host.cm_isInMenu)
 {
-    Node deleteNode = Nodes[SelectedNodeIndex].Node;
-    Vector[] deleteSegments =
-        Segments.Map(segment => Vector(segment.ID, segment.Node1, segment.Node2))
-            .FilteredArray((v, i) => Segments[i].Node1 == deleteNode.UniqueID || Segments[i].Node2 == deleteNode.UniqueID);
+    Node deleteNode: Nodes[SelectedNodeIndex].Node;
 
     Document({
         Set: () => {
             SelectedNodeIndex = -1;
             SelectedNodeID = -1;
 
-            // Delete segments
-            for (waitlessI = 0; deleteSegments.Length; 1) {
-                RemoveSegmentByIndex(SegmentIndexFromID(deleteSegments[waitlessI].X));
-            }
             // Delete node
             define index = NodeIndexFromID(deleteNode.UniqueID);
             RemoveNodeByIndex(index);
@@ -184,12 +181,6 @@ if (!host.cm_isInMenu)
         Revert: () => {
             // Add node
             Nodes += { Node: deleteNode, Visibility: 0, Selected: false, BallEffect: null, RingEffect: null };
-            // Add segments
-            for (waitlessI = 0; deleteSegments.Length; 1)
-            {
-                Segments += { ID: deleteSegments[waitlessI].X, Node1: deleteSegments[waitlessI].Y, Node2: deleteSegments[waitlessI].Z, Effect: null };
-                UpdateSegmentVisibility(Segments.Length - 1);
-            }
         }
     });
 }
@@ -209,49 +200,51 @@ if (editorState == EditorState.Node)
 if (SelectedNodeID != -1)
 if (!host.cm_isInMenu)
 {
-    if (connectingFromNode == SelectedNodeIndex)
+    if (ConnectingFromNodeIndex == SelectedNodeIndex)
     {
-        connectingFromNode = -1;
+        ConnectingFromNodeIndex = -1;
         return;
     }
-    else if (connectingFromNode != -1)
+    else if (ConnectingFromNodeIndex != -1)
     {
         // Segment mode
         if (!attributeMode)
         {
             // Delete segment
-            if (SelectedSegment != -1)
+            if (SelectedSegmentID != -1)
             {
-                WorldSegment segment = Segments[SelectedSegment];
-                segment.Effect = null;
-
+                // Store the segment.
+                Vector segment! = Vector(NodeIDFromIndex(ConnectingFromNodeIndex), SelectedSegmentID);
                 Document({
                     Set: () => {
-                        RemoveSegmentByIndex(SegmentIndexFromID(segment.ID));
+                        // Remove respective neighbors.
+                        Nodes[NodeIndexFromID(segment.X)].Node.Neighbors -= segment.Y;
+                        Nodes[NodeIndexFromID(segment.Y)].Node.Neighbors -= segment.X;
+                        destroySegment(segment);
                     },
                     Revert: () => {
-                        Segments += segment;
-                        UpdateSegmentVisibility(Segments.Length - 1);
+                        // Add respective neighbors.
+                        Nodes[NodeIndexFromID(segment.X)].Node.Neighbors += segment.Y;
+                        Nodes[NodeIndexFromID(segment.Y)].Node.Neighbors += segment.X;
+                        showSegment(segment);
                     }
                 });
             }
             // Create segment
             else
             {
-                SegmentUniqueID++;
-
                 // Temp variables for local capture
-                Number id! = SegmentUniqueID;
-                Number from! = Nodes[connectingFromNode].Node.UniqueID;
-                Number to! = Nodes[SelectedNodeIndex].Node.UniqueID;
-
+                Vector segment! = Vector(NodeIDFromIndex(ConnectingFromNodeIndex), NodeIDFromIndex(SelectedNodeIndex));
                 Document({
                     Set: () => {
-                        Segments += { ID: id, Node1: from, Node2: to, Effect: null };
-                        UpdateSegmentVisibility(Segments.Length - 1);
+                        Nodes[NodeIndexFromID(segment.X)].Node.Neighbors += segment.Y;
+                        Nodes[NodeIndexFromID(segment.Y)].Node.Neighbors += segment.X;
+                        showSegment(segment);
                     },
                     Revert: () => {
-                        RemoveSegmentByIndex(SegmentIndexFromID(id));
+                        Nodes[NodeIndexFromID(segment.X)].Node.Neighbors -= segment.Y;
+                        Nodes[NodeIndexFromID(segment.Y)].Node.Neighbors -= segment.X;
+                        destroySegment(segment);
                     }
                 });
             }
@@ -259,7 +252,7 @@ if (!host.cm_isInMenu)
         // Attribute mode
         else
         {
-            Number from! = Nodes[connectingFromNode].Node.UniqueID;
+            Number from! = Nodes[ConnectingFromNodeIndex].Node.UniqueID;
             Number to! = Nodes[SelectedNodeIndex].Node.UniqueID;
 
             // Find existing attribute.
@@ -267,7 +260,7 @@ if (!host.cm_isInMenu)
                 i => Attributes[i].Value == attribute && Attributes[i].Node1 == from && Attributes[i].Node2 == to
             );
 
-            // Delete segment
+            // Delete attribute
             if (existingAttributeIndex.Length)
             {
                 Attribute deleting = Attributes[existingAttributeIndex.First];
@@ -283,14 +276,14 @@ if (!host.cm_isInMenu)
                     }
                 });
             }
-            // Create segment
+            // Create attribute
             else
             {
                 AttributeUniqueID++;
 
                 // Temp variables for local capture
                 Number value! = attribute;
-                Number id! = SegmentUniqueID;
+                Number id! = AttributeUniqueID;
 
                 // Create attribute
                 Document({
@@ -307,17 +300,17 @@ if (!host.cm_isInMenu)
         }
     }
 
-    connectingFromNode = SelectedNodeIndex;
+    ConnectingFromNodeIndex = SelectedNodeIndex;
 }
 
 rule: 'Editor: Cancel link'
 if (button(Button.SecondaryFire))
 if (editorState == EditorState.Node)
 if (SelectedNodeID == -1)
-if (connectingFromNode != -1)
+if (ConnectingFromNodeIndex != -1)
 if (!host.cm_isInMenu)
 {
-    connectingFromNode = -1;
+    ConnectingFromNodeIndex = -1;
 }
 
 rule: 'Editor: Place dummy'
@@ -359,15 +352,15 @@ rule: 'Editor: tutorial' 1000
     AddControlText(
         editorState == EditorState.PlaceDummy ? 'Place dummy' :
             SelectedPlayer != null ? (SelectedPlayer.dummySelected ? 'Unselect player' : 'Select player') :
-            SelectedSegment != -1 ? (attributeMode ? 'Connect attribute' : 'Delete path') :
-            connectingFromNode != -1 && SelectedNodeID != -1 ? (connectingFromNode == SelectedNodeIndex ? (attributeMode ? 'Cancel attribute' : 'Cancel path') : (attributeMode ? 'Connect Attribute' : 'Link path')) :
-            connectingFromNode == -1 && SelectedNodeID != -1 ? (attributeMode ? 'Create attribute' : 'Create path') : 'Create node',
+            SelectedSegmentID != -1 ? (attributeMode ? 'Connect attribute' : 'Delete path') :
+            ConnectingFromNodeIndex != -1 && SelectedNodeID != -1 ? (ConnectingFromNodeIndex == SelectedNodeIndex ? (attributeMode ? 'Cancel attribute' : 'Cancel path') : (attributeMode ? 'Connect Attribute' : 'Link path')) :
+            ConnectingFromNodeIndex == -1 && SelectedNodeID != -1 ? (attributeMode ? 'Create attribute' : 'Create path') : 'Create node',
         Button.PrimaryFire
     );
     AddControlText(
         editorState == EditorState.Node ? (attributeMode ? 'Cancel attribute' : 'Cancel path') : 'Cancel',
         Button.SecondaryFire,
-        (editorState == EditorState.Node && connectingFromNode != -1 && SelectedNodeID == -1) || editorState == EditorState.PlaceDummy
+        (editorState == EditorState.Node && ConnectingFromNodeIndex != -1 && SelectedNodeID == -1) || editorState == EditorState.PlaceDummy
     );
     AddControlText(
         'Destroy node',

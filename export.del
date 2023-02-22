@@ -336,17 +336,17 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     }
 
     // Export segments if the user needs a strategem other than baking.
-    if (Segments.Length && true)
-    {
-        ExportMapBlock('segments', () => {
-            # Set pathfinder_segments
-            LogToInspector('*/     global.pathfinder_segments = Array( /*');
-            # For each attribute
-            ExportArray(Segments, 10, (segment, isLast) => <'Vector(<0>, <1>, <2>)<3>',
-                NodeIndexFromID(segment.Node1), NodeIndexFromID(segment.Node2), 0,
-                isLast ? '); ' : ', '>);
-        });
-    } 
+    // if (Segments.Length && true)
+    // {
+    //     ExportMapBlock('segments', () => {
+    //         # Set pathfinder_segments
+    //         LogToInspector('*/     global.pathfinder_segments = Array( /*');
+    //         # For each attribute
+    //         ExportArray(Segments, 10, (segment, isLast) => <'Vector(<0>, <1>, <2>)<3>',
+    //             NodeIndexFromID(segment.Node1), NodeIndexFromID(segment.Node2), 0,
+    //             isLast ? '); ' : ', '>);
+    //     });
+    // } 
     
     DisableInspectorRecording();
 }

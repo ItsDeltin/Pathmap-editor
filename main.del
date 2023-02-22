@@ -11,6 +11,7 @@ import 'number selector.del';
 import 'pathfinder settings.del';
 import 'cursor menu.del';
 import 'export.del';
+import 'table.del';
 import 'settings.lobby';
 
 globalvar Number version = 1;
@@ -50,13 +51,14 @@ if (host == eventPlayer)
 {
     Wait(5);
     for (Number chunker = 0; Nodes.Length; 1)
-        host.chunks[chunkFromPosition(Nodes[chunker].Node.Position)] += Nodes[chunker].Node.UniqueID;
+        tableAppendValue(host.chunks, chunkFromPosition(Nodes[chunker].Node.Position), Nodes[chunker].Node.UniqueID);
 }
 
 struct Node
 {
     public Number UniqueID;
     public Vector Position;
+    public Number[] Neighbors = [];
 }
 
 struct WorldNode
@@ -75,15 +77,7 @@ struct WorldNode
 
     public Vector ShownPosition(): Node.Position + Up() * 1.3;
 
-    public Boolean ValidTarget(): ShownPosition().DistanceTo(ray(eye, eye + facing * ShownPosition().DistanceTo(eye))) < NodeSize;
-}
-
-struct WorldSegment
-{
-    public Number ID;
-    public Number Node1;
-    public Number Node2;
-    public Any Effect;
+    public Boolean ValidTarget(): ShownPosition().DistanceTo(eye + facing * ShownPosition().DistanceTo(eye)) < NodeSize;
 }
 
 struct Attribute
@@ -95,11 +89,9 @@ struct Attribute
 }
 
 globalvar WorldNode[] Nodes = [];
-globalvar WorldSegment[] Segments = [];
 globalvar Attribute[] Attributes = [];
 
 globalvar Number NodeUniqueID! = 1;
-globalvar Number SegmentUniqueID! = 1;
 globalvar Number AttributeUniqueID! = 1;
 
 Number NodeSize: 0.3;
@@ -107,17 +99,27 @@ Boolean AnyNodesSelected: Nodes.IsTrueForAny(node => node.Selected);
 
 globalvar Number SelectedNodeIndex! = -1;
 globalvar Number SelectedNodeID! = -1;
-globalvar Number SelectedSegment! = -1;
+globalvar Number SelectedSegmentID! = -1;
 globalvar Player SelectedPlayer!;
 globalvar Any[] AttributeTexts = [];
 
 globalvar Vector mapOffset!;
 globalvar Vector mapRange!;
-playervar Number[][] chunks;
-playervar Number currentChunk;
-playervar Number[] loadedChunks;
+// The number of rows in the chunk's data x dimension
 globalvar Number chunkRow! = 30;
-Number chunkSize: 15;
+// The chunk size
+Number chunkSize: 20;
+
+playervar Table<Number, Number[]> chunks = Table<Number, Number[]>.newTable();
+// The ID of the chunk the player is currently standing in.
+playervar Number currentChunk;
+// The list of loaded chunks.
+playervar Number[] loadedChunks;
+// The list of loaded nodes.
+playervar Number[] loadedNodes = [];
+// The list of loaded segments.
+playervar Table<Number, Any> loadedSegments = Table<Number, Any>.newTable();
+
 Number chunkFromPosition(in Vector pos)
 {
     return((pos.X - mapOffset.X) / chunkSize).Floor() * chunkRow
@@ -125,20 +127,16 @@ Number chunkFromPosition(in Vector pos)
 }
 
 Number NodeIndexFromID(in Number id): Nodes.Map(node => node.Node.UniqueID).IndexOf(id);
-Number SegmentIndexFromID(in Number id): Segments.Map(segment => segment.ID).IndexOf(id);
+Number NodeIDFromIndex(in Number index): Nodes[index].Node.UniqueID;
 Number AttributeIndexFromID(in Number id): Attributes.Map(attribute => attribute.ID).IndexOf(id);
+
+Number unorderedCantor(in Number a, in Number b): (1/2)*(Min(a, b) + Max(a, b)) * (Min(a, b) + Max(a, b) + 1) + Max(a, b);
 
 void RemoveNodeByIndex(Number index) 'Subroutine: Remove node'
 {
     DestroyEffect(Nodes[index].BallEffect);
     DestroyEffect(Nodes[index].RingEffect);
     Nodes.ModRemoveByIndex(index);
-}
-
-void RemoveSegmentByIndex(Number index) 'Subroutine: Remove segment'
-{
-    DestroyEffect(Segments[index].Effect);
-    Segments.ModRemoveByIndex(index);
 }
 
 void RemoveAttributeByIndex(Number index) 'Subroutine: Remove attribute'
@@ -186,37 +184,25 @@ if (currentChunk != chunkFromPosition(PositionOf()))
     Number[] unloadChunks = loadedChunks.FilteredArray(c => !loadChunks.Contains(c));
 
     // Unload previous chunk.
-    Number li;
-    Number ri;
-    Number ni;
-    for (li = 0; unloadChunks.Length; 1) {
-        for (ri = 1; chunks[unloadChunks[li]].Length; 1) {
-            ni = NodeIndexFromID(chunks[unloadChunks[li]][ri]);
-            if (Nodes[ni].Visibility) {
-                DestroyEffect(Nodes[ni].BallEffect);
-                DestroyEffect(Nodes[ni].RingEffect);
-                Nodes[ni].Visibility = 0;
-            }
+    Number li; Number ri; Number nIndex; Number nID;
+
+    iterateChunks(li, ri, nIndex, nID, unloadChunks, () => {
+        destroyNodeEffect(nIndex);
+        loadedNodes -= nID;
+    }, (nID1, nID2, cantor) => {
+        // Remove from loaded segments.
+        Number remove = loadedSegments.indexOfKey(cantor);
+        if (remove != -1 && !loadedNodes.Contains(nID1) && !loadedNodes.Contains(nID2))
+        {
+            DestroyEffect(loadedSegments.Values[remove]);
+            tableRemoveIndex(loadedSegments, remove);
         }
-        MinWait();
-    }
-    // Load next chunks.
-    for (li = 0; loadChunks.Length; 1) {
-        for (ri = 1; chunks[loadChunks[li]].Length; 1) {
-            ni = NodeIndexFromID(chunks[loadChunks[li]][ri]);
-            if (!Nodes[ni].Visibility) {
-                Nodes[ni].BallEffect = makeEffect(Effect.Sphere, Nodes[EvaluateOnce(ni)].Color(), Nodes[EvaluateOnce(ni)].ShownPosition(), NodeSize);
-                Nodes[ni].Visibility = 1;
-            }
-        }
-        MinWait();
-    }
-    // Segments
-    // for (li = 0; Segments.Length; 1)
-    // {
-    //     UpdateSegmentVisibility(li);
-    //     MinWait();
-    // }
+    });
+    iterateChunks(li, ri, nIndex, nID, loadChunks, () => {
+        makeNodeEffect(nIndex);
+    }, (nID1, nID2, cantor) => {
+        makeSegmentEffect(cantor, nID1, nID2);
+    });
 
     currentChunk = chunk;
     loadedChunks = loadChunks;
@@ -224,9 +210,100 @@ if (currentChunk != chunkFromPosition(PositionOf()))
     LoopIfConditionIsTrue();
 }
 
-disabled rule: 'Main: Selection loop'
-if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
+void iterateChunks(ref Number li, ref Number ri, ref Number nIndex, ref Number nID, in Number[] chunkIndexes,
+    const () => void exec,
+    const (Number, Number, Number) => void execNeighbor)
 {
+    for (li = 0; chunkIndexes.Length; 1) {
+        if (chunks.keyExists(chunkIndexes[li]))
+        for (ri = 0; chunks.get(chunkIndexes[li]).Length; 1) {
+            nID = chunks.get(chunkIndexes[li])[ri];
+            nIndex = NodeIndexFromID(nID);
+            exec();
+            
+            // Neighbor action
+            foreach (Number neighbor in Nodes[nIndex].Node.Neighbors) {
+                Number cantor = unorderedCantor(nID, neighbor);
+                execNeighbor(nID, neighbor, cantor);
+            }
+        }
+        MinWait();
+    }
+}
+
+void makeNodeEffect(in Number nIndex)
+{
+    if (!Nodes[nIndex].Visibility) {
+        Nodes[nIndex].BallEffect = makeEffect(Effect.Sphere, Nodes[EvaluateOnce(nIndex)].Color(), Nodes[EvaluateOnce(nIndex)].ShownPosition(), NodeSize);
+        Nodes[nIndex].Visibility = 1;
+        host.loadedNodes += NodeIDFromIndex(nIndex);
+    }
+}
+
+void destroyNodeEffect(in Number nIndex)
+{
+    if (Nodes[nIndex].Visibility) {
+        DestroyEffect(Nodes[nIndex].BallEffect);
+        DestroyEffect(Nodes[nIndex].RingEffect);
+        Nodes[nIndex].Visibility = 0;
+    }
+}
+
+void tryMakeNode(in Number chunkIndex, in Number nIndex)
+{
+    if (host.loadedChunks.Contains(chunkIndex) && !Nodes[nIndex].Visibility) {
+        // todo: visiblity is check twice
+        makeNodeEffect(nIndex);
+    }
+}
+
+void showSegment(Vector segment) 'Subroutine: make segment'
+{
+    Number nID1: segment.X;
+    Number nID2: segment.Y;
+
+    Boolean isAtLeastOneNodeLoaded = host.loadedNodes.Contains(nID1) || host.loadedNodes.Contains(nID2);
+    Number cantor = unorderedCantor(nID1, nID2);
+
+    if (isAtLeastOneNodeLoaded)
+        makeSegmentEffect(cantor, nID1, nID2);
+}
+
+void destroySegment(Vector segment) 'Subroutine: destroy segment'
+{
+    Number nID1: segment.X;
+    Number nID2: segment.Y;
+    Number cantor = unorderedCantor(nID1, nID2);
+
+    host.loadedSegments.ifKey(cantor, (effect, index) => {
+        DestroyEffect(effect);
+        tableRemoveIndex(host.loadedSegments, index);
+    });
+}
+
+void makeSegmentEffect(in Number cantor, in Number nID1, in Number nID2)
+{
+    if (!host.loadedSegments.keyExists(cantor))
+        tableAdd(host.loadedSegments, cantor, CreateBeamEffect(
+            UpdateEveryFrame(editorState != EditorState.Node || attributeMode
+                || Min(SelectedSegmentID, NodeIDFromIndex(ConnectingFromNodeIndex)) != EvaluateOnce(Min(nID1, nID2))
+                || Max(SelectedSegmentID, NodeIDFromIndex(ConnectingFromNodeIndex)) != EvaluateOnce(Max(nID1, nID2))
+                || TotalTimeElapsed() % 1 < 0.5 ? AllPlayers() : null),
+            BeamType.BrigitteFlailChainBeam,
+            Nodes[EvaluateOnce(NodeIndexFromID(nID1))].ShownPosition(),
+            Nodes[EvaluateOnce(NodeIndexFromID(nID2))].ShownPosition(),
+            Color.White,
+            EffectRev.VisibleTo
+        ));
+}
+
+globalvar Vector positionDirection;
+
+rule: 'Main: Selection loop'
+if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
+if (positionDirection != host.FacingDirection() + host.Position())
+{
+    positionDirection = host.FacingDirection() + host.Position();
     // Find player
     AllPlayers().dummyHighlighted = false;
     SelectedPlayer = RayCastHitPlayer(eye, eye + facing * 100, AllPlayers(), host, false);
@@ -261,113 +338,17 @@ if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
         UpdateAttributeVisibility();
 
         // Get segment that contains both nodes.
-        if (connectingFromNode == -1 || SelectedNodeID == -1)
-            SelectedSegment = -1;
+        if (ConnectingFromNodeIndex == -1 || SelectedNodeID == -1)
+            SelectedSegmentID = -1;
         else
         {
-            Number[] tempSegment! = Segments.Map((s, i) => i).FilteredArray(i =>
-                (Segments[i].Node1 == Nodes[SelectedNodeIndex].Node.UniqueID && Segments[i].Node2 == Nodes[connectingFromNode].Node.UniqueID) ||
-                (Segments[i].Node2 == Nodes[SelectedNodeIndex].Node.UniqueID && Segments[i].Node1 == Nodes[connectingFromNode].Node.UniqueID));
-            
-            SelectedSegment = tempSegment == [] ? -1 : tempSegment.First; 
+            Number[] tempSegment! = Nodes[ConnectingFromNodeIndex].Node.Neighbors.FilteredArray(n => n == SelectedNodeID);            
+            SelectedSegmentID = tempSegment == [] ? -1 : tempSegment.First;
         }
     }
 
     Wait(0.1);
     LoopIfConditionIsTrue();
-}
-
-disabled rule: 'Main: Renderer'
-if (Nodes.Length)
-{
-    // Nodes
-    Number i;
-    for (i = 0; Nodes.Length; 1)
-    {
-        UpdateNodeVisibility(i);
-        MinWait();
-    }
-
-    // Segments
-    for (i = 0; Segments.Length; 1)
-    {
-        UpdateSegmentVisibility(i);
-        MinWait();
-    }
-
-    Wait(0.5);
-    LoopIfConditionIsTrue();
-}
-
-public void UpdateNodeVisibility(Number index) 'Subroutine: Update node visibility'
-{
-    return;
-    // Not visible.
-    if (!Nodes[index].ShownPosition().IsInLineOfSight(eye))
-    {
-        if (Nodes[index].Visibility != 0)
-        {
-            DestroyEffect(Nodes[index].BallEffect);
-            DestroyEffect(Nodes[index].RingEffect);
-            Nodes[index].Visibility = 0;
-        }
-    }
-    else
-    {
-        // Make visible
-        if (Nodes[index].Visibility == 0)
-        {
-            Nodes[index].BallEffect = makeEffect(Effect.Sphere, Nodes[EvaluateOnce(index)].Color(), Nodes[EvaluateOnce(index)].ShownPosition(), NodeSize);
-            Nodes[index].Visibility = 1;
-        }
-
-        // Ring effect
-        if (Nodes[index].Node.Position.DistanceTo(eye) > 10)
-        {
-            if (Nodes[index].Visibility == 2)
-            {
-                DestroyEffect(Nodes[index].RingEffect);
-                Nodes[index].Visibility = 1;
-            }
-        }
-        else if (Nodes[index].Visibility == 1)
-        {
-            Nodes[index].RingEffect = makeEffect(Effect.Ring, Nodes[EvaluateOnce(index)].Color(), Nodes[EvaluateOnce(index)].Node.Position, NodeSize);
-            Nodes[index].Visibility = 2;
-        }
-    }
-}
-
-public void UpdateSegmentVisibility(Number index) 'Subroutine: Update segment visibility'
-{
-    Number node1 = NodeIndexFromID(Segments[index].Node1);
-    Number node2 = NodeIndexFromID(Segments[index].Node2);
-    Number id = Segments[index].ID;
-
-    // Visible
-    if (Nodes[node1].Visibility ||
-        Nodes[node2].Visibility)
-    {
-        if (!Segments[index].Effect)
-        {
-            Number segmentIndex: SegmentIndexFromID(EvaluateOnce(id));
-
-            Segments[index].Effect = CreateBeamEffect(
-                UpdateEveryFrame(editorState != EditorState.Node || attributeMode || SelectedSegment != segmentIndex || TotalTimeElapsed() % 1 < 0.5 ? AllPlayers() : null),
-                BeamType.BrigitteFlailChainBeam,
-                Nodes[NodeIndexFromID(Segments[segmentIndex].Node1)].ShownPosition(),
-                Nodes[NodeIndexFromID(Segments[segmentIndex].Node2)].ShownPosition(),
-                Color.White,
-                EffectRev.VisibleTo
-            );
-        }
-    }
-    // Not visible
-    else if (Segments[index].Effect)
-    {
-        DestroyEffect(Segments[index].Effect);
-        Segments[index].Effect = null;
-    }
 }
 
 public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility'
@@ -381,7 +362,7 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
     // Show connected attributes.
     Number useNode! =
         SelectedNodeID != -1 ? SelectedNodeID :
-        connectingFromNode != -1 ? Nodes[connectingFromNode].Node.UniqueID : -1;
+        ConnectingFromNodeIndex != -1 ? Nodes[ConnectingFromNodeIndex].Node.UniqueID : -1;
 
     if (useNode == -1)
     {

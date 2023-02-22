@@ -59,6 +59,8 @@ if (button(Button.Reload))
 if (selectedDummies.Length)
 if (!pathfinderActive)
 {
+    WaitUntil(!button(Button.Reload), 9999);
+
     Vector destination = watchPoint;
     Player[] players = selectedDummies;
     Number[] targetNodes = [];

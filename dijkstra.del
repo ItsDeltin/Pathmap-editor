@@ -32,12 +32,10 @@ DijkstraResult Dijkstra(
         Number currentID = Nodes[current].Node.UniqueID;
         unvisited -= current;
 
-        define neighbors = Segments
-            // Get the list of segments that contain the current node.
-            .FilteredArray(segment => segment.Node1 == currentID || segment.Node2 == currentID)
-            // Select the opposite node in the segment to get the list of neighbors.
-            .Map(segment => NodeIndexFromID(segment.Node1 == currentID ? segment.Node2 : segment.Node1))
-            // Only use the unvisited neighbors
+        // Get the list of segments that contain the current node.
+        // Only use the unvisited neighbors
+        define neighbors = Nodes[current].Node.Neighbors
+            .Map(n => NodeIndexFromID(n))
             .FilteredArray(node => unvisited.Contains(node));
         
         for (Number i = 0; neighbors.Length; 1)

@@ -391,7 +391,7 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
         String string! = '';
         while (group.Length)
         {
-            string = ' {0}\n{1}'.Format([string, Attributes[group.First].Value]);
+            string = <' <0>\n<2><1><2>', string, Attributes[group.First].Value, isSource ? '◈' : ''>;
             group.ModRemoveByIndex(0);
         }
 

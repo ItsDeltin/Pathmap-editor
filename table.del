@@ -1,0 +1,32 @@
+import 'main.del';
+
+struct Table<K, V> {
+    public K[] Keys;
+    public V[] Values;
+
+    public Number indexOfKey(K key) {
+        return Keys.IndexOf(key);
+    }
+
+    public Number length() {
+        return Keys.Length;
+    }
+
+    public K keyWhereValue(const V => Boolean condition) {
+        return Keys.FilteredArray((k, i) => condition(Values[i])).First;
+    }
+
+    public static Table<K, V> newTable(in K[] keys = [], in V[] values = []) {
+        return { Keys: keys, Values: values };
+    }
+}
+
+void tableAppendValue<K, V>(ref Table<K, V[]> table, in K key, in V value) {
+    define k = table.indexOfKey(key);
+    if (k == -1) {
+        table.Keys += key;
+        table.Values += [[value]];
+    } else {
+        table.Values[k] += value;
+    }
+}

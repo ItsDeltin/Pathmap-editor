@@ -64,12 +64,6 @@ DijkstraResult Dijkstra(
     return { Parents: parents };
 }
 
-// Get the list of segments that contain the current node.
-// Select the opposite node in the segment to get the list of neighbors.
-Number[] getNodeNeighbors(Number nodeID): Segments
-    .FilteredArray(segment => segment.Node1 == nodeID || segment.Node2 == nodeID)
-    .Map(segment => NodeIndexFromID(segment.Node1 == nodeID ? segment.Node2 : segment.Node1));
-
 struct DijkstraResult
 {
     public Number[] Parents;
@@ -163,13 +157,25 @@ if (button(Button.Ability2))
 playervar Number[][] heirarchies;
 
 Number hashVector(in Vector vec, in Number chunkSize): (vec / chunkSize).X.Floor() * 100 + (vec / chunkSize).Z.Floor();
+Number[] getNeighborhood(in Number hashedTile): [
+    hashedTile - 101, hashedTile - 100, hashedTile - 99,
+    hashedTile - 1, hashedTile, hashedTile + 1,
+    hashedTile + 99, hashedTile + 100, hashedTile + 101
+];
 
 void PfHierarchy() playervar 'Subroutine: Heirarchy'
 {
+    // Split nodes into tiles. 
+    SmallMessage(AllPlayers(), 'Tiles to nodes');
     define tilesToNodes = MakeLowestLayer();
-    Wait(1);
+
+    // First component split: ensure that 
+    SmallMessage(AllPlayers(), 'Node connectivity');
     define tiles = EnsureConnectivity(tilesToNodes);
+
     // Create node to node table
+    SmallMessage(AllPlayers(), 'Node-to-node table');
+    NodeToNodeTable(tiles);
 
     // debug
     while (true) {
@@ -202,13 +208,71 @@ void ComputeConnectivity() {
 void AddHierarchy() {
 }
 
-void PolyTable(in Tile tiles) {
+void NodeToNodeTable(in Tile tiles) {
+    for (Number t! = 0; tiles.TilesToComponents.length(); 1) {
+        // Get neighboring tiles.
+        Number[] tileNeighborhood = getNeighborhood(tiles.TilesToComponents.Keys[t]);
+        // Get each node in each neighboring tile.
+        Number[] nodeNeighborhood = tiles.GetNodesInNeighborhood(tileNeighborhood);
+        // Each node's tables.
+        Table<Number, Number>[] nodeTables = [];
+
+        // Create node-to-node table
+        tiles.ForeachNodeInTile(t, node => {
+            # append to node table
+            nodeTables += [GetPathsToNode(node, nodeNeighborhood)];
+
+            MinWait();
+        });
+    }
+}
+
+Table<Number, Number> GetPathsToNode(in Number nodeIndex, Number[] neighborhood!) {
+    # 'neighborhood' will serve as the unvisited array.
+    # Each node in the neighborhood will have a value pointing towards nodeIndex.
+    define pathTable = Table<Number, HeirarchyDijkstraNode>.newTable(
+        keys: neighborhood,
+        values: neighborhood.Map(n => {
+            Distance: 9999,
+            NextNode: -1
+        })
+    );
+    // ostw needs a better way of doing this D:
+    // const pointer time ;(
+    pathTable.Values[pathTable.indexOfKey(nodeIndex)].Distance = 0;
+    
+    while (neighborhood.Length)
+    {
+        # Get the node with the least distance.
+        # This will be index in the Nodes array, or the ID in the path table.
+        Number current! = pathTable.sort((node, value) => value.Distance).First.Key;
+        
+        # Get the node's neighbors that are also inside the tile neighborhood.
+        Number[] neighbors! = Nodes[current].Node.Neighbors
+            .Map(n => NodeIndexFromID(n))
+            .FilteredArray(n => neighborhood.Contains(n));
+        
+        foreach (Number neighbor! in neighbors)
+        {
+            Number newDistance! = pathTable.get(current).Distance + Nodes[current].Node.Position.DistanceTo(Nodes[neighbor].Node.Position);
+            
+            if (newDistance < pathTable.get(neighbor).Distance) {
+                # Update distance and parents.
+                pathTable.Values[pathTable.indexOfKey(neighbor)].Distance = newDistance;
+                pathTable.Values[pathTable.indexOfKey(neighbor)].NextNode = current;
+            }
+        }
+
+        MinWait();
+    }
+
+    return pathTable.mapValue(v => v.NextNode);
 }
 
 Tile EnsureConnectivity(ref Table<Number, Number[]> tilesToNodes) {
     SmallMessage(AllPlayers(), 'grouping connectivity');
 
-    Number componentId = 0;
+    Number componentId! = 0;
     // Tiles to components
     define newTiles = Table<Number, Number[]>.newTable(tilesToNodes.Keys);
     // Components to nodes
@@ -218,20 +282,17 @@ Tile EnsureConnectivity(ref Table<Number, Number[]> tilesToNodes) {
         Number[] componentGraph: tilesToNodes.Values[i];
 
         // Copy the graph to a temporary variable.
-        define unvisited = componentGraph;
+        define unvisited! = componentGraph;
         while (unvisited.Length) {
             // The buffer of nodes that will be visited.
             Number[] checkWeb = [unvisited.First];
             // The nodes that have been visited.
             Number[] web = [];
-            // The accumulative midpoint of the visited nodes.
-            Vector midpoint = Vector.Zero;
             while (checkWeb.Length) {
-                // Add to midpoint
-                midpoint += Nodes[checkWeb.First].Node.Position;
                 // get connected nodes.
                 // todo: it might be a good idea to ignore segments with attributes.
-                checkWeb += getNodeNeighbors(Nodes[checkWeb.First].Node.UniqueID)
+                checkWeb += Nodes[checkWeb.First].Node.Neighbors
+                    .Map(n => NodeIndexFromID(n))
                     .FilteredArray(n => unvisited.Contains(n) && !checkWeb.Contains(n));
                 // Add newly found nodes to the current web.
                 web += checkWeb.First;
@@ -241,10 +302,6 @@ Tile EnsureConnectivity(ref Table<Number, Number[]> tilesToNodes) {
                 checkWeb.ModRemoveByIndex(0);
                 MinWait();
             }
-            midpoint /= web.Length;
-            // Get the node closest to the component's midpoint.
-            define middlestNode = web.SortedArray(n => Nodes[n].Node.Position.DistanceTo(midpoint)).First;
-
             components[componentId] = web;
             tableAppendValue(newTiles, tilesToNodes.Keys[i], componentId);
             componentId++;
@@ -265,7 +322,7 @@ Table<Number, Number[]> MakeLowestLayer()
     SmallMessage(AllPlayers(), 'grouping');
 
     // Group nodes.
-    for (Number i = 0; Nodes.Length; 1)
+    for (Number i! = 0; Nodes.Length; 1)
     {
         define node: Nodes[i];
 
@@ -283,6 +340,34 @@ Table<Number, Number[]> MakeLowestLayer()
 
 struct Tile
 {
+    // [Component ID] to [...Node Indexes...]
     public Number[][] ComponentsToNodes;
+    // Tile ID to [...Component IDs...]
     public Table<Number, Number[]> TilesToComponents;
+
+    Number[] GetNodesInNeighborhood(in Number[] tiles)
+    {
+        Number[] result = [];
+        foreach (Number tile! in tiles)
+            TilesToComponents.ifKey(tile, (components, i) => {
+                foreach (Number component! in components) {
+                    result += ComponentsToNodes[component];
+                }
+            });
+        return result;
+    }
+
+    void ForeachNodeInTile(in Number tileIndex, const Number => void iter)
+    {
+        Number[] components = TilesToComponents.Values[tileIndex];
+        foreach (Number component! in components)
+            foreach (Number node! in ComponentsToNodes[component])
+                iter(ComponentsToNodes[component][node]);
+    }
+}
+
+struct HeirarchyDijkstraNode
+{
+    public Number Distance;
+    public Number NextNode;
 }

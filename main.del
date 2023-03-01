@@ -12,6 +12,7 @@ import 'pathfinder settings.del';
 import 'cursor menu.del';
 import 'export.del';
 import 'table.del';
+import 'quick menu.del';
 import 'settings.lobby';
 
 globalvar Number version = 1;
@@ -48,6 +49,7 @@ if (button(Button.Crouch))
 rule: 'Chunk up previous save'
 Event.OngoingPlayer
 if (host == eventPlayer)
+if (HasSpawned(host))
 {
     Wait(5);
     for (Number chunker = 0; Nodes.Length; 1)

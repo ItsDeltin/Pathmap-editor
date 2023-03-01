@@ -302,6 +302,7 @@ void makeSegmentEffect(in Number cantor, in Number nID1, in Number nID2)
 globalvar Vector positionDirection;
 
 rule: 'Main: Selection loop'
+if (!host.cm_isInMenu)
 if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
 if (positionDirection != host.FacingDirection() + host.Position())
 {

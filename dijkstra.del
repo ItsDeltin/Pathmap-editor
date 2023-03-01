@@ -140,7 +140,7 @@ rule: 'Initialize Bake Matcher'
 Event.OngoingPlayer
 if (eventPlayer == host)
 {
-    bakeMatcher = BakemapStruct.GenerateMatchArray(500);
+    // bakeMatcher = BakemapStruct.GenerateMatchArray(500);
 }
 
 playervar String[][] bakeResult;
@@ -176,6 +176,7 @@ void PfHierarchy() playervar 'Subroutine: Heirarchy'
     // Create node to node table
     SmallMessage(AllPlayers(), 'Node-to-node table');
     NodeToNodeTable(tiles);
+    SmallMessage(AllPlayers(), 'Node-to-node completed');
 
     // debug
     while (true) {
@@ -209,14 +210,15 @@ void AddHierarchy() {
 }
 
 void NodeToNodeTable(in Tile tiles) {
+    // Each node's tables.
+    Table<Number, Number>[] nodeTables = [];
+
+    // For each tile
     for (Number t! = 0; tiles.TilesToComponents.length(); 1) {
         // Get neighboring tiles.
         Number[] tileNeighborhood = getNeighborhood(tiles.TilesToComponents.Keys[t]);
         // Get each node in each neighboring tile.
         Number[] nodeNeighborhood = tiles.GetNodesInNeighborhood(tileNeighborhood);
-        // Each node's tables.
-        Table<Number, Number>[] nodeTables = [];
-
         // Create node-to-node table
         tiles.ForeachNodeInTile(t, node => {
             # append to node table
@@ -230,6 +232,9 @@ void NodeToNodeTable(in Tile tiles) {
 Table<Number, Number> GetPathsToNode(in Number nodeIndex, Number[] neighborhood!) {
     # 'neighborhood' will serve as the unvisited array.
     # Each node in the neighborhood will have a value pointing towards nodeIndex.
+    // NOTICE: This won't work if the shortest path between two nodes in the tile
+    // needs to exit the neighborhood. This will probably need to be extended to every
+    // node in the map.
     define pathTable = Table<Number, HeirarchyDijkstraNode>.newTable(
         keys: neighborhood,
         values: neighborhood.Map(n => {
@@ -245,7 +250,8 @@ Table<Number, Number> GetPathsToNode(in Number nodeIndex, Number[] neighborhood!
     {
         # Get the node with the least distance.
         # This will be index in the Nodes array, or the ID in the path table.
-        Number current! = pathTable.sort((node, value) => value.Distance).First.Key;
+        Number current! = neighborhood.SortedArray(n => pathTable.get(n).Distance).First;
+        neighborhood -= current;
         
         # Get the node's neighbors that are also inside the tile neighborhood.
         Number[] neighbors! = Nodes[current].Node.Neighbors
@@ -340,9 +346,9 @@ Table<Number, Number[]> MakeLowestLayer()
 
 struct Tile
 {
-    // [Component ID] to [...Node Indexes...]
+    # [Component ID] to [...Node Indexes...]
     public Number[][] ComponentsToNodes;
-    // Tile ID to [...Component IDs...]
+    # Tile ID to [...Component IDs...]
     public Table<Number, Number[]> TilesToComponents;
 
     Number[] GetNodesInNeighborhood(in Number[] tiles)
@@ -359,7 +365,7 @@ struct Tile
 
     void ForeachNodeInTile(in Number tileIndex, const Number => void iter)
     {
-        Number[] components = TilesToComponents.Values[tileIndex];
+        Number[] components: TilesToComponents.Values[tileIndex];
         foreach (Number component! in components)
             foreach (Number node! in ComponentsToNodes[component])
                 iter(ComponentsToNodes[component][node]);

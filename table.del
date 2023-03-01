@@ -4,7 +4,19 @@ struct Table<K, V> {
     public K[] Keys;
     public V[] Values;
 
-    public Number indexOfKey(K key) {
+    public V get(in K key) {
+        return Values[indexOfKey(key)];
+    }
+
+    public V fromIndex(in Number index) {
+        return Values[index];
+    }
+
+    public Boolean keyExists(in K key) {
+        return Keys.Contains(key);
+    }
+
+    public Number indexOfKey(in K key) {
         return Keys.IndexOf(key);
     }
 
@@ -16,9 +28,39 @@ struct Table<K, V> {
         return Keys.FilteredArray((k, i) => condition(Values[i])).First;
     }
 
+    public void ifKey(in K key, const (V, Number) => void exec) {
+        Number index = indexOfKey(key);
+        if (index != -1)
+            exec(Values[index], index);
+    }
+
+    public KeyValuePair<K, V>[] sort(const (K, V) => Boolean condition) {
+        return Keys
+            .Map((_, i) => i)
+            .SortedArray(i => condition(Keys[i], Values[i]))
+            .Map(i => { Key: Keys[i], Value: Values[i] });
+    }
+
+    public Table<K, OV> mapValue<OV>(const V => OV map) {
+        return {
+            Keys: Keys,
+            Values: Values.Map(v => map(v))
+        };
+    }
+
     public static Table<K, V> newTable(in K[] keys = [], in V[] values = []) {
         return { Keys: keys, Values: values };
     }
+}
+
+void tableRemoveIndex<K, V>(ref Table<K, V> table, in Number index) {
+    table.Keys.ModRemoveByIndex(index);
+    table.Values.ModRemoveByIndex(index);
+}
+
+void tableAdd<K, V>(ref Table<K, V> table, in K key, in V value) {
+    table.Keys += key;
+    table.Values += value;
 }
 
 void tableAppendValue<K, V>(ref Table<K, V[]> table, in K key, in V value) {
@@ -29,4 +71,14 @@ void tableAppendValue<K, V>(ref Table<K, V[]> table, in K key, in V value) {
     } else {
         table.Values[k] += value;
     }
+}
+
+void tableRemoveValue<K, V>(ref Table<K, V[]> table, in K key, in V value) {
+    table.Values[table.indexOfKey(key)] -= value;
+}
+
+struct KeyValuePair<K, V>
+{
+    public K Key;
+    public V Value;
 }

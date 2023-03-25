@@ -15,13 +15,18 @@ import 'table.del';
 import 'quick menu.del';
 import 'settings.lobby';
 
+# The version stored as a variable.
+# This is for action set copy metadata.
 globalvar Number version = 1;
 
+# Stores the unchanging `CurrentMap()` value into a variable.
+# This is for action set copy metadata.
 globalvar Map map = CurrentMap();
 
 class what {} globalvar what whaat! = new what();
 
 globalvar Number maxHistoryLength!;
+globalvar Boolean inspectorEnabled!;
 
 rule: '┏━【◈ Paste the actions to load a previous save here!! ◈】━┓' -3
 if (HasSpawned(HostPlayer()))
@@ -33,17 +38,29 @@ rule: 'Setup: Inspector, Performance HUD, and Settings' -1
 {
     if (!WorkshopSettingToggle('Pathmap Editor', 'Enable inspector recording', false, 1))
         DisableInspectorRecording();
+    else
+        inspectorEnabled = true;
     CreateHudText(AllPlayers(), Text: "cap: {0} {1} {2}".Format([ServerLoad(), ServerLoadAverage(), ServerLoadPeak()]));
     maxHistoryLength = WorkshopSettingInteger("Pathmap Editor", "Undo history length", 10, 0, 100);
 }
 
-rule: 'Snapshot'
+rule: 'Toggle inspector'
 Event.OngoingPlayer
 if (host == eventPlayer)
-if (button(Button.Crouch))
+if (button(Button.Ultimate))
 {
-    EnableInspectorRecording();
-    DisableInspectorRecording();
+    if (inspectorEnabled)
+    {
+        DisableInspectorRecording();
+        SmallMessage(AllPlayers(), 'inspector disabled');
+        inspectorEnabled = false;
+    }
+    else
+    {
+        SmallMessage(AllPlayers(), 'inspector enabled');
+        inspectorEnabled = true;
+        EnableInspectorRecording();
+    }
 }
 
 rule: 'Chunk up previous save'

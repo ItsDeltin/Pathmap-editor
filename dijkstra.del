@@ -171,35 +171,60 @@ void PfHierarchy() playervar 'Subroutine: Heirarchy'
 
     // First component split: ensure that 
     SmallMessage(AllPlayers(), 'Node connectivity');
-    define tiles = EnsureConnectivity(tilesToNodes);
+    tiless = EnsureConnectivity(tilesToNodes);
 
     // Create node to node table
     SmallMessage(AllPlayers(), 'Node-to-node table');
-    NodeToNodeTable(tiles);
+    NodeToNodeTable(tiless);
     SmallMessage(AllPlayers(), 'Node-to-node completed');
 
+    host.debugButtonPressed = HeirarchyDebugMenu;
+
     // debug
-    while (true) {
-        for (define i = 0; tiles.ComponentsToNodes.Length; 1) {
-            SmallMessage(AllPlayers(), <'highlighting component <0> in tile <1>', i, 
-                tiles.TilesToComponents.keyWhereValue(nodes => nodes.Contains(i))>);
-            for (define n = 0; tiles.ComponentsToNodes[i].Length; 1) {
-                Nodes[tiles.ComponentsToNodes[i][n]].Selected = true;
-                if (n == 0)
-                    Teleport(AllPlayers(), Nodes[tiles.ComponentsToNodes[i][n]].Node.Position);
-                MinWait();
-            }
+    // while (true) {
+    //     for (define i = 0; tiles.ComponentsToNodes.Length; 1) {
+    //         SmallMessage(AllPlayers(), <'highlighting component <0> in tile <1>', i, 
+    //             tiles.TilesToComponents.keyWhereValue(nodes => nodes.Contains(i))>);
+    //         for (define n = 0; tiles.ComponentsToNodes[i].Length; 1) {
+    //             Nodes[tiles.ComponentsToNodes[i][n]].Selected = true;
+    //             if (n == 0)
+    //                 Teleport(AllPlayers(), Nodes[tiles.ComponentsToNodes[i][n]].Node.Position);
+    //             MinWait();
+    //         }
 
-            WaitUntil(button(Button.SecondaryFire), 9999);
-            WaitUntil(!button(Button.SecondaryFire), 9999);
+    //         WaitUntil(button(Button.SecondaryFire), 9999);
+    //         WaitUntil(!button(Button.SecondaryFire), 9999);
 
-            for (define n = 0; tiles.ComponentsToNodes[i].Length; 1) {
-                Nodes[tiles.ComponentsToNodes[i][n]].Selected = false;
-                MinWait();
+    //         for (define n = 0; tiles.ComponentsToNodes[i].Length; 1) {
+    //             Nodes[tiles.ComponentsToNodes[i][n]].Selected = false;
+    //             MinWait();
+    //         }
+    //     }
+    //     MinWait();
+    // }
+}
+
+playervar Tile tiless;
+playervar Number currentComponent! = 0;
+
+void HeirarchyDebugMenu()
+{
+    MakeQuickMenu([
+        {
+            Label: 'Next component',
+            Action: () => {
+                Number previousComponent! = currentComponent;
+                currentComponent++;
+                if (currentComponent >= tiless.ComponentsToNodes.Length)
+                    currentComponent = 0;
+                
+                if (previousComponent != -1)
+                    tiless.HighlightNodesInComponent(previousComponent, false);
+                tiless.HighlightNodesInComponent(currentComponent, true);
+                Teleport(AllPlayers(), Nodes[tiless.ComponentsToNodes[currentComponent].First].Node.Position);
             }
         }
-        MinWait();
-    }
+    ]);
 }
 
 void ComputeConnectivity() {
@@ -213,12 +238,19 @@ void NodeToNodeTable(in Tile tiles) {
     // Each node's tables.
     Table<Number, Number>[] nodeTables = [];
 
+    define startTime! = TotalTimeElapsed();
+
     // For each tile
     for (Number t! = 0; tiles.TilesToComponents.length(); 1) {
         // Get neighboring tiles.
         Number[] tileNeighborhood = getNeighborhood(tiles.TilesToComponents.Keys[t]);
         // Get each node in each neighboring tile.
         Number[] nodeNeighborhood = tiles.GetNodesInNeighborhood(tileNeighborhood);
+
+        Wait(0.1);
+        SmallMessage(AllPlayers(), <'Neighborhood <0> has <1> neighboring nodes', tileNeighborhood[4], nodeNeighborhood.Length>);
+        Wait(0.1);
+
         // Create node-to-node table
         tiles.ForeachNodeInTile(t, node => {
             # append to node table
@@ -227,6 +259,8 @@ void NodeToNodeTable(in Tile tiles) {
             MinWait();
         });
     }
+
+    SmallMessage(AllPlayers(), $'NodeToNode table completed in {TotalTimeElapsed() - startTime} seconds');
 }
 
 Table<Number, Number> GetPathsToNode(in Number nodeIndex, Number[] neighborhood!) {
@@ -239,12 +273,17 @@ Table<Number, Number> GetPathsToNode(in Number nodeIndex, Number[] neighborhood!
         keys: neighborhood,
         values: neighborhood.Map(n => {
             Distance: 9999,
-            NextNode: -1
+            NextNode: -2
         })
     );
     // ostw needs a better way of doing this D:
     // const pointer time ;(
     pathTable.Values[pathTable.indexOfKey(nodeIndex)].Distance = 0;
+    pathTable.Values[pathTable.indexOfKey(nodeIndex)].NextNode = -1;
+
+    MinWait();
+    LogToInspector($'Creating path table for node {nodeIndex}');
+    MinWait();
     
     while (neighborhood.Length)
     {
@@ -280,7 +319,7 @@ Tile EnsureConnectivity(ref Table<Number, Number[]> tilesToNodes) {
 
     Number componentId! = 0;
     // Tiles to components
-    define newTiles = Table<Number, Number[]>.newTable(tilesToNodes.Keys);
+    define newTiles = Table<Number, Number[]>.newTable(tilesToNodes.Keys, tilesToNodes.Values.Map(v => []));
     // Components to nodes
     Number[][] components = [];
 
@@ -333,7 +372,7 @@ Table<Number, Number[]> MakeLowestLayer()
         define node: Nodes[i];
 
         // Get the group this node will be going in.
-        define hash = hashVector(node.Node.Position, 30);
+        define hash = hashVector(node.Node.Position, 15);
         // Add the node index to the group.
         tableAppendValue(tiles, hash, i);
         MinWait();
@@ -365,10 +404,19 @@ struct Tile
 
     void ForeachNodeInTile(in Number tileIndex, const Number => void iter)
     {
-        Number[] components: TilesToComponents.Values[tileIndex];
-        foreach (Number component! in components)
-            foreach (Number node! in ComponentsToNodes[component])
-                iter(ComponentsToNodes[component][node]);
+        define components = TilesToComponents.Values[tileIndex];
+        foreach (Number component in components)
+            foreach (Number nodeIndex in ComponentsToNodes[component])
+            {
+                Number node = nodeIndex;
+                iter(node);
+            }
+    }
+
+    void HighlightNodesInComponent(in Number componentIndex, in Boolean highlighted)
+    {
+        foreach (Number node in ComponentsToNodes[componentIndex])
+            Nodes[node].Selected = highlighted;
     }
 }
 

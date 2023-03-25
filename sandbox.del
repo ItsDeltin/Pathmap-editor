@@ -45,7 +45,9 @@ enum MenuAction
     Export = 31,
     ExportWorkshop = 32,
     ExportOstw = 33,
-    ExportOverpy = 34
+    ExportOverpy = 34,
+    DbgButton = 35,
+    OpenDebug = 36
 }
 
 enum MenuState
@@ -58,7 +60,8 @@ enum MenuState
     ChooseWaitLength,
     PathfinderSettings,
     Guide,
-    Export
+    Export,
+    Dbg
 }
 
 rule: 'CM: Make buttons: Main'
@@ -98,6 +101,9 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
 
     if (menuState == MenuState.Rules)
         DestroyPager();
+    
+    if (menuState == MenuState.Dbg)
+        destroyButtonCollection(quickMenuButtons);
         
     menuState = newState;
     
@@ -139,6 +145,14 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             posX: 1.7,
             posY: 0,
             defaultColor: Color.White);
+
+        buttonCollectionMain += createButton(
+            'Debug',
+            primaryAction: MenuAction.OpenDebug,
+            scale: 2.5,
+            clickWidth: 0.4,
+            posX: 1.7,
+            posY: -0.2);
 
         buttonCollectionMain += createButton(
             'Export',

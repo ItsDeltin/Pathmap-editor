@@ -1,0 +1,58 @@
+import 'main.del';
+
+playervar Number[] quickMenuButtons! = [];
+playervar () => void debugButtonPressed!;
+
+void MakeQuickMenu(QuickButton[] buttons!) playervar 'Subroutine: make quick menu'
+{
+    destroyButtonCollection(quickMenuButtons);
+
+    for (Number i = 0; buttons.Length; 1)
+        AddQuickButton(buttons[i].Label, buttons[i].Action);
+}
+
+void AddQuickButton(in String label, in () => void action)
+{
+    Wait(0.2);
+    SmallMessage(AllPlayers(), $'creating button {label} at { -.8 + (quickMenuButtons.Length / 4).Floor() * .4}, {.8 + (quickMenuButtons.Length % 4) * .4}');
+    Wait(0.2);
+    quickMenuButtons += createButton(
+        label: label,
+        primaryAction: [MenuAction.DbgButton, action],
+        posX: -.8 + (quickMenuButtons.Length / 4).Floor() * .4,
+        posY: .8 - (quickMenuButtons.Length % 4) * .4
+    );
+}
+
+struct QuickButton
+{
+    public String Label;
+    public () => void Action;
+}
+
+rule: 'Debug Menu'
+Event.OngoingPlayer
+if (cm_currActionID[0] == MenuAction.DbgButton)
+{
+    () => void uhh = cm_currActionID[1];
+    uhh();
+}
+
+rule: 'Debug Menu Back'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.Back)
+if (menuState == MenuState.Dbg)
+{
+    SetMenuState(MenuState.Main);
+}
+
+rule: 'Open debug'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.OpenDebug)
+{
+    if (debugButtonPressed != null)
+    {
+        SetMenuState(MenuState.Dbg);
+        debugButtonPressed();
+    }
+}

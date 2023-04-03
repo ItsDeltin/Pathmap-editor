@@ -276,7 +276,7 @@ if (cm_currActionID == MenuAction.DeleteAction)
     
     Document({
         Set: () => {
-            for (Number i = 0; deleting.Length; 1)
+            for (Number i! = 0; deleting.Length; 1)
             {
                 Number index! = actionIndexFromID(ruleIndex, deleting[i].ID);
 
@@ -288,7 +288,7 @@ if (cm_currActionID == MenuAction.DeleteAction)
             }
         },
         Revert: () => {
-            for (Number i = 0; deleting.Length; 1)
+            for (Number i! = 0; deleting.Length; 1)
             {
                 Rules[ruleIndex].Actions += [deleting[i]];
                 Rules[ruleIndex].ActionOrder = Rules[ruleIndex].ActionOrder

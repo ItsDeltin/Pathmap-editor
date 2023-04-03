@@ -96,7 +96,7 @@ rule: 'CM: Host Just-In-Time Preload Optimization'
 Event.OngoingPlayer
 if (EventPlayer() == HostPlayer())
 {
-    for (define i = 0; 40; 1) {
+    for (define i! = 0; 40; 1) {
         Number index: EvaluateOnce(i);
 
         CreateInWorldText(

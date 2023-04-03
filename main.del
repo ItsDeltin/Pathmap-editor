@@ -31,7 +31,7 @@ rule: 'Setup: Inspector, Performance HUD, and Settings'
     if (!WorkshopSettingToggle('Pathmap Editor', 'Enable inspector recording', false, 1))
         DisableInspectorRecording();
     CreateHudText(AllPlayers(), Text: "cap: {0} {1} {2}".Format([ServerLoad(), ServerLoadAverage(), ServerLoadPeak()]));
-    maxHistoryLength = WorkshopSettingInteger("Pathmap Editor", "Undo history length", 10, 0, 100);
+    maxHistoryLength = WorkshopSettingInteger("Pathmap Editor", "Undo history length", 20, 0, 100);
 }
 
 rule: 'Snapshot'

@@ -85,15 +85,10 @@ class Scrollbar
 
     public void Insert(in Number index, in String label, in Color color = Color.White)
     {
-        scrollItems = ArrayInsert(scrollItems, index, label);
-        itemColors = ArrayInsert(itemColors, index, color);
-        scrollItemButtons = ArrayInsert(scrollItemButtons, index, <Any>(-1)); // todo ostw: Number should be accepted as Any by default for type inferrence
+        scrollItems = insert(scrollItems, index, label);
+        itemColors = insert(itemColors, index, color);
+        scrollItemButtons = insert(scrollItemButtons, index, <Any>(-1)); // todo ostw: Number should be accepted as Any by default for type inferrence
         Update();
-    }
-
-    T[] ArrayInsert<T>(in T[] array, in Number index, in T value)
-    {
-        return array.Slice(0, index).Append(value).Append(array.Slice(index, 9999));
     }
 
     public void Update() '(Subroutine) CM: Update scrollbar'

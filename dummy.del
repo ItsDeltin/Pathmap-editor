@@ -123,7 +123,7 @@ if (PositionOf().DistanceTo(currentPathfindingNodePosition) < 0.4)
     if (executeRules.Length)
     {
         for (define a = 0; Rules[executeRules.First].Actions.Length; 1)
-            Rules[executeRules.First].Actions[actionIndexFromID(executeRules.First, Rules[executeRules.First].ActionOrder[a])].Executor();
+            Rules[executeRules.First].Actions[a].Executor();
     }
 }
 

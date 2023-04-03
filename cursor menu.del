@@ -3,7 +3,6 @@
 
 struct CursorMenuButton
 {
-    // TODO: maybe combine some booleans and numbers into vectors to save variable space.
     public String Label; // [0] *
     public Any PrimaryAction; // [1]
     public Any SecondaryAction; // [2]

@@ -5,7 +5,6 @@ struct Rule
 {
     public RuleAction[] Actions;
     public Number ExecutesOnAttribute;
-    public Number[] ActionOrder;
     public Boolean[] EnabledHeroes;
 }
 
@@ -30,6 +29,7 @@ globalvar Scrollbar heroScrollBar!;
 globalvar Number waitTime!;
 globalvar Any waitTimeText!;
 globalvar Boolean pagerInitialized!;
+# Determines if an action in the list is selected. `actionsSelected[x]` corresponds to `Rules[x]`.
 globalvar Boolean[] actionsSelected;
 globalvar Number uniqueActionID!;
 
@@ -162,7 +162,7 @@ void loadActionScrollbar() '(Subroutine) CM: Load action scrollbar'
     actionScrollBar = new Scrollbar(
         -1.75,
         0.5,
-        Rules[rulePage].ActionOrder.Map(actionID => Rules[rulePage].Actions[Rules[rulePage].Actions.Map(action => action.ID).IndexOf(actionID)].Label),
+        Rules[rulePage].Actions.Map(action => action.Label),
         4,
         item => {
             actionsSelected[item] = !actionsSelected[item];
@@ -266,37 +266,33 @@ if (cm_currActionID == MenuAction.DeleteAction)
     for (waitlessI = 0; actionsSelected.Length; 1) 
         if (actionsSelected[waitlessI])
         {
-            deleting += Rules[rulePage].Actions[waitlessI];
+            deleting += [Rules[rulePage].Actions[waitlessI]];
             originalIndices += waitlessI;
         }
     
     actionsSelected = [];
     
+    // Capture rulePage
     Number ruleIndex! = rulePage;
     
     Document({
         Set: () => {
             for (Number i! = 0; deleting.Length; 1)
             {
-                Number index! = actionIndexFromID(ruleIndex, deleting[i].ID);
+                // Subtract originalIndices[i] by i because the positions shift while the items are removed.
+                // This assumes that every element in originalIndicies is less than the next one like [x] < [x + 1] < [x + 2] ect.
+                Rules[ruleIndex].Actions.ModRemoveByIndex(originalIndices[i] - i);
 
-                Rules[ruleIndex].ActionOrder -= deleting[i].ID;
-                Rules[ruleIndex].Actions.ModRemoveByIndex(index);
-
-                if (menuState == MenuState.Rules && actionScrollBar)
-                    actionScrollBar.Remove(index);
+                if (menuState == MenuState.Rules && actionScrollBar && ruleIndex == rulePage)
+                    actionScrollBar.Remove(originalIndices[i] - i);
             }
         },
         Revert: () => {
             for (Number i! = 0; deleting.Length; 1)
             {
-                Rules[ruleIndex].Actions += [deleting[i]];
-                Rules[ruleIndex].ActionOrder = Rules[ruleIndex].ActionOrder
-                    .Slice(0, originalIndices[i])
-                    .Append(deleting[i].ID)
-                    .Append(Rules[ruleIndex].ActionOrder.Slice(originalIndices[i], 9999));
+                Rules[ruleIndex].Actions = insert(Rules[ruleIndex].Actions, originalIndices[i], deleting[i]);
 
-                if (menuState == MenuState.Rules && actionScrollBar)
+                if (menuState == MenuState.Rules && actionScrollBar && ruleIndex == rulePage)
                     actionScrollBar.Insert(originalIndices[i], deleting[i].Label);
             }
         }
@@ -308,6 +304,7 @@ Event.OngoingPlayer
 if (cm_currActionID == MenuAction.RuleNext)
 {
     rulePage++;
+    actionsSelected = [];
     updateRuleContent();
 }
 
@@ -316,6 +313,7 @@ Event.OngoingPlayer
 if (cm_currActionID == MenuAction.RulePrevious)
 {
     rulePage--;
+    actionsSelected = [];
     updateRuleContent();
 }
 
@@ -327,7 +325,7 @@ if (cm_currActionID == MenuAction.CreateRule)
 
     Document({
         Set: () => {
-            Rules.ModAppend([{ Actions: [], ActionOrder: [], ExecutesOnAttribute: 0, EnabledHeroes: AllHeroes().Map(hero => true) }]);
+            Rules.ModAppend([{ Actions: [], ExecutesOnAttribute: 0, EnabledHeroes: AllHeroes().Map(hero => true) }]);
             initiatePager();
             updateRuleContent();
         },
@@ -397,18 +395,15 @@ void DocumentAction(in Number actionID, in RuleAction createdAction)
     Number ruleIndex! = rulePage;
     Document({
         Set: () => {
-            Rules[ruleIndex].ActionOrder += actionID;
             Rules[ruleIndex].Actions += [createdAction];
             // RefreshActionList();
             if (menuState == MenuState.Rules && actionScrollBar)
                 actionScrollBar.Add(createdAction.Label);
         },
         Revert: () => {
-            Number i! = Rules[ruleIndex].ActionOrder.IndexOf(actionID);
+            Number i! = Rules[ruleIndex].Actions.Length - 1;
 
-            Rules[ruleIndex].ActionOrder -= actionID;
             Rules[ruleIndex].Actions.ModRemoveByIndex(i);
-            // RefreshActionList();
             if (menuState == MenuState.Rules && actionScrollBar)
                 actionScrollBar.Remove(i);
         }

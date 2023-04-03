@@ -10,9 +10,9 @@ Vector ray(Vector start, Vector end): RayCastHitPosition(start, end, null, null,
 Vector facing: FacingDirectionOf(host);
 Vector watchPoint: RayCastHitPosition(eye, eye + facing * 100, null, null, false);
 
-Any makeEffect(Effect effect, in Color color, in Vector position,  in Number radius)
+T[] insert<T>(in T[] array, in Number index, in T value)
 {
-    return CreateEffect(AllPlayers(), effect, color, position, radius, EffectRev.VisibleToPositionRadiusAndColor);
+    return array.Slice(0, index).Append([value]).Append(array.Slice(index, 999));
 }
 
 globalvar Number waitlessI;

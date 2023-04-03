@@ -143,7 +143,7 @@ void Export(OutputLanguage lang) playervar 'EXPORT: Export'
         # Loop through each action in the rule.
         for(define a = 0; Rules[i].Actions.Length; 1) {
             # Extract the action ID.
-            define export = Rules[i].Actions[actionIndexFromID(i, Rules[i].ActionOrder[a])].Export;
+            define export = Rules[i].Actions[a].Export;
             define actionID: export.X;
 
             # Wait

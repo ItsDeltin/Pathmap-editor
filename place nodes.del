@@ -136,11 +136,12 @@ if (!host.cm_isInMenu)
 
     Document({
         Set: () => {
-            Nodes += { Node: {Position: pos, UniqueID: id}, Visibility: 0, Selected: false, BallEffect: null, RingEffect: null };
-            UpdateNodeVisibility(Nodes.Length - 1);
+            Nodes += { Node: {Position: pos, UniqueID: id}, Selected: false };
+            updateRenderingNodes();
         },
         Revert: () => {
             RemoveNodeByIndex(NodeIndexFromID(id));
+            updateRenderingNodes();
         }
     });
 }
@@ -166,28 +167,17 @@ if (!host.cm_isInMenu)
                 RemoveSegmentByIndex(SegmentIndexFromID(deleteSegments[waitlessI].X));
             }
             // Delete node
-            define index = NodeIndexFromID(deleteNode.UniqueID);
-            RemoveNodeByIndex(index);
+            RemoveNodeByIndex(NodeIndexFromID(deleteNode.UniqueID));
             // Refresh all nodes with indices above the current node.
-            for (; index < Nodes.Length; index++) {
-                if (Nodes[index].Visibility)
-                {
-                    DestroyEffect(Nodes[index].BallEffect);
-                    DestroyEffect(Nodes[index].RingEffect);
-                    Nodes[index].Visibility = 0;
-                    MinWait();
-                }
-            }
+            updateRenderingNodes();
         },
         Revert: () => {
             // Add node
-            Nodes += { Node: deleteNode, Visibility: 0, Selected: false, BallEffect: null, RingEffect: null };
+            Nodes += { Node: deleteNode, Selected: false };
             // Add segments
             for (waitlessI = 0; deleteSegments.Length; 1)
-            {
                 Segments += { ID: deleteSegments[waitlessI].X, Node1: deleteSegments[waitlessI].Y, Node2: deleteSegments[waitlessI].Z, Effect: null };
-                UpdateSegmentVisibility(Segments.Length - 1);
-            }
+            updateRenderingNodes();
         }
     });
 }
@@ -226,10 +216,11 @@ if (!host.cm_isInMenu)
                 Document({
                     Set: () => {
                         RemoveSegmentByIndex(SegmentIndexFromID(segment.ID));
+                        updateRenderingSegments();
                     },
                     Revert: () => {
                         Segments += segment;
-                        UpdateSegmentVisibility(Segments.Length - 1);
+                        updateRenderingSegments();
                     }
                 });
             }
@@ -246,10 +237,11 @@ if (!host.cm_isInMenu)
                 Document({
                     Set: () => {
                         Segments += { ID: id, Node1: from, Node2: to, Effect: null };
-                        UpdateSegmentVisibility(Segments.Length - 1);
+                        updateRenderingSegments();
                     },
                     Revert: () => {
                         RemoveSegmentByIndex(SegmentIndexFromID(id));
+                        updateRenderingSegments();
                     }
                 });
             }

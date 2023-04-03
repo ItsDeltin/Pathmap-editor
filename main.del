@@ -53,9 +53,6 @@ struct WorldNode
 {
     public Node Node;
     public Boolean Selected = false;
-    public Number Visibility = 0;
-    public Any BallEffect = null;
-    public Any RingEffect = null;
 
     public Color Color(): Highlighted() ?
         (Selected ? Color.Turquoise : Color.Blue) : // selected / highlighted
@@ -107,8 +104,6 @@ Number AttributeIndexFromID(in Number id): Attributes.Map(attribute => attribute
 
 void RemoveNodeByIndex(Number index) 'Subroutine: Remove node'
 {
-    DestroyEffect(Nodes[index].BallEffect);
-    DestroyEffect(Nodes[index].RingEffect);
     Nodes.ModRemoveByIndex(index);
 }
 
@@ -135,6 +130,63 @@ if (!IsDummyBot())
 
 globalvar persist Vector savedPlayerLocation;
 globalvar persist Vector savedPlayerDirection;
+
+playervar Number[] renderingNodes;
+playervar Number[] renderingSegments;
+playervar Vector lastUpdatePosition;
+
+rule: 'Preload nodes'
+{
+    Number preload! = 0;
+    for (preload = 0; 40; 1)
+    {
+        define node: Nodes[host.renderingNodes[EvaluateOnce(preload)]];
+        CreateEffect(
+            EvaluateOnce(preload) < host.renderingNodes.Length ? host : null,
+            Effect.Sphere, node.Color(), node.ShownPosition(), NodeSize, EffectRev.VisibleToPositionRadiusAndColor);
+    }
+    for (preload = 0; 40; 1)
+    {
+        define seg: Segments[host.renderingSegments[EvaluateOnce(preload)]];
+        CreateBeamEffect(
+            UpdateEveryFrame(editorState != EditorState.Node || attributeMode || SelectedSegment != EvaluateOnce(preload) || TotalTimeElapsed() % 1 < 0.5 ? AllPlayers() : null),
+            BeamType.BrigitteFlailChainBeam,
+            Nodes[NodeIndexFromID(seg.Node1)].ShownPosition(),
+            Nodes[NodeIndexFromID(seg.Node2)].ShownPosition(),
+            Color.White,
+            EffectRev.VisibleToPositionAndRadius
+        );
+    }
+}
+
+rule: 'Update rendering nodes'
+Event.OngoingPlayer
+if (host == eventPlayer)
+if (HasSpawned())
+if (!lastUpdatePosition || lastUpdatePosition.DistanceTo(host) > 10)
+{
+    lastUpdatePosition = host.Position();
+    updateRenderingNodes();
+    Wait(3);
+    LoopIfConditionIsTrue();
+}
+
+void updateRenderingNodes() 'Subroutine: Update rendering nodes'
+{
+    // Set the nodes that will be rendered.
+    host.renderingNodes = Nodes.SortedArray(n => n.Node.Position.DistanceTo(host)).Map((n, i) => i);
+    updateRenderingSegments();
+}
+
+void updateRenderingSegments() 'Subroutine: Update rendering segments'
+{
+    // Get the unique IDs of the 20 closest nodes.
+    define x = host.renderingNodes.Slice(0, 20).Map(i => Nodes[i].Node.UniqueID);
+    // Set the segments that will be rendered.
+    host.renderingSegments = Segments.FilteredArray(
+        s => x.Contains(s.Node1) || x.Contains(s.Node2)
+    ).Map((s, i) => i);
+}
 
 rule: 'Snapshot'
 {
@@ -215,99 +267,6 @@ if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
 
     Wait(0.1);
     LoopIfConditionIsTrue();
-}
-
-rule: 'Main: Renderer'
-if (HasSpawned(host))
-if (Nodes.Length)
-{
-    // Nodes
-    Number i;
-    for (i = 0; Nodes.Length; 1)
-    {
-        UpdateNodeVisibility(i);
-        MinWait();
-    }
-
-    // Segments
-    for (i = 0; Segments.Length; 1)
-    {
-        UpdateSegmentVisibility(i);
-        MinWait();
-    }
-
-    Wait(0.5);
-    LoopIfConditionIsTrue();
-}
-
-public void UpdateNodeVisibility(Number index) 'Subroutine: Update node visibility'
-{
-    // Not visible.
-    if (!Nodes[index].ShownPosition().IsInLineOfSight(eye))
-    {
-        if (Nodes[index].Visibility != 0)
-        {
-            DestroyEffect(Nodes[index].BallEffect);
-            DestroyEffect(Nodes[index].RingEffect);
-            Nodes[index].Visibility = 0;
-        }
-    }
-    else
-    {
-        // Make visible
-        if (Nodes[index].Visibility == 0)
-        {
-            Nodes[index].BallEffect = makeEffect(Effect.Sphere, Nodes[EvaluateOnce(index)].Color(), Nodes[EvaluateOnce(index)].ShownPosition(), NodeSize);
-            Nodes[index].Visibility = 1;
-        }
-
-        // Ring effect
-        if (Nodes[index].Node.Position.DistanceTo(eye) > 10)
-        {
-            if (Nodes[index].Visibility == 2)
-            {
-                DestroyEffect(Nodes[index].RingEffect);
-                Nodes[index].Visibility = 1;
-            }
-        }
-        else if (Nodes[index].Visibility == 1)
-        {
-            Nodes[index].RingEffect = makeEffect(Effect.Ring, Nodes[EvaluateOnce(index)].Color(), Nodes[EvaluateOnce(index)].Node.Position, NodeSize);
-            Nodes[index].Visibility = 2;
-        }
-    }
-}
-
-public void UpdateSegmentVisibility(Number index) 'Subroutine: Update segment visibility'
-{
-    Number node1 = NodeIndexFromID(Segments[index].Node1);
-    Number node2 = NodeIndexFromID(Segments[index].Node2);
-    Number id = Segments[index].ID;
-
-    // Visible
-    if (Nodes[node1].Visibility ||
-        Nodes[node2].Visibility)
-    {
-        if (!Segments[index].Effect)
-        {
-            Number segmentIndex: SegmentIndexFromID(EvaluateOnce(id));
-
-            Segments[index].Effect = CreateBeamEffect(
-                UpdateEveryFrame(editorState != EditorState.Node || attributeMode || SelectedSegment != segmentIndex || TotalTimeElapsed() % 1 < 0.5 ? AllPlayers() : null),
-                BeamType.BrigitteFlailChainBeam,
-                Nodes[NodeIndexFromID(Segments[segmentIndex].Node1)].ShownPosition(),
-                Nodes[NodeIndexFromID(Segments[segmentIndex].Node2)].ShownPosition(),
-                Color.White,
-                EffectRev.VisibleTo
-            );
-        }
-    }
-    // Not visible
-    else if (Segments[index].Effect)
-    {
-        DestroyEffect(Segments[index].Effect);
-        Segments[index].Effect = null;
-    }
 }
 
 public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility'

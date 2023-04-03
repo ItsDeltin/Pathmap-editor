@@ -1,5 +1,6 @@
 // Slightly modified version of Josbird's cursor menu
 // https://workshop.codes/GETVX
+import 'main.del';
 
 struct CursorMenuButton
 {
@@ -60,6 +61,8 @@ rule: "Global init"
 
 Number ButtonIndexFromID(Number id, Player player = EventPlayer()): player.cm_buttons.Map(button => button.ID).IndexOf(id);
 
+Number NextButtonId(): cm_uniqueButtonID + 1;
+
 Number createButton(
     in String label = null,
     in Any primaryAction = 0,
@@ -71,11 +74,25 @@ Number createButton(
     in Number clickHeight = 0.2,
     in Color defaultColor = Color.White,
     in Color hoverColor = Color.Turquoise,
-    in Boolean useDefaultFont = true,
     in Boolean interactable = true,
     in Boolean visible = true
 ) {
-    return __createButtonSubroutine([label, primaryAction, secondaryAction, posX, posY, clickWidth, clickHeight, defaultColor, hoverColor, useDefaultFont, interactable, visible]);
+    return __createButtonSubroutine([label, primaryAction, secondaryAction, posX, posY, clickWidth, clickHeight, defaultColor, hoverColor, interactable, visible]);
+}
+
+Number createButton(
+    in String label,
+    in Boolean => void onClick,
+    in Number posX,
+    in Number posY,
+    in Number clickWidth,
+    in Number clickHeight,
+    in Color defaultColor = Color.White,
+    in Color hoverColor = Color.Blue,
+    in Boolean interactable = true,
+    in Boolean visible = true
+) {
+    return __createButtonSubroutine([label, [MenuAction.FuncPrimary, onClick], [MenuAction.FuncSecondary, onClick], posX, posY, clickWidth, clickHeight, defaultColor, hoverColor, interactable, visible]);
 }
 
 Number __createButtonSubroutine(Any[] input) "CM: Create button"
@@ -83,7 +100,7 @@ Number __createButtonSubroutine(Any[] input) "CM: Create button"
     cm_uniqueButtonID++;
 
     define label: input[0]; define primaryAction: input[1]; define secondaryAction: input[2]; define posX: input[3]; define posY: input[4]; define clickWidth: input[5];
-    define clickHeight: input[6]; define defaultColor: input[7]; define hoverColor: input[8]; define useDefaultFont: input[9]; define interactable: input[10]; define visible: input[11];
+    define clickHeight: input[6]; define defaultColor: input[7]; define hoverColor: input[8]; define interactable: input[9]; define visible: input[10];
 
     cm_buttons += { Label: label, PrimaryAction: [primaryAction], SecondaryAction: [secondaryAction], PosX: posX, PosY: posY, ClickWidth: clickWidth,
         ClickHeight: clickHeight, DefaultColor: defaultColor, HoverColor: hoverColor, Interactable: interactable, Visible: visible, ID: cm_uniqueButtonID };
@@ -362,4 +379,18 @@ if ((AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionO
     SetFacing(EventPlayer(), DirectionFromAngles(Min(Max(HorizontalAngleFromDirection(cm_menuOriginalFacing) - AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)), HorizontalAngleFromDirection(cm_menuOriginalFacing) - cm_s_menuWidth / 2), HorizontalAngleFromDirection(cm_menuOriginalFacing) + cm_s_menuWidth / 2), Min(Max(VerticalAngleFromDirection(cm_menuOriginalFacing) - AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)), VerticalAngleFromDirection(cm_menuOriginalFacing) - cm_s_menuHeight / 2), VerticalAngleFromDirection(cm_menuOriginalFacing) + cm_s_menuHeight / 2)), Relative.ToWorld);
     MinWait();
     LoopIfConditionIsTrue();
+}
+
+rule: 'CM: Func Primary'
+Event.OngoingPlayer
+if (cm_currActionID[0] == MenuAction.FuncPrimary)
+{
+    (<Boolean => void>cm_currActionID[1]).Invoke(false);
+}
+
+rule: 'CM: Func Secondary'
+Event.OngoingPlayer
+if (cm_currActionID[0] == MenuAction.FuncSecondary)
+{
+    (<Boolean => void>cm_currActionID[1]).Invoke(true);
 }

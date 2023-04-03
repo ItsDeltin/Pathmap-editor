@@ -7,7 +7,7 @@ class Scrollbar
     Number posX;
     Color[] itemColors;
     String[] scrollItems;
-    Any[] scrollItemButtons;
+    Number[] scrollItemButtons;
     Any upButton;
     Any downButton;
     Number viewCount;
@@ -58,9 +58,9 @@ class Scrollbar
         Update();
     }
 
-    public void Choose(in Number item)
+    public void Choose(in Number buttonId)
     {
-        itemSelected(item);
+        itemSelected(scrollItemButtons.IndexOf(buttonId));
     }
 
     public void Remove(in Number item)
@@ -116,7 +116,8 @@ class Scrollbar
                         posX: posX,
                         posY: posY,
                         clickWidth: 1.4,
-                        primaryAction: [MenuAction.ScrollbarItem, this, i],
+                        clickHeight: 0.175,
+                        primaryAction: [MenuAction.ScrollbarItem, this, NextButtonId()],
                         defaultColor: itemColors[i]
                     );
                 // Update button position

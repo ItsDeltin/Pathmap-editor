@@ -11,32 +11,36 @@ struct Rule
 struct RuleAction
 {
     public String Label;
-    public Number ID;
     public () => void Executor;
     public Vector Export;
 }
 
 globalvar persist Rule[] Rules = [];
+# The index of the currently visible rule page. To be used with `Rules[rulePage]`.
 globalvar Number rulePage!;
 globalvar Any rulePageText!;
 globalvar Any previousRuleText!;
 globalvar Any nextRuleText!;
 globalvar Any deleteActionText!;
+globalvar Any moveActionsUpText!;
+globalvar Any moveActionsDownText!;
 globalvar NumberSelector ruleAttributeSelector!;
 globalvar Number[] pagerButtons = [];
 globalvar Scrollbar actionScrollBar!;
 globalvar Scrollbar heroScrollBar!;
 globalvar Number waitTime!;
 globalvar Any waitTimeText!;
+# If this is true, it is assumed that `actionScrollBar` is not null.
 globalvar Boolean pagerInitialized!;
-# Determines if an action in the list is selected. `actionsSelected[x]` corresponds to `Rules[x]`.
+# Determines if an action in the list is selected. `actionsSelected[x]` corresponds to `Rules[rulePage].Actions[x]`.
+# 
+# May not be the same length as `Rules[rulePage].Actions`.
 globalvar Boolean[] actionsSelected;
-globalvar Number uniqueActionID!;
 
 Color deleteActionEnabledColor: Color.Red;
 Color deleteActionDisabledColor: CustomColor(252, 0, 0, 50.745000000000005);
 
-Number actionIndexFromID(Number ruleIndex, Number id): Rules[ruleIndex].Actions.Map(action => action.ID).IndexOf(id);
+Boolean isRulePageVisible(Number ruleIndex): menuState == MenuState.Rules && pagerInitialized && actionScrollBar && ruleIndex == rulePage;
 
 void SetupRuleMenu() 'Setup rule menu'
 {
@@ -125,6 +129,16 @@ void initiatePager() 'CM: Initiate pager'
         hoverColor: Color.Rose,
         interactable: false
     );
+    moveActionsUpText = createButton(
+        '↑',
+        onClick: wasSecondary => MoveSelectedActions(true),
+        posX: -0.825, posY: -0.8, clickWidth: .2, clickHeight: .2,
+    );
+    moveActionsDownText = createButton(
+        '↓',
+        onClick: wasSecondary => MoveSelectedActions(false),
+        posX: -0.625, posY: -0.8, clickWidth: .2, clickHeight: .2,
+    );
     rulePageText = createButton(
         ' rule 1',
         posY: 0.55,
@@ -152,7 +166,7 @@ void initiatePager() 'CM: Initiate pager'
         primaryAction: MenuAction.ToggleAll
     );
 
-    pagerButtons += [previousRuleText, nextRuleText, deleteActionText, rulePageText];
+    pagerButtons += [previousRuleText, nextRuleText, deleteActionText, moveActionsUpText, moveActionsDownText, rulePageText];
     buttonCollectionMain += pagerButtons;
     updateRuleContent();
 }
@@ -163,11 +177,16 @@ void loadActionScrollbar() '(Subroutine) CM: Load action scrollbar'
         -1.75,
         0.5,
         Rules[rulePage].Actions.Map(action => action.Label),
-        4,
+        6,
         item => {
             actionsSelected[item] = !actionsSelected[item];
-            actionScrollBar.SetButtonColor(item, actionsSelected[item] ? Color.Green : Color.White);
+            updateActionSelectColor(item);
         });
+}
+
+void updateActionSelectColor(in Number actionIndex)
+{
+    actionScrollBar.SetButtonColor(actionIndex, actionsSelected[actionIndex] ? Color.Green : Color.White);
 }
 
 void updateHeroIcon(in Number index)
@@ -202,6 +221,48 @@ if (actionsSelected.IsTrueForAll(action => !action))
 {
     SetInteractability(deleteActionText, false);
     SetColor(deleteActionText, deleteActionDisabledColor);
+}
+
+rule: 'CM: Enable Move Actions Up' 1000
+Event.OngoingPlayer
+if (menuState == MenuState.Rules)
+if (pagerInitialized)
+if (actionsSelected.IsTrueForAny(action => action))
+if (!actionsSelected[0])
+{
+    SetInteractability(moveActionsUpText, true);
+    SetColor(moveActionsUpText, Color.White);
+}
+
+rule: 'CM: Disable Move Actions Up' 1000
+Event.OngoingPlayer
+if (menuState == MenuState.Rules)
+if (pagerInitialized)
+if (actionsSelected[0] || actionsSelected.IsTrueForAll(action => !action))
+{
+    SetInteractability(moveActionsUpText, false);
+    SetColor(moveActionsUpText, Color.Gray);
+}
+
+rule: 'CM: Enable Move Actions Down' 1000
+Event.OngoingPlayer
+if (menuState == MenuState.Rules)
+if (pagerInitialized)
+if (actionsSelected.IsTrueForAny(action => action))
+if (!actionsSelected[Rules[rulePage].Actions.Length - 1])
+{
+    SetInteractability(moveActionsDownText, true);
+    SetColor(moveActionsDownText, Color.White);
+}
+
+rule: 'CM: Disable Move Actions Down' 1000
+Event.OngoingPlayer
+if (menuState == MenuState.Rules)
+if (pagerInitialized)
+if (actionsSelected[Rules[rulePage].Actions.Length - 1] || actionsSelected.IsTrueForAll(action => !action))
+{
+    SetInteractability(moveActionsDownText, false);
+    SetColor(moveActionsDownText, Color.Gray);
 }
 
 rule: 'CM: Enter rule menu'
@@ -246,11 +307,8 @@ if (cm_currActionID == MenuAction.AddAction)
             buttonCollectionMain += waitTimeText;
         }
         else
-        {
-            uniqueActionID++;
-            Number id! = uniqueActionID;
-            
-            DocumentAction(id, CreateAction(item, id));
+        {            
+            DocumentAction(CreateAction(item));
             SetMenuState(MenuState.Rules);
         }
     });
@@ -283,7 +341,7 @@ if (cm_currActionID == MenuAction.DeleteAction)
                 // This assumes that every element in originalIndicies is less than the next one like [x] < [x + 1] < [x + 2] ect.
                 Rules[ruleIndex].Actions.ModRemoveByIndex(originalIndices[i] - i);
 
-                if (menuState == MenuState.Rules && actionScrollBar && ruleIndex == rulePage)
+                if (isRulePageVisible(ruleIndex))
                     actionScrollBar.Remove(originalIndices[i] - i);
             }
         },
@@ -292,7 +350,7 @@ if (cm_currActionID == MenuAction.DeleteAction)
             {
                 Rules[ruleIndex].Actions = insert(Rules[ruleIndex].Actions, originalIndices[i], deleting[i]);
 
-                if (menuState == MenuState.Rules && actionScrollBar && ruleIndex == rulePage)
+                if (isRulePageVisible(ruleIndex))
                     actionScrollBar.Insert(originalIndices[i], deleting[i].Label);
             }
         }
@@ -357,10 +415,8 @@ rule: 'CM: Wait confirm'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.WaitConfirm)
 {
-    uniqueActionID++;
-    Number id! = uniqueActionID;
-    Number wait! = waitTime;
-    DocumentAction(id, { Label: 'wait ' + wait, ID: id, Executor: () => Wait(wait), Export: Vector(0, wait, 0) });
+    Number wait: waitTime;
+    DocumentAction({ Label: 'wait ' + wait, Executor: () => Wait(wait), Export: Vector(0, wait, 0) });
     SetMenuState(MenuState.Rules);
 }
 
@@ -390,7 +446,7 @@ if (menuState == MenuState.AddAction)
     SetMenuState(MenuState.Rules);
 }
 
-void DocumentAction(in Number actionID, in RuleAction createdAction)
+void DocumentAction(in RuleAction createdAction)
 {
     Number ruleIndex! = rulePage;
     Document({
@@ -421,6 +477,7 @@ void RefreshActionList()
 
 void DestroyPager()
 {
+    actionsSelected = [];
     destroyButtonCollection(pagerButtons);
     pagerInitialized = false;
     
@@ -444,5 +501,54 @@ void DestroyScrollbar()
     {
         actionScrollBar.Dispose();
         actionScrollBar = null;
+    }
+}
+
+void MoveSelectedActions(Boolean up!) 'Subroutine: Document action move'
+{
+    // Bounds reached
+    if ((up && actionsSelected.First) || (!up && actionsSelected[Rules[rulePage].Actions.Length - 1]))
+        return;
+
+    // Make macros from global variables so that the values are captured.
+    define selected: actionsSelected;
+    define page: rulePage;
+
+    Document({
+        Set: () => {
+            DoMove(selected, up, false, page);
+        },
+        Revert: () => {
+            DoMove(selected, !up, true, page);
+        }
+    });
+}
+
+void DoMove(Boolean[] selected!, Boolean up!, Boolean undo!, Number page!) 'Subroutine: Execute action move'
+{
+    if (isRulePageVisible(page))
+    {
+        actionsSelected = [];
+    }
+
+    Number direction! = up ? -1 : 1;
+    for (
+        Number i! = up ? 0 : selected.Length - 1;
+        up ? i < selected.Length : i >= 0;
+        i -= direction) {
+        if (selected[i]) {
+
+            define action! = Rules[rulePage].Actions[i];
+            Rules[rulePage].Actions.ModRemoveByIndex(i);
+            Rules[rulePage].Actions = insert(Rules[rulePage].Actions, i + direction, action);
+
+            if (isRulePageVisible(page))
+            {
+                actionScrollBar.Remove(i);
+                actionScrollBar.Insert(i + direction, action.Label);
+                actionsSelected[i + direction] = true;
+                updateActionSelectColor(i + direction);
+            }
+        }
     }
 }

@@ -45,7 +45,9 @@ enum MenuAction
     Export = 31,
     ExportWorkshop = 32,
     ExportOstw = 33,
-    ExportOverpy = 34
+    ExportOverpy = 34,
+    FuncPrimary = 35,
+    FuncSecondary = 36
 }
 
 enum MenuState

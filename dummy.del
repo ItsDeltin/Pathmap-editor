@@ -13,8 +13,8 @@ playervar Boolean pfstateIsJumping!;
 
 Number dummyOutlineState: dummyHighlighted + dummySelected * 2;
 Player[] selectedDummies: AllPlayers().FilteredArray(p => p.IsDummy() && p.dummySelected);
-Vector currentPathfindingNodePosition: Nodes[travelPath[currentPathNode]].Node.Position;
-Vector walkingTo: travelPath[currentPathNode] == -1 ? pathfindDestination : currentPathfindingNodePosition;
+Vector currentPathfindingNodePosition: Nodes[currentPathNode].Node.Position;
+Vector walkingTo: currentPathNode == -1 ? pathfindDestination : currentPathfindingNodePosition;
 
 rule: 'Dummy: new state'
 Event.OngoingPlayer
@@ -58,7 +58,9 @@ rule: 'Pathfind: Pathfind selected dummies'
 if (button(Button.Reload))
 if (selectedDummies.Length)
 if (!pathfinderActive)
+if (!host.releaseReload)
 {
+    host.releaseReload = true;
     Vector destination = watchPoint;
     Player[] players = selectedDummies;
     Number[] targetNodes = [];
@@ -107,8 +109,8 @@ if (PositionOf().DistanceTo(currentPathfindingNodePosition) < 0.4)
 
     // Get attributes of current node
     Number[] attributes = Attributes.FilteredArray(a =>
-        a.Node1 == Nodes[travelPath[previous]].Node.UniqueID &&
-        a.Node2 == Nodes[travelPath[currentPathNode]].Node.UniqueID)
+        a.Node1 == Nodes[previous].Node.UniqueID &&
+        a.Node2 == Nodes[currentPathNode].Node.UniqueID)
         .Map(a => a.Value);
         
     // Execute the rules that contain the attributes.

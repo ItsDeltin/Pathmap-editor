@@ -367,6 +367,7 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
 }
 
 playervar Boolean releasePrimary;
+playervar Boolean releaseReload;
 
 rule: 'Release primary'
 Event.OngoingPlayer
@@ -374,4 +375,12 @@ if (releasePrimary)
 if (!IsButtonHeld(EventPlayer(), Button.PrimaryFire))
 {
     releasePrimary = !releasePrimary;
+}
+
+rule: 'Release reload'
+Event.OngoingPlayer
+if (releaseReload)
+if (!IsButtonHeld(EventPlayer(), Button.Reload))
+{
+    releaseReload = !releaseReload;
 }

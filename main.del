@@ -27,7 +27,7 @@ if (HasSpawned(HostPlayer()))
     
 }
 
-rule: 'Setup: Inspector, Performance HUD, and Settings' -1
+rule: 'Setup: Inspector, Performance HUD, and Settings'
 {
     if (!WorkshopSettingToggle('Pathmap Editor', 'Enable inspector recording', false, 1))
         DisableInspectorRecording();
@@ -137,10 +137,28 @@ if (!IsDummyBot())
 globalvar persist Vector savedPlayerLocation;
 globalvar persist Vector savedPlayerDirection;
 
+rule: 'Snapshot'
+{
+    EnableInspectorRecording();
+    # Click the (X) symbol to copy the editor's state to the clipboard.
+    # To load the map, paste the data into the first rule in the workshop menu:
+    # ◈ Paste the actions to load a previous save here!! ◈
+    DisableInspectorRecording();
+    Wait(10);
+    Loop();
+}
+
+rule: 'Main: Persistant Spawn'
+if (HasSpawned(host))
+if (savedPlayerLocation)
+{
+    host.Teleport(savedPlayerLocation);
+    SetFacing(host, savedPlayerDirection, Relative.ToWorld);
+}
+
 rule: 'Main: Selection loop'
 if (HasSpawned(host))
-if (savedPlayerLocation != host.Position())
-if (savedPlayerDirection != host.FacingDirection())
+if (savedPlayerLocation != host.Position() || savedPlayerDirection != host.FacingDirection())
 if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
 {
     savedPlayerLocation = host.Position();

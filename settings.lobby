@@ -22,5 +22,12 @@
   "Lobby": {
     "Max Team 1 Players": 1,
     "Max Team 2 Players": 0
+  },
+  "Heroes": {
+    "General": {
+      "General": {
+        "Ability Cooldown Time": 0
+      }
+    }
   }
 }

@@ -22,7 +22,6 @@ class what {} globalvar what whaat! = new what();
 globalvar Number maxHistoryLength!;
 
 rule: '┏━【◈ Paste the actions to load a previous save here!! ◈】━┓' -3
-if (HasSpawned(HostPlayer()))
 {
     
 }
@@ -140,9 +139,13 @@ globalvar persist Vector savedPlayerDirection;
 rule: 'Snapshot'
 {
     EnableInspectorRecording();
-    # Click the (X) symbol to copy the editor's state to the clipboard.
-    # To load the map, paste the data into the first rule in the workshop menu:
-    # ◈ Paste the actions to load a previous save here!! ◈
+    # 【◈ How to save & load ◈】
+    # Click the (x) button under the timeline.
+    # 
+    # `                      ↓
+    # •-   ≡   □   □⃩    (x)
+    # 
+    # Save the copied text into a text file. To load it, paste the contents into the first rule in the workshop editor.
     DisableInspectorRecording();
     Wait(10);
     Loop();

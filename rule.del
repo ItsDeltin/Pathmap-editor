@@ -17,7 +17,7 @@ struct RuleAction
     public Vector Export;
 }
 
-globalvar Rule[] Rules = [];
+globalvar persist Rule[] Rules = [];
 globalvar Number rulePage!;
 globalvar Any rulePageText!;
 globalvar Any previousRuleText!;

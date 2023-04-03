@@ -12,28 +12,28 @@ void ExportMenu() 'EXPORT: create export menu'
     setMainLabel("main / export");
     
     buttonCollectionMain += createButton(
-        label: "┏━ Generate ━┓",
+        label: "┏━ Language ━┓",
         posX: 1.5,
         posY: .6,
         defaultColor: Color.White,
         interactable: false
     );
     buttonCollectionMain += createButton(
-        label: "Workshop code",
+        label: "Workshop",
         posX: 1.5,
         posY: .3,
         defaultColor: Color.Green,
         primaryAction: MenuAction.ExportWorkshop
     );
     buttonCollectionMain += createButton(
-        label: "OSTW code",
+        label: "OSTW",
         posX: 1.5,
         posY: 0.,
         defaultColor: Color.SkyBlue,
         primaryAction: MenuAction.ExportOstw
     );
     buttonCollectionMain += createButton(
-        label: "Overpy code",
+        label: "Overpy",
         posX: 1.5,
         posY: -.3,
         defaultColor: Color.Yellow,

@@ -325,10 +325,17 @@ if (cm_currActionID == MenuAction.CreateRule)
 {
     rulePage = Rules.Length;
 
-    Rules.ModAppend([{ Actions: [], ActionOrder: [], ExecutesOnAttribute: 0, EnabledHeroes: AllHeroes().Map(hero => true) }]);
-
-    initiatePager();
-    updateRuleContent();
+    Document({
+        Set: () => {
+            Rules.ModAppend([{ Actions: [], ActionOrder: [], ExecutesOnAttribute: 0, EnabledHeroes: AllHeroes().Map(hero => true) }]);
+            initiatePager();
+            updateRuleContent();
+        },
+        Revert: () => {
+            define removeIndex! = Rules.Length - 1;
+            Rules.ModRemoveByIndex(removeIndex);
+        }
+    });
 }
 
 rule: 'CM: Wait time'

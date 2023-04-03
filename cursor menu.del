@@ -106,7 +106,7 @@ if (EventPlayer() == HostPlayer())
             // REEVALUATION ENABLED
             Header: cm_buttons[index].Label,
             // REEVALUATION ENABLED
-            Position: <Vector>UpdateEveryFrame(
+            Position: UpdateEveryFrame(
                 EyePosition() + 100 * (
                     cm_buttons[index].PosX * CrossProduct(
                         FacingDirectionOf(),

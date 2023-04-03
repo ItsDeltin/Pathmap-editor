@@ -85,9 +85,9 @@ struct Attribute
     public Number Node2;
 }
 
-globalvar WorldNode[] Nodes = [];
-globalvar WorldSegment[] Segments = [];
-globalvar Attribute[] Attributes = [];
+globalvar persist WorldNode[] Nodes = [];
+globalvar persist WorldSegment[] Segments = [];
+globalvar persist Attribute[] Attributes = [];
 
 globalvar Number NodeUniqueID! = 1;
 globalvar Number SegmentUniqueID! = 1;
@@ -134,9 +134,18 @@ if (!IsDummyBot())
     DisallowButton(eventPlayer, Button.Ability1);
 }
 
+globalvar persist Vector savedPlayerLocation;
+globalvar persist Vector savedPlayerDirection;
+
 rule: 'Main: Selection loop'
+if (HasSpawned(host))
+if (savedPlayerLocation != host.Position())
+if (savedPlayerDirection != host.FacingDirection())
 if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
 {
+    savedPlayerLocation = host.Position();
+    savedPlayerDirection = host.FacingDirection();
+
     // Find player
     AllPlayers().dummyHighlighted = false;
     SelectedPlayer = RayCastHitPlayer(eye, eye + facing * 100, AllPlayers(), host, false);
@@ -188,6 +197,7 @@ if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
 }
 
 rule: 'Main: Renderer'
+if (HasSpawned(host))
 if (Nodes.Length)
 {
     // Nodes

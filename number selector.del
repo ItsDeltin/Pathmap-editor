@@ -9,7 +9,7 @@ class NumberSelector
     Any incrementText;
     Number => void onUpdate;
 
-    public constructor(in Number initialValue, in Number posX, in Number posY, in Boolean visible, Number => void onUpdate)
+    public constructor(in Number initialValue, in Number posX, in Number posY, in Boolean visible, in Number => void onUpdate)
     {
         Value = initialValue;
         numberText = createButton(

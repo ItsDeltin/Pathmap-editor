@@ -80,6 +80,29 @@ Number createButton(
     return __createButtonSubroutine([label, primaryAction, secondaryAction, posX, posY, clickWidth, clickHeight, defaultColor, hoverColor, interactable, visible]);
 }
 
+# Creates a button. This overload replaces the `primaryAction` and `secondaryAction` parameters with
+# the `Boolean => void onClick` parameter. The `onClick` function will be executed the button is clicked.
+# 
+# Example:
+# ```
+# define button = createButton(label: 'It\'s a wonderful world', onClick: wasSecondary => {
+#     if (!wasSecondary) {
+#         SmallMessage(AllPlayers(), 'You left clicked the button!');
+#     } else {
+#         SmallMessage(AllPlayers(), 'You right clicked the button!');
+#     }
+# });
+# ```
+# -`label`: The button's text that will be displayed.
+# -`onClick`: The function that is executed when the button is clicked. The parameter will be false if triggered by primary fire, or true when triggered by secondary fire.
+# -`posX`: The X position on the screen to render the button. 0 is the center. Negative values go left, positive goes right.
+# -`posY`: The Y position on the screen to render the button. 0 is the center. Negative values go up, positive goes down.
+# -`clickWidth`: The width of the button's hitbox to the cursor.
+# -`clickHeight`: The height of the button's hitbox to the cursor.
+# -`defaultColor`: The button's color. Is Color.White by default.
+# -`hoverColor`: The button's color when hovered. Is Color.Blue by default.
+# -`interactable`: Can the button be clicked?
+# -`visible`: Is the button visible?
 Number createButton(
     in String label,
     in Boolean => void onClick,
@@ -92,6 +115,7 @@ Number createButton(
     in Boolean interactable = true,
     in Boolean visible = true
 ) {
+    // The click events for the button created here are handled by the 'CM: Func Primary' and 'CM: Func Secondary' rules.
     return __createButtonSubroutine([label, [MenuAction.FuncPrimary, onClick], [MenuAction.FuncSecondary, onClick], posX, posY, clickWidth, clickHeight, defaultColor, hoverColor, interactable, visible]);
 }
 
@@ -116,12 +140,8 @@ if (EventPlayer() == HostPlayer())
         Number index: EvaluateOnce(i);
 
         CreateInWorldText(
-            // REEVALUATION ENABLED
-            VisibleTo: cm_isInMenu && index < cm_buttons.Length ? EventPlayer() : null,
-            // todo: I think there was supposed to be a special unicode for this.
-            // REEVALUATION ENABLED
-            Header: cm_buttons[index].Label,
-            // REEVALUATION ENABLED
+            VisibleTo: UpdateEveryFrame(cm_isInMenu && index < cm_buttons.Length ? EventPlayer() : null),
+            Header: UpdateEveryFrame(cm_buttons[index].Label),
             Position: UpdateEveryFrame(
                 EyePosition() + 100 * (
                     cm_buttons[index].PosX * CrossProduct(
@@ -136,7 +156,6 @@ if (EventPlayer() == HostPlayer())
                     ) + 3 * FacingDirectionOf()
                 )
             ),
-            //Scale: cm_buttons[index].Scale, blizzard whyyyyyy let me reevaluateeee
             Scale: 2.8,
             Clipping: Clipping.DoNotClip,
             Reevaluation: InworldTextRev.VisibleToPositionStringAndColor,

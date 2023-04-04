@@ -516,28 +516,31 @@ void MoveSelectedActions(Boolean up!) 'Subroutine: Document action move'
 
     Document({
         Set: () => {
-            DoMove(selected, up, false, page);
+            DoMove(selected, up, page);
         },
         Revert: () => {
-            DoMove(selected, !up, true, page);
+            DoMove(selected, !up, page);
         }
     });
 }
 
-void DoMove(Boolean[] selected!, Boolean up!, Boolean undo!, Number page!) 'Subroutine: Execute action move'
+void DoMove(Boolean[] selected!, Boolean up!, Number page!) 'Subroutine: Execute action move'
 {
+    // The actions in the current page are about to be moved, so reset selected actions.
     if (isRulePageVisible(page))
     {
         actionsSelected = [];
     }
 
+    // -1 moves the actions up the list, 1 moves them down.
     Number direction! = up ? -1 : 1;
-    for (
-        Number i! = up ? 0 : selected.Length - 1;
+    // Depending on the direction being moved, we will need to either go from zero to selected.Length
+    // or from selected.Length to zero.
+    for (Number i! = up ? 0 : selected.Length - 1;
         up ? i < selected.Length : i >= 0;
         i -= direction) {
         if (selected[i]) {
-
+            // Shuffle Actions[i] and Actions[i ± 1].
             define action! = Rules[rulePage].Actions[i];
             Rules[rulePage].Actions.ModRemoveByIndex(i);
             Rules[rulePage].Actions = insert(Rules[rulePage].Actions, i + direction, action);

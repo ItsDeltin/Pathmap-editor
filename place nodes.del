@@ -276,8 +276,6 @@ if (!host.cm_isInMenu)
             // Create segment
             else
             {
-                AttributeUniqueID++;
-
                 // Temp variables for local capture
                 Number value! = attribute;
                 Number id! = SegmentUniqueID;

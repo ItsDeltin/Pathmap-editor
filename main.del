@@ -62,7 +62,7 @@ struct WorldNode
 
     public Vector ShownPosition(): Node.Position + Up() * 1.3;
 
-    public Boolean ValidTarget(): ShownPosition().DistanceTo(ray(eye, eye + facing * ShownPosition().DistanceTo(eye))) < NodeSize;
+    public Boolean ValidTarget(): ShownPosition().DistanceTo(eye + facing * ShownPosition().DistanceTo(eye)) < NodeSize;
 }
 
 struct WorldSegment
@@ -223,13 +223,13 @@ if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
     SelectedPlayer.dummyHighlighted = true;
 
     // Selected node
-    Number[] tempNode! = Nodes
+    SelectedNodeIndex = Nodes
         .Map((node, i) => i)
         .SortedArray(i => Nodes[i].ShownPosition().DistanceTo(eye))
-        .FilteredArray(i => Nodes[i].ValidTarget());
-    
-    SelectedNodeIndex = tempNode.Length ? tempNode.First : -1;
-    
+        .FilteredArray(i => Nodes[i].ValidTarget())
+        .Append(-1)
+        .First;
+        
     // Player and node found, choose one.
     if (SelectedPlayer != null && SelectedNodeIndex != -1)
     {

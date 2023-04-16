@@ -65,6 +65,20 @@ void mirrorMap() playervar 'Subroutine: Mirror map'
     Number nodeLength = Nodes.Length;
     Number segmentLength = Segments.Length;
     Number attributeLength = Attributes.Length;
+
+    Document({
+        Set: () => {
+            executeMapMirror(nodeLength, segmentLength, attributeLength);
+        },
+        Revert: () => {
+            Nodes = Nodes.Slice(0, nodeLength);
+            Segments = Segments.Slice(0, segmentLength);
+            Attributes = Attributes.Slice(0, attributeLength);
+        }
+    });
+}
+void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeLength) playervar 'Subroutine: Execute map mirror'
+{
     Number iterI = 0;
     # 0 = nodes, 1 = segments, 2 = attributes
     Number step = 0;

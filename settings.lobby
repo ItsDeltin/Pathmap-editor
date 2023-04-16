@@ -17,6 +17,14 @@
       "Enabled Maps": [
         "Dorado"
       ]
+    },
+    "Team Deathmatch": {
+      "Enabled": true,
+      "Game Mode Start": "Manual",
+      "Enabled Maps": []
+    },
+    "All": {
+      "Respawn Time Scalar": 0
     }
   },
   "Lobby": {

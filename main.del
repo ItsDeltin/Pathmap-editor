@@ -28,10 +28,17 @@ rule: '┏━【◈ Paste the actions to load a previous save here!! ◈】━�
 
 rule: 'Setup: Inspector, Performance HUD, and Settings'
 {
+    // Inspector
     if (!WorkshopSettingToggle('Pathmap Editor', 'Enable inspector recording', false, 1))
         DisableInspectorRecording();
-    CreateHudText(AllPlayers(), Text: "cap: {0} {1} {2}".Format([ServerLoad(), ServerLoadAverage(), ServerLoadPeak()]));
+    // HUD
+    CreateHudText(AllPlayers(), Text: <"cap: <0> <1> <2>\nposition: <3>", ServerLoad(), ServerLoadAverage(), ServerLoadPeak(), PositionOf(host)>);
+    SetObjectiveDescription(AllPlayers(), '', HudTextRev.VisibleTo);
+    // Settings
     maxHistoryLength = WorkshopSettingInteger("Pathmap Editor", "Undo history length", 20, 0, 100);
+
+    SetMatchTime(9999);
+    PauseMatchTime();
 }
 
 rule: 'Snapshot'
@@ -124,6 +131,7 @@ if (!IsDummyBot())
     DisallowButton(eventPlayer, Button.SecondaryFire);
     DisallowButton(eventPlayer, Button.Ultimate);
     DisallowButton(eventPlayer, Button.Ability1);
+    DisableGameModeHud(eventPlayer);
 }
 
 globalvar persist Vector savedPlayerLocation;

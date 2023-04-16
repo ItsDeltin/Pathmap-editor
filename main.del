@@ -70,7 +70,6 @@ struct WorldSegment
     public Number ID;
     public Number Node1;
     public Number Node2;
-    public Any Effect;
 }
 
 struct Attribute
@@ -108,7 +107,6 @@ void RemoveNodeByIndex(Number index) 'Subroutine: Remove node'
 
 void RemoveSegmentByIndex(Number index) 'Subroutine: Remove segment'
 {
-    DestroyEffect(Segments[index].Effect);
     Segments.ModRemoveByIndex(index);
 }
 

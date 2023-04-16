@@ -176,7 +176,7 @@ if (!host.cm_isInMenu)
             Nodes += { Node: deleteNode, Selected: false };
             // Add segments
             for (waitlessI = 0; deleteSegments.Length; 1)
-                Segments += { ID: deleteSegments[waitlessI].X, Node1: deleteSegments[waitlessI].Y, Node2: deleteSegments[waitlessI].Z, Effect: null };
+                Segments += { ID: deleteSegments[waitlessI].X, Node1: deleteSegments[waitlessI].Y, Node2: deleteSegments[waitlessI].Z };
             updateRenderingNodes();
         }
     });
@@ -211,7 +211,6 @@ if (!host.cm_isInMenu)
             if (SelectedSegment != -1)
             {
                 WorldSegment segment = Segments[SelectedSegment];
-                segment.Effect = null;
 
                 Document({
                     Set: () => {
@@ -236,7 +235,7 @@ if (!host.cm_isInMenu)
 
                 Document({
                     Set: () => {
-                        Segments += { ID: id, Node1: from, Node2: to, Effect: null };
+                        Segments += { ID: id, Node1: from, Node2: to };
                         updateRenderingSegments();
                     },
                     Revert: () => {

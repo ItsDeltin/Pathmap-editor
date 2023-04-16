@@ -60,9 +60,7 @@ MirrorMeta[] mirrorMeta: [
 // Push maps are flipped on the X axis
 
 // Show mirror preview
-rule: 'Mirror'
-Event.OngoingPlayer
-if (IsButtonHeld(host, Button.Melee))
+void mirrorMap() playervar 'Subroutine: Mirror map'
 {
     Number nodeLength = Nodes.Length;
     Number segmentLength = Segments.Length;
@@ -242,4 +240,33 @@ Vector mirror(in Vector v, in Number a, in Number b)
     Vector r = p + t * n;
 
     return v + (r - v * Vector(1, 0, 1)) * 2;
+}
+
+void openMirrorConfirmationScreen()
+{
+    SetMenuState(MenuState.ConfirmMirror);
+    buttonCollectionMain += createButton(
+        label: 'Are you sure you want to mirror the map?\nPlease save your map before continuing.\nThis may take a minute.',
+        posY: 0.15,
+        interactable: false
+    );
+    buttonCollectionMain += createButton(
+        label: 'no',
+        posX: -0.4,
+        posY: -0.25,
+        defaultColor: Color.Red,
+        onClick: _ => {
+            SetMenuState(MenuState.Main);
+        }
+    );
+    buttonCollectionMain += createButton(
+        label: 'yes',
+        posX: 0.4,
+        posY: -0.25,
+        defaultColor: Color.Green,
+        onClick: _ => {
+            SetMenuState(MenuState.Main);
+            async! mirrorMap();
+        }
+    );
 }

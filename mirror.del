@@ -64,9 +64,29 @@ rule: 'Mirror'
 Event.OngoingPlayer
 if (IsButtonHeld(host, Button.Melee))
 {
-    Number mirrorNodesBegin = Nodes.Length;
+    Number nodeLength = Nodes.Length;
+    Number segmentLength = Segments.Length;
+    Number attributeLength = Attributes.Length;
+    Number iterI = 0;
+    # 0 = nodes, 1 = segments, 2 = attributes
+    Number step = 0;
 
-    // Get map mirror data.
+    # Create mirror progress HUD
+    define progressHud = CreateProgressBarHudText(
+        AllPlayers(),
+        Value: iterI / [nodeLength, segmentLength, attributeLength][step] * 100,
+        Text: [
+            <'Mirroring nodes <0>/<1> (1/3)', iterI, nodeLength>,
+            <'Mirroring paths <0>/<1> (2/3)', iterI, segmentLength>,
+            <'Mirroring attributes <0>/<1> (3/3)', iterI, attributeLength>][step],
+        Location: Location.Top,
+        SortOrder: 100,
+        ProgressBarColor: Color.Orange,
+        TextColor: Color.White,
+        Reevaluation: ProgressBarHudEvaluation.VisibleToAndValues
+    );
+
+    # Get map mirror data.
     Number mapId = mirrorMeta.Map(m => m.Map).IndexOf(CurrentMap());
     Number a = 0;
     Number b = 0;
@@ -85,7 +105,7 @@ if (IsButtonHeld(host, Button.Melee))
     Number[] nodeMirrors = [];
 
     // Mirror nodes
-    for (Number i! = 0; mirrorNodesBegin; 1) {
+    for (iterI = 0; nodeLength; 1) {
         // Do not mirror if the node is selected.
         // if (Nodes[i].Selected) {
         //     continue;
@@ -93,13 +113,13 @@ if (IsButtonHeld(host, Button.Melee))
 
         Vector pos;
         if (justFlipXAxis)
-            pos = Nodes[i].Node.Position * Vector(-1, 1, 1) + Vector(a, 0, 0);
+            pos = Nodes[iterI].Node.Position * Vector(-1, 1, 1) + Vector(a, 0, 0);
         else
-            pos = mirror(Nodes[i].Node.Position, a, b);
+            pos = mirror(Nodes[iterI].Node.Position, a, b);
 
         // Do not mirror if the mirrored node is too close.
-        if (pos.DistanceTo(Nodes[i].Node.Position) < mergeRadius) {
-            nodeMirrors[i] = i;
+        if (pos.DistanceTo(Nodes[iterI].Node.Position) < mergeRadius) {
+            nodeMirrors[iterI] = iterI;
             MinWait();
             continue;
         }
@@ -109,29 +129,39 @@ if (IsButtonHeld(host, Button.Melee))
         // Do not mirror if a node already exists.
         if (inRadius.Length)
         {
-            nodeMirrors[i] = Nodes.Map(n => n.Node.Position).IndexOf(inRadius.First);
+            nodeMirrors[iterI] = Nodes.Map(n => n.Node.Position).IndexOf(inRadius.First);
             MinWait();
             continue;
         }
 
-        nodeMirrors[i] = Nodes.Length;
+        nodeMirrors[iterI] = Nodes.Length;
 
         NodeUniqueID++;
         Nodes += { Node: {Position: pos, UniqueID: NodeUniqueID}, Selected: true };
         MinWait();
     }
+    step++;
     # Mirror segments
-    mirrorNodeConnectedArray(nodeMirrors, Segments, SegmentUniqueID,
+    mirrorNodeConnectedArray(nodeMirrors, Segments, iterI, segmentLength, SegmentUniqueID,
         seg => seg.Node1,
         seg => seg.Node2,
         (o, id, n1, n2) => { Node1: n1, Node2: n2, ID: id }
     );
+    step++;
     # Mirror attributes
-    mirrorNodeConnectedArray(nodeMirrors, Attributes, AttributeUniqueID,
+    mirrorNodeConnectedArray(nodeMirrors, Attributes, iterI, attributeLength, AttributeUniqueID,
         attr => attr.Node1,
         attr => attr.Node2,
         (o, id, n1, n2) => { Value: o.Value, ID: id, Node1: n1, Node2: n2 }
     );
+
+    # Destroy progess hud
+    DestroyProgressBarHudText(progressHud);
+
+    # Notify user
+    SmallMessage(AllPlayers(), <'Added <0> nodes', Nodes.Length - nodeLength>);
+    SmallMessage(AllPlayers(), <'Added <0> segments', Segments.Length - segmentLength>);
+    SmallMessage(AllPlayers(), <'Added <0> attributes', Attributes.Length - attributeLength>);
 
     # Update visiblity
     updateRenderingNodes();
@@ -140,6 +170,8 @@ if (IsButtonHeld(host, Button.Melee))
 void mirrorNodeConnectedArray<T>(
     in Number[] nodeMirrors,
     ref T[] array,
+    ref Number i,
+    in Number arrayLength,
     ref Number uniqueId,
     const T => Number getNode1,
     const T => Number getNode2,
@@ -147,8 +179,7 @@ void mirrorNodeConnectedArray<T>(
 {
     # Elements are added to the input array each iteration,
     # this ensures that we do not iterate past the initial length.
-    Number initialArrayLength = array.Length;
-    for (Number i = 0; initialArrayLength; 1) {
+    for (i = 0; arrayLength; 1) {
         Number node1Index = NodeIndexFromID(getNode1(array[i]));
         Number node2Index = NodeIndexFromID(getNode2(array[i]));
 
@@ -164,7 +195,7 @@ void mirrorNodeConnectedArray<T>(
 
         Number mirrorNode1Id = Nodes[mirrorNode1Index].Node.UniqueID;
         Number mirrorNode2Id = Nodes[mirrorNode2Index].Node.UniqueID;
-        if (anyWithWait(array, initialArrayLength, v =>
+        if (anyWithWait(array, arrayLength, v =>
             (getNode1(v) == mirrorNode1Id && getNode2(v) == mirrorNode2Id) ||
             (getNode1(v) == mirrorNode2Id && getNode2(v) == mirrorNode1Id)))
         {
@@ -190,7 +221,9 @@ Boolean anyWithWait<T>(in T[] array, in Number length, const T => Boolean condit
         if (condition(array[i])) {
             return true;
         }
-        MinWait();
+        if (!(i % 40)) {
+            MinWait();
+        }
     }
     return false;
 }

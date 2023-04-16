@@ -3,7 +3,10 @@ import 'main.del';
 struct MirrorMeta
 {
     public Map Map;
+    # If `X` is false, this is the slope of the plane.
+    # Otherwise, if `X` is true, then this is the x offset to the symmetry line in the map.
     public Number A;
+    # The intercept of the plane with the z-axis. Ignore if X is true.
     public Number B;
     public Boolean X;
 }
@@ -20,7 +23,6 @@ MirrorMeta m_ab(Map map, Number a, Number b): {
     A: a,
     B: b
 };
-MirrorMeta m_p(Map map): m_x(map, 0);
 
 // Provided by Zezombye
 // https://github.com/Zezombye/overpy/blob/master/src/data/maps.js
@@ -63,19 +65,17 @@ Event.OngoingPlayer
 if (IsButtonHeld(host, Button.Melee))
 {
     Number mirrorNodesBegin = Nodes.Length;
-    Number mirrorSegmentsBegin = Segments.Length;
-    Number mirrorAttributesBegin = Attributes.Length;
 
     // Get map mirror data.
     Number mapId = mirrorMeta.Map(m => m.Map).IndexOf(CurrentMap());
     Number a = 0;
     Number b = 0;
-    Boolean p = true;
+    Boolean justFlipXAxis = true;
     if (mapId != -1)
     {
         a = mirrorMeta[mapId].A;
         b = mirrorMeta[mapId].B;
-        p = mirrorMeta[mapId].X;
+        justFlipXAxis = mirrorMeta[mapId].X;
     }
 
     # The distance where a mirrored node will be ignored.
@@ -91,10 +91,9 @@ if (IsButtonHeld(host, Button.Melee))
         //     continue;
         // }
 
-        // Get the mirrored node position.
         Vector pos;
-        if (p)
-            pos = Nodes[i].Node.Position * Vector(-1 , 1, 1) + Vector(a, 0, 0);
+        if (justFlipXAxis)
+            pos = Nodes[i].Node.Position * Vector(-1, 1, 1) + Vector(a, 0, 0);
         else
             pos = mirror(Nodes[i].Node.Position, a, b);
 
@@ -122,17 +121,18 @@ if (IsButtonHeld(host, Button.Melee))
         MinWait();
     }
     # Mirror segments
-    mirrorNodeConnectedArray(nodeMirrors, Segments, mirrorSegmentsBegin, SegmentUniqueID,
+    mirrorNodeConnectedArray(nodeMirrors, Segments, SegmentUniqueID,
         seg => seg.Node1,
         seg => seg.Node2,
         (o, id, n1, n2) => { Node1: n1, Node2: n2, ID: id }
     );
     # Mirror attributes
-    mirrorNodeConnectedArray(nodeMirrors, Attributes, mirrorAttributesBegin, AttributeUniqueID,
+    mirrorNodeConnectedArray(nodeMirrors, Attributes, AttributeUniqueID,
         attr => attr.Node1,
         attr => attr.Node2,
         (o, id, n1, n2) => { Value: o.Value, ID: id, Node1: n1, Node2: n2 }
     );
+
     # Update visiblity
     updateRenderingNodes();
 }
@@ -140,49 +140,72 @@ if (IsButtonHeld(host, Button.Melee))
 void mirrorNodeConnectedArray<T>(
     in Number[] nodeMirrors,
     ref T[] array,
-    in Number arrayLength,
     ref Number uniqueId,
     const T => Number getNode1,
     const T => Number getNode2,
     const (T, Number, Number, Number) => T mirroredValue)
 {
-    // Segments
-    for (Number i = 0; arrayLength; 1) {
+    # Elements are added to the input array each iteration,
+    # this ensures that we do not iterate past the initial length.
+    Number initialArrayLength = array.Length;
+    for (Number i = 0; initialArrayLength; 1) {
         Number node1Index = NodeIndexFromID(getNode1(array[i]));
         Number node2Index = NodeIndexFromID(getNode2(array[i]));
 
+        Number mirrorNode1Index = nodeMirrors[node1Index];
+        Number mirrorNode2Index = nodeMirrors[node2Index];
+
         // The mirrored segment would be the same as the current segment.
         // This will occur if 2 nodes on the center line of the map are connected to each other.
-        if ((nodeMirrors[node1Index] == node1Index && nodeMirrors[node2Index] == node2Index)) {
+        if ((mirrorNode1Index == node1Index && mirrorNode2Index == node2Index)) {
             MinWait();
             continue;
         }
 
-        /*
-        array.IsTrueForAny(v =>
-            (getNode1(v) == getNode1(array[i]) && getNode2(v) == getNode2(array[i])) ||
-            (getNode1(v) == getNode2(array[i]) && getNode2(v) == getNode1(array[i])))
-        */
+        Number mirrorNode1Id = Nodes[mirrorNode1Index].Node.UniqueID;
+        Number mirrorNode2Id = Nodes[mirrorNode2Index].Node.UniqueID;
+        if (anyWithWait(array, initialArrayLength, v =>
+            (getNode1(v) == mirrorNode1Id && getNode2(v) == mirrorNode2Id) ||
+            (getNode1(v) == mirrorNode2Id && getNode2(v) == mirrorNode1Id)))
+        {
+            MinWait();
+            continue;
+        }
 
         uniqueId++;
         array += mirroredValue(
             array[i],
             uniqueId,
-            Nodes[nodeMirrors[node1Index]].Node.UniqueID,
-            Nodes[nodeMirrors[node2Index]].Node.UniqueID
+            mirrorNode1Id,
+            mirrorNode2Id
         );
 
         MinWait();
     }
 }
 
+Boolean anyWithWait<T>(in T[] array, in Number length, const T => Boolean condition)
+{
+    for (Number i = 0; length; 1) {
+        if (condition(array[i])) {
+            return true;
+        }
+        MinWait();
+    }
+    return false;
+}
+
 Vector mirror(in Vector v, in Number a, in Number b)
 {
-    // todo: one of these normalizes can probably go
+    // 'a' and 'b' can be converted into a point and direction,
+    // which could be an infinite plane cutting the map into two halves.
+    # Get the plane's normal. The cross product with Up will turn the plane perpendicularly.
     Vector n = Vector(a, 0, -1).Normalize().CrossProduct(Up()).Normalize();
+    # Get an arbritrary point on the plane.
     Vector p = Vector(-b/a, 0, 0);
     Vector w = v - p;
     Number t = DotProduct(w, n);
+    # Projection of 'v' to the plane.
     Vector r = p + t * n;
 
     return v + (r - v * Vector(1, 0, 1)) * 2;

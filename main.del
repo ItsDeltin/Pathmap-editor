@@ -80,9 +80,9 @@ globalvar persist WorldNode[] Nodes = [];
 globalvar persist WorldSegment[] Segments = [];
 globalvar persist Attribute[] Attributes = [];
 
-globalvar persist Number NodeUniqueID! = 1;
-globalvar persist Number SegmentUniqueID! = 1;
-globalvar persist Number AttributeUniqueID! = 1;
+globalvar persist Number NodeUniqueID = 1;
+globalvar persist Number SegmentUniqueID = 1;
+globalvar persist Number AttributeUniqueID = 1;
 
 Number NodeSize: 0.3;
 Boolean AnyNodesSelected: Nodes.IsTrueForAny(node => node.Selected);

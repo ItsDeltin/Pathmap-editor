@@ -82,6 +82,7 @@ if (eventPlayer == host)
         scale: 2,
         posX: -2,
         posY: 1,
+        clickWidth: 0.4,
         defaultColor: Color.Red);
 }
 

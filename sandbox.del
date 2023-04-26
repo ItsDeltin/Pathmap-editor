@@ -8,6 +8,7 @@ playervar Number mainText!;
 globalvar Number undoText! = -1;
 globalvar Number redoText! = -1;
 
+# Contains a list of buttons that are destroyed when the menu state changes.
 playervar Number[] buttonCollectionMain = [];
 
 enum MenuAction
@@ -60,7 +61,8 @@ enum MenuState
     ChooseWaitLength,
     PathfinderSettings,
     Guide,
-    Export
+    Export,
+    ConfirmMirror
 }
 
 rule: 'CM: Make buttons: Main'
@@ -168,6 +170,14 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             primaryAction: MenuAction.LinkMode,
             scale: 2.5,
             posY: 0.7);
+        
+        buttonCollectionMain += createButton(
+            'Mirror map',
+            onClick: _ => openMirrorConfirmationScreen(),
+            posX: -1.7,
+            posY: 0.3,
+            clickWidth: 1.0,
+            defaultColor: Color.White);
         
         updateFreecamLabel();
         

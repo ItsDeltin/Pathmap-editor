@@ -1,0 +1,281 @@
+import 'main.del';
+
+struct MirrorMeta
+{
+    public Map Map;
+    # If `X` is false, this is the slope of the plane.
+    # Otherwise, if `X` is true, then this is the x offset to the symmetry line in the map.
+    public Number A;
+    # The intercept of the plane with the z-axis. Ignore if X is true.
+    public Number B;
+    public Boolean X;
+}
+
+MirrorMeta m_x(Map map, Number x): {
+    Map: map,
+    X: true,
+    A: x,
+    B: 0,
+};
+MirrorMeta m_ab(Map map, Number a, Number b): {
+    Map: map,
+    X: false,
+    A: a,
+    B: b
+};
+
+// Provided by Zezombye
+// https://github.com/Zezombye/overpy/blob/master/src/data/maps.js
+MirrorMeta[] mirrorMeta: [
+    m_ab(Map.Ayutthaya, 0, -7),
+    m_ab(Map.Black_Forest, 0, 5),
+    m_ab(Map.Black_Forest_Winter, 0, 5),
+    m_x(Map.Busan_Downtown_Lunar, 51.9),
+    m_x(Map.Busan_Sanctuary_Lunar, 51.9),
+    m_ab(Map.Castillo, -0.19009, 38.79879),
+    m_ab(Map.Ecopoint_Antarctica, 0, 0),
+    m_ab(Map.Ecopoint_Antarctica_Winter, 0, 0),
+    m_ab(Map.Ilios_Lighthouse, -0.41437, 96.86593),
+    m_x(Map.Ilios_Ruins, 28.6),
+    m_ab(Map.Ilios_Well, 1.00409, 192.85907),
+    m_x(Map.Lijiang_Control_Center, 0),
+    m_x(Map.Lijiang_Control_Center_Lunar, 0),
+    m_x(Map.Lijiang_Garden, 0),
+    m_x(Map.Lijiang_Garden_Lunar, 0),
+    m_x(Map.Lijiang_Night_Market, 0),
+    m_x(Map.Lijiang_Night_Market_Lunar, 0),
+    m_ab(Map.Necropolis, 0, 0),
+    m_ab(Map.Nepal_Sanctum, 0, 0),
+    m_ab(Map.Nepal_Shrine, 0, 0),
+    m_ab(Map.Nepal_Village, 0, 0),
+    m_ab(Map.Oasis_City_Center, 1.00002, 103.99783),
+    m_ab(Map.Oasis_Gardens, -1.00042, -106.1637),
+    m_ab(Map.Oasis_University, 0, 0),
+    m_ab(Map.Workshop_Chamber, 0, 0),
+    m_ab(Map.Workshop_Expanse, 0, 0),
+    m_ab(Map.Workshop_Expanse_Night, 0, 0),
+    m_ab(Map.Workshop_Island, 0, 0),
+    m_ab(Map.Workshop_Island_Night, 0, 0)
+];
+// Push maps are flipped on the X axis
+
+// Show mirror preview
+void mirrorMap() playervar 'Subroutine: Mirror map'
+{
+    Number nodeLength = Nodes.Length;
+    Number segmentLength = Segments.Length;
+    Number attributeLength = Attributes.Length;
+
+    Document({
+        Set: () => {
+            executeMapMirror(nodeLength, segmentLength, attributeLength);
+        },
+        Revert: () => {
+            Nodes = Nodes.Slice(0, nodeLength);
+            Segments = Segments.Slice(0, segmentLength);
+            Attributes = Attributes.Slice(0, attributeLength);
+        }
+    });
+}
+void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeLength) playervar 'Subroutine: Execute map mirror'
+{
+    Number iterI = 0;
+    # 0 = nodes, 1 = segments, 2 = attributes
+    Number step = 0;
+
+    # Create mirror progress HUD
+    define progressHud = CreateProgressBarHudText(
+        AllPlayers(),
+        Value: iterI / [nodeLength, segmentLength, attributeLength][step] * 100,
+        Text: [
+            <'Mirroring nodes <0>/<1> (1/3)', iterI, nodeLength>,
+            <'Mirroring paths <0>/<1> (2/3)', iterI, segmentLength>,
+            <'Mirroring attributes <0>/<1> (3/3)', iterI, attributeLength>][step],
+        Location: Location.Top,
+        SortOrder: 100,
+        ProgressBarColor: Color.Orange,
+        TextColor: Color.White,
+        Reevaluation: ProgressBarHudEvaluation.VisibleToAndValues
+    );
+
+    # Get map mirror data.
+    Number mapId = mirrorMeta.Map(m => m.Map).IndexOf(CurrentMap());
+    Number a = 0;
+    Number b = 0;
+    Boolean justFlipXAxis = true;
+    if (mapId != -1)
+    {
+        a = mirrorMeta[mapId].A;
+        b = mirrorMeta[mapId].B;
+        justFlipXAxis = mirrorMeta[mapId].X;
+    }
+
+    # The distance where a mirrored node will be ignored.
+    Number mergeRadius: 2;
+    # The index of a node's mirrored node can be obtained by doing
+    # `nodeMirrors[nodeIndex]`
+    Number[] nodeMirrors = [];
+
+    // Mirror nodes
+    for (iterI = 0; nodeLength; 1) {
+        Vector pos;
+        if (justFlipXAxis)
+            pos = Nodes[iterI].Node.Position * Vector(-1, 1, 1) + Vector(a, 0, 0);
+        else
+            pos = mirror(Nodes[iterI].Node.Position, a, b);
+
+        // Do not mirror if the mirrored node is too close.
+        if (pos.DistanceTo(Nodes[iterI].Node.Position) < mergeRadius) {
+            nodeMirrors[iterI] = iterI;
+            MinWait();
+            continue;
+        }
+
+        // Find existing nodes in the mirrored position.
+        Vector[] inRadius = Nodes.Map(n => n.Node.Position).FilteredArray(n => n.DistanceTo(pos) < mergeRadius);
+        // Do not mirror if a node already exists.
+        if (inRadius.Length)
+        {
+            nodeMirrors[iterI] = Nodes.Map(n => n.Node.Position).IndexOf(inRadius.First);
+            MinWait();
+            continue;
+        }
+
+        nodeMirrors[iterI] = Nodes.Length;
+
+        NodeUniqueID++;
+        Nodes += { Node: {Position: pos, UniqueID: NodeUniqueID}, Selected: true };
+        MinWait();
+    }
+    step++;
+    # Mirror segments
+    mirrorNodeConnectedArray(nodeMirrors, Segments, iterI, segmentLength, SegmentUniqueID,
+        seg => seg.Node1,
+        seg => seg.Node2,
+        (o, id, n1, n2) => { Node1: n1, Node2: n2, ID: id }
+    );
+    step++;
+    # Mirror attributes
+    mirrorNodeConnectedArray(nodeMirrors, Attributes, iterI, attributeLength, AttributeUniqueID,
+        attr => attr.Node1,
+        attr => attr.Node2,
+        (o, id, n1, n2) => { Value: o.Value, ID: id, Node1: n1, Node2: n2 }
+    );
+
+    # Destroy progess hud
+    DestroyProgressBarHudText(progressHud);
+
+    # Notify user
+    SmallMessage(AllPlayers(), <'Added <0> nodes', Nodes.Length - nodeLength>);
+    SmallMessage(AllPlayers(), <'Added <0> segments', Segments.Length - segmentLength>);
+    SmallMessage(AllPlayers(), <'Added <0> attributes', Attributes.Length - attributeLength>);
+
+    # Update visiblity
+    updateRenderingNodes();
+}
+
+void mirrorNodeConnectedArray<T>(
+    in Number[] nodeMirrors,
+    ref T[] array,
+    ref Number i,
+    in Number arrayLength,
+    ref Number uniqueId,
+    const T => Number getNode1,
+    const T => Number getNode2,
+    const (T, Number, Number, Number) => T mirroredValue)
+{
+    # Elements are added to the input array each iteration,
+    # this ensures that we do not iterate past the initial length.
+    for (i = 0; arrayLength; 1) {
+        Number node1Index = NodeIndexFromID(getNode1(array[i]));
+        Number node2Index = NodeIndexFromID(getNode2(array[i]));
+
+        Number mirrorNode1Index = nodeMirrors[node1Index];
+        Number mirrorNode2Index = nodeMirrors[node2Index];
+
+        // The mirrored segment would be the same as the current segment.
+        // This will occur if 2 nodes on the center line of the map are connected to each other.
+        if ((mirrorNode1Index == node1Index && mirrorNode2Index == node2Index)) {
+            MinWait();
+            continue;
+        }
+
+        Number mirrorNode1Id = Nodes[mirrorNode1Index].Node.UniqueID;
+        Number mirrorNode2Id = Nodes[mirrorNode2Index].Node.UniqueID;
+        if (anyWithWait(array, arrayLength, v =>
+            (getNode1(v) == mirrorNode1Id && getNode2(v) == mirrorNode2Id) ||
+            (getNode1(v) == mirrorNode2Id && getNode2(v) == mirrorNode1Id)))
+        {
+            MinWait();
+            continue;
+        }
+
+        uniqueId++;
+        array += mirroredValue(
+            array[i],
+            uniqueId,
+            mirrorNode1Id,
+            mirrorNode2Id
+        );
+
+        MinWait();
+    }
+}
+
+Boolean anyWithWait<T>(in T[] array, in Number length, const T => Boolean condition)
+{
+    for (Number i = 0; length; 1) {
+        if (condition(array[i])) {
+            return true;
+        }
+        if (!(i % 40)) {
+            MinWait();
+        }
+    }
+    return false;
+}
+
+Vector mirror(in Vector v, in Number a, in Number b)
+{
+    // 'a' and 'b' can be converted into a point and direction,
+    // which could be an infinite plane cutting the map into two halves.
+    # Get the plane's normal. The cross product with Up will turn the plane perpendicularly.
+    Vector n = Vector(a, 0, -1).Normalize().CrossProduct(Up()).Normalize();
+    # Get an arbritrary point on the plane.
+    Vector p = Vector(-b/a, 0, 0);
+    Vector w = v - p;
+    Number t = DotProduct(w, n);
+    # Projection of 'v' to the plane.
+    Vector r = p + t * n;
+
+    return v + (r - v * Vector(1, 0, 1)) * 2;
+}
+
+void openMirrorConfirmationScreen()
+{
+    SetMenuState(MenuState.ConfirmMirror);
+    buttonCollectionMain += createButton(
+        label: 'Are you sure you want to mirror the map?\nPlease save your map before continuing.\nThis may take a minute.',
+        posY: 0.15,
+        interactable: false
+    );
+    buttonCollectionMain += createButton(
+        label: 'no',
+        posX: -0.4,
+        posY: -0.25,
+        defaultColor: Color.Red,
+        onClick: _ => {
+            SetMenuState(MenuState.Main);
+        }
+    );
+    buttonCollectionMain += createButton(
+        label: 'yes',
+        posX: 0.4,
+        posY: -0.25,
+        defaultColor: Color.Green,
+        onClick: _ => {
+            SetMenuState(MenuState.Main);
+            async! mirrorMap();
+        }
+    );
+}

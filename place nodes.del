@@ -152,9 +152,10 @@ if (editorState == EditorState.Node)
 if (SelectedNodeID != -1)
 if (!host.cm_isInMenu)
 {
+    Number index: SelectedNodeIndex;
     Node deleteNode = Nodes[SelectedNodeIndex].Node;
-    Vector[] deleteSegments =
-        Segments.Map(segment => Vector(segment.ID, segment.Node1, segment.Node2))
+    Any[][] deleteSegments =
+        Segments.Map((segment, i) => [i, segment.ID, segment.Node1, segment.Node2])
             .FilteredArray((v, i) => Segments[i].Node1 == deleteNode.UniqueID || Segments[i].Node2 == deleteNode.UniqueID);
 
     Document({
@@ -164,19 +165,29 @@ if (!host.cm_isInMenu)
 
             // Delete segments
             for (waitlessI = 0; deleteSegments.Length; 1) {
-                RemoveSegmentByIndex(SegmentIndexFromID(deleteSegments[waitlessI].X));
+                RemoveSegmentByIndex(deleteSegments[waitlessI][0]);
             }
             // Delete node
-            RemoveNodeByIndex(NodeIndexFromID(deleteNode.UniqueID));
+            RemoveNodeByIndex(index);
             // Refresh all nodes with indices above the current node.
             updateRenderingNodes();
         },
         Revert: () => {
-            // Add node
-            Nodes += { Node: deleteNode, Selected: false };
+            # Insert deleted node
+            Nodes = insert(Nodes, index, { Node: deleteNode, Selected: false });
             // Add segments
-            for (waitlessI = 0; deleteSegments.Length; 1)
-                Segments += { ID: deleteSegments[waitlessI].X, Node1: deleteSegments[waitlessI].Y, Node2: deleteSegments[waitlessI].Z };
+            for (Number i = 0; deleteSegments.Length; 1)
+            {
+                Segments = insert(
+                    Segments,
+                    deleteSegments[i][0],
+                    {
+                        ID: deleteSegments[i][1],
+                        Node1: deleteSegments[i][2],
+                        Node2: deleteSegments[i][3]
+                    });
+                MinWait();
+            }
             updateRenderingNodes();
         }
     });
@@ -211,6 +222,7 @@ if (!host.cm_isInMenu)
             if (SelectedSegment != -1)
             {
                 WorldSegment segment = Segments[SelectedSegment];
+                Number segmentIndex: SelectedSegment;
 
                 Document({
                     Set: () => {
@@ -218,7 +230,7 @@ if (!host.cm_isInMenu)
                         updateRenderingSegments();
                     },
                     Revert: () => {
-                        Segments += segment;
+                        Segments = insert(Segments, segmentIndex, segment);
                         updateRenderingSegments();
                     }
                 });
@@ -259,15 +271,16 @@ if (!host.cm_isInMenu)
             // Delete segment
             if (existingAttributeIndex.Length)
             {
-                Attribute deleting = Attributes[existingAttributeIndex.First];
+                Number index: existingAttributeIndex.First;
+                Attribute deleting = Attributes[index];
 
                 Document({
                     Set: () => {
-                        RemoveAttributeByIndex(existingAttributeIndex.First);
+                        RemoveAttributeByIndex(index);
                         UpdateAttributeVisibility();
                     },
                     Revert: () => {
-                        Attributes += deleting;
+                        Attributes = insert(Attributes, index, deleting);
                         UpdateAttributeVisibility();
                     }
                 });

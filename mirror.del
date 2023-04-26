@@ -118,11 +118,6 @@ void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeL
 
     // Mirror nodes
     for (iterI = 0; nodeLength; 1) {
-        // Do not mirror if the node is selected.
-        // if (Nodes[i].Selected) {
-        //     continue;
-        // }
-
         Vector pos;
         if (justFlipXAxis)
             pos = Nodes[iterI].Node.Position * Vector(-1, 1, 1) + Vector(a, 0, 0);

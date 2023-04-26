@@ -39,7 +39,7 @@ if (IsNoclipping == true)
 if ((IsButtonHeld(EventPlayer(), Button.Crouch) || IsButtonHeld(EventPlayer(), Button.Jump) || ThrottleOf(EventPlayer()) != Vector(0, 0, 0)) == true)
 {
     ApplyImpulse(EventPlayer(), VelocityOf(EventPlayer()) * -1, SpeedOf(EventPlayer()) * 0.03, Relative.ToWorld, ContraryMotion.Incorporate);
-    ApplyImpulse(EventPlayer(), Normalize(FacingDirectionOf(EventPlayer()) * ZOf(ThrottleOf(EventPlayer())) + WorldVectorOf(Left(), EventPlayer(), LocalVector.Rotation) * XOf(ThrottleOf(EventPlayer())) + Up() * (IsButtonHeld(EventPlayer(), Button.Jump) - IsButtonHeld(EventPlayer(), Button.Crouch))), (60 + 400 * IsButtonHeld(EventPlayer(), Button.Reload) - SpeedOf(EventPlayer())) / 62.5, Relative.ToWorld, ContraryMotion.Incorporate);
+    ApplyImpulse(EventPlayer(), Normalize(FacingDirectionOf(EventPlayer()) * ZOf(ThrottleOf(EventPlayer())) + WorldVectorOf(Left(), EventPlayer(), LocalVector.Rotation) * XOf(ThrottleOf(EventPlayer())) + Up() * (IsButtonHeld(EventPlayer(), Button.Jump) - IsButtonHeld(EventPlayer(), Button.Crouch))), (60 + 400 * IsButtonHeld(EventPlayer(), Button.Ability1) - SpeedOf(EventPlayer())) / 62.5, Relative.ToWorld, ContraryMotion.Incorporate);
     MinWait();
     LoopIfConditionIsTrue();
 }

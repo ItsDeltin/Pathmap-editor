@@ -17,8 +17,6 @@ globalvar Number version = 1;
 
 globalvar Map map = CurrentMap();
 
-class what {} globalvar what whaat! = new what();
-
 globalvar Number maxHistoryLength!;
 
 rule: '┏━【◈ Paste the actions to load a previous save here!! ◈】━┓' -3
@@ -39,15 +37,6 @@ rule: 'Setup: Inspector, Performance HUD, and Settings'
 
     SetMatchTime(9999);
     PauseMatchTime();
-}
-
-rule: 'Snapshot'
-Event.OngoingPlayer
-if (host == eventPlayer)
-if (button(Button.Crouch))
-{
-    EnableInspectorRecording();
-    DisableInspectorRecording();
 }
 
 struct Node

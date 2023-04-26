@@ -184,6 +184,7 @@ void updateRenderingSegments() 'Subroutine: Update rendering segments'
 }
 
 rule: 'Snapshot'
+if (!inspector)
 {
     EnableInspectorRecording();
     # 【◈ How to save & load ◈】
@@ -195,7 +196,7 @@ rule: 'Snapshot'
     # Save the copied text into a text file. To load it, paste the contents into the first rule in the workshop editor.
     DisableInspectorRecording();
     Wait(10);
-    Loop();
+    LoopIfConditionIsTrue();
 }
 
 rule: 'Main: Persistant Spawn'
@@ -337,4 +338,20 @@ if (releaseReload)
 if (!IsButtonHeld(EventPlayer(), Button.Reload))
 {
     releaseReload = !releaseReload;
+}
+
+globalvar Number inspector;
+
+void EnableInspector() 'Enable inspector'
+{
+    inspector++;
+    EnableInspectorRecording();
+}
+
+void DisableInspector() 'Disable inspector'
+{
+    inspector--;
+    if (inspector == 0) {
+        DisableInspectorRecording();
+    }
 }

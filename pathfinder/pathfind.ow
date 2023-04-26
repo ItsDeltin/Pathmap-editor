@@ -1,0 +1,282 @@
+variables
+{
+    global:
+        0: __loadPersist
+        1: loadedMap_nodes
+        2: loadedMap_paths
+        3: loadedMap_attributes
+        4: loadedMap_globalAttributes
+        5: rayCast
+        6: dummies
+        7: foreachIndex
+        8: player
+        9: destination
+        10: attributes
+        11: closestNode
+        12: start
+        13: closestNode_0
+        14: goal
+        15: returnValue_aStar
+        16: open
+        17: cameFrom
+        18: gScore
+        19: current
+        20: path
+        21: neighbors
+        22: neighborIcons
+        23: foreachIndex_0
+        24: score
+    player:
+        0: pfUpdatePath
+        1: pfDestination
+        2: pfIsPathfinding
+        3: pfCurrentNode
+        4: pfAttributes
+        5: pfPath
+}
+
+subroutines
+{
+    0: pathfindPlayer
+}
+
+rule("Initial Global")
+{
+
+    event
+    {
+        Ongoing - Global;
+    }
+
+    // Action count: 7
+    actions
+    {
+        Set Global Variable(loadedMap_nodes, 0);
+        Set Global Variable(loadedMap_paths, 0);
+        Set Global Variable(loadedMap_attributes, 0);
+        Set Global Variable(loadedMap_globalAttributes, 0);
+        If(Not(Global Variable(__loadPersist)));
+            Set Global Variable(__loadPersist, True);
+        End;
+    }
+}
+
+rule("Pathfinder: Update Current Path")
+{
+
+    event
+    {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+
+    conditions
+    {
+        Player Variable(Event Player, pfUpdatePath) == True;
+    }
+
+    // Action count: 2
+    actions
+    {
+        Start Throttle In Direction(Event Player, Direction Towards(Position Of(Event Player), If-Then-Else(Compare(Player Variable(Event Player, pfCurrentNode), ==, -1), Player Variable(Event Player, pfDestination), Value In Array(Global Variable(loadedMap_nodes), Player Variable(Event Player, pfCurrentNode)))), 1, To World, Replace Existing Throttle, Direction And Magnitude);
+        Set Player Variable(Event Player, pfUpdatePath, False);
+    }
+}
+
+rule("Pathfinder: Node reached")
+{
+
+    event
+    {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+
+    conditions
+    {
+        Player Variable(Event Player, pfIsPathfinding) == True;
+        Distance Between(Event Player, If-Then-Else(Compare(Player Variable(Event Player, pfCurrentNode), ==, -1), Player Variable(Event Player, pfDestination), Value In Array(Global Variable(loadedMap_nodes), Player Variable(Event Player, pfCurrentNode)))) <= 0.4;
+    }
+
+    // Action count: 11
+    actions
+    {
+        Small Message(All Players(Team(All)), Custom String("Node reached"));
+        If(Compare(Player Variable(Event Player, pfCurrentNode), ==, -1));
+            Stop Throttle In Direction(Event Player);
+            "Stop pathfinding."
+            Set Player Variable(Event Player, pfIsPathfinding, False);
+        Else;
+            Set Player Variable(Event Player, pfCurrentNode, Last Of(Player Variable(Event Player, pfPath)));
+            Modify Player Variable(Event Player, pfPath, Remove From Array By Index, Subtract(Count Of(Player Variable(Event Player, pfPath)), 1));
+            Set Player Variable(Event Player, pfAttributes, Filtered Array(Global Variable(loadedMap_attributes), And(Compare(X Component Of(Current Array Element), ==, Player Variable(Event Player, pfCurrentNode)), Compare(Y Component Of(Current Array Element), ==, Last Of(Player Variable(Event Player, pfPath))))));
+        End;
+        Wait(0.5, Ignore Condition);
+        Loop If Condition Is True;
+    }
+}
+
+rule("Subroutine: Pathfind Player")
+{
+
+    event
+    {
+        Subroutine;
+        pathfindPlayer;
+    }
+
+    // Action count: 42
+    actions
+    {
+        Set Global Variable(closestNode, First Of(Sorted Array(Array Slice(Sorted Array(Global Variable(loadedMap_nodes), Distance Between(Current Array Element, Position Of(Global Variable(player)))), 0, 5), Not(Is In Line Of Sight(Add(Current Array Element, Multiply(Up, 2)), Add(Position Of(Global Variable(player)), Multiply(Up, 2)), Barriers Do Not Block LOS)))));
+        Set Global Variable(start, Index Of Array Value(Global Variable(loadedMap_nodes), Global Variable(closestNode)));
+        Set Global Variable(closestNode_0, First Of(Sorted Array(Array Slice(Sorted Array(Global Variable(loadedMap_nodes), Distance Between(Current Array Element, Global Variable(destination))), 0, 5), Not(Is In Line Of Sight(Add(Current Array Element, Multiply(Up, 2)), Add(Global Variable(destination), Multiply(Up, 2)), Barriers Do Not Block LOS)))));
+        Set Global Variable(goal, Index Of Array Value(Global Variable(loadedMap_nodes), Global Variable(closestNode_0)));
+        Set Global Variable(open, Array(Global Variable(start)));
+        Set Global Variable(cameFrom, Mapped Array(Global Variable(loadedMap_nodes), -1));
+        Set Global Variable(gScore, Mapped Array(Global Variable(loadedMap_nodes), 9999));
+        Set Global Variable At Index(gScore, Global Variable(start), 0);
+        While(Count Of(Global Variable(open)));
+            Set Global Variable(current, First Of(Sorted Array(Global Variable(open), Add(Value In Array(Global Variable(gScore), Current Array Element), Multiply(Distance Between(Value In Array(Global Variable(loadedMap_nodes), Current Array Element), Value In Array(Global Variable(loadedMap_nodes), Global Variable(goal))), 2)))));
+            If(Compare(Global Variable(current), ==, Global Variable(goal)));
+                Set Global Variable(path, Array(-1));
+                While(Compare(Global Variable(current), !=, -1));
+                    Modify Global Variable(path, Append To Array, Global Variable(current));
+                    Set Global Variable(current, Value In Array(Global Variable(cameFrom), Global Variable(current)));
+                End;
+                Set Global Variable(returnValue_aStar, Global Variable(path));
+                Skip(19);
+            End;
+            Set Global Variable(neighbors, Mapped Array(Filtered Array(Global Variable(loadedMap_paths), Or(Compare(X Component Of(Current Array Element), ==, Global Variable(current)), Compare(Y Component Of(Current Array Element), ==, Global Variable(current)))), If-Then-Else(Compare(X Component Of(Current Array Element), ==, Global Variable(current)), Y Component Of(Current Array Element), X Component Of(Current Array Element))));
+            Modify Global Variable(open, Remove From Array By Value, Global Variable(current));
+            Set Global Variable(neighborIcons, Empty Array);
+            For Global Variable(foreachIndex_0, 0, Count Of(Global Variable(neighbors)), 1);
+                If(Is True For All(Global Variable(loadedMap_attributes), Or(Or(Compare(X Component Of(Current Array Element), !=, Global Variable(current)), Compare(Y Component Of(Current Array Element), !=, Value In Array(Global Variable(neighbors), Global Variable(foreachIndex_0)))), Array Contains(Global Variable(attributes), Z Component Of(Current Array Element)))));
+                    Set Global Variable(score, Add(Value In Array(Global Variable(gScore), Global Variable(current)), Distance Between(Value In Array(Global Variable(loadedMap_nodes), Global Variable(current)), Value In Array(Global Variable(loadedMap_nodes), Value In Array(Global Variable(neighbors), Global Variable(foreachIndex_0))))));
+                    If(Compare(Global Variable(score), <, Value In Array(Global Variable(gScore), Value In Array(Global Variable(neighbors), Global Variable(foreachIndex_0)))));
+                        Set Global Variable At Index(cameFrom, Value In Array(Global Variable(neighbors), Global Variable(foreachIndex_0)), Global Variable(current));
+                        Set Global Variable At Index(gScore, Value In Array(Global Variable(neighbors), Global Variable(foreachIndex_0)), Global Variable(score));
+                        If(Not(Array Contains(Global Variable(open), Value In Array(Global Variable(neighbors), Global Variable(foreachIndex_0)))));
+                            Modify Global Variable(open, Append To Array, Value In Array(Global Variable(neighbors), Global Variable(foreachIndex_0)));
+                        End;
+                    End;
+                End;
+            End;
+            Wait(0.016, Ignore Condition);
+        End;
+        Set Global Variable(returnValue_aStar, Empty Array);
+        Set Player Variable(Global Variable(player), pfPath, Global Variable(returnValue_aStar));
+        Set Player Variable(Global Variable(player), pfDestination, Global Variable(destination));
+        Set Player Variable(Global Variable(player), pfIsPathfinding, True);
+        Set Player Variable(Global Variable(player), pfUpdatePath, True);
+        Set Player Variable(Global Variable(player), pfCurrentNode, Last Of(Player Variable(Global Variable(player), pfPath)));
+    }
+}
+
+rule("DEBUG: Pathfind dummy bots to cursor")
+{
+
+    event
+    {
+        Ongoing - Global;
+    }
+
+    conditions
+    {
+        Is Button Held(Host Player, Button(Melee)) == True;
+    }
+
+    // Action count: 10
+    actions
+    {
+        Set Global Variable(rayCast, Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Host Player, False));
+        Set Global Variable(dummies, Filtered Array(All Players(Team(All)), Is Dummy Bot(Current Array Element)));
+        Destroy All Effects;
+        For Global Variable(foreachIndex, 0, Count Of(Global Variable(dummies)), 1);
+            Set Global Variable(player, Value In Array(Global Variable(dummies), Global Variable(foreachIndex)));
+            Set Global Variable(destination, Global Variable(rayCast));
+            Set Global Variable(attributes, Array(0, 1, 2, 3));
+            Call Subroutine(pathfindPlayer);
+            Wait(3, Ignore Condition);
+        End;
+    }
+}
+
+rule("DEBUG: Create dummy bot")
+{
+
+    event
+    {
+        Ongoing - Global;
+    }
+
+    conditions
+    {
+        Is Button Held(Host Player, Button(Interact)) == True;
+    }
+
+    // Action count: 1
+    actions
+    {
+        Create Dummy Bot(Hero(Kiriko), Team(Team1), -1, Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Host Player, False), Subtract(Left, Left));
+    }
+}
+
+rule("DEBUG: Reset dummies")
+{
+
+    event
+    {
+        Ongoing - Global;
+    }
+
+    conditions
+    {
+        Is Button Held(Host Player, Button(Crouch)) == True;
+    }
+
+    // Action count: 1
+    actions
+    {
+        Teleport(Filtered Array(All Players(Team(All)), Is Dummy Bot(Current Array Element)), Host Player);
+    }
+}
+
+rule("DEBUG: Host disable")
+{
+
+    event
+    {
+        Ongoing - Global;
+    }
+
+    conditions
+    {
+        Has Spawned(Host Player) == True;
+    }
+
+    // Action count: 2
+    actions
+    {
+        Set Primary Fire Enabled(Host Player, False);
+        Set Melee Enabled(Host Player, False);
+    }
+}
+
+rule("DEBUG: server load")
+{
+
+    event
+    {
+        Ongoing - Global;
+    }
+
+    // Action count: 1
+    actions
+    {
+        Create HUD Text(All Players(Team(All)), Null, Null, Custom String("CAP: {0}, {1}, {2}", Server Load, Server Load Average, Server Load Peak), Left, 0, Color(White), Color(White), Color(White), Visible To And String, Default Visibility);
+    }
+}
+

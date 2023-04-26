@@ -1,0 +1,262 @@
+struct PfMap
+{
+    # The points in the map.
+    public Vector[] nodes;
+    # The paths connecting the points.
+    # The X component is the index of the first node, the Y component is the index of the second node.
+    public Vector[] paths;
+    # Marked paths.
+    # The X component is the index of the first node.
+    # The Y component is the index of the second node.
+    # The Z component is the attribute value.
+    public Vector[] attributes;
+    # Attributes that are valid for every player.
+    public Number[] globalAttributes;
+}
+
+# The currently loaded map
+globalvar PfMap loadedMap;
+# If true, will trigger the Update Current Path rule.
+playervar Boolean pfUpdatePath;
+# The final pathfinding target.
+playervar Vector pfDestination;
+# Determines if the player is pathfinding.
+playervar Boolean pfIsPathfinding;
+# The current node that the player is walking to.
+# Doing `pfPath[pfCurrentNode]` will get the next node.
+# If this is -1 but `pfIsPathfinding` is true, then the player
+# is walking to `pfDestination`.
+playervar Number pfCurrentNode;
+# The attributes of a player's current pathfinding edge.
+playervar Number[] pfAttributes;
+# The nextNode array for pathfinding.
+playervar Number[] pfPath;
+
+rule: 'Pathfinder: Throttle to next node'
+Event.OngoingPlayer
+if (pfUpdatePath)
+{
+    StartThrottleInDirection(
+        EventPlayer(),
+        PositionOf().DirectionTowards(
+            pfCurrentNode == -1 ? pfDestination : loadedMap.nodes[pfCurrentNode]
+        ),
+        1,
+        Relative.ToWorld,
+        ThrottleBehavior.ReplaceExistingThrottle,
+        ThrottleRev.DirectionAndMagnitude
+    );
+    pfUpdatePath = false;
+}
+
+rule: 'Pathfinder: Node reached'
+Event.OngoingPlayer
+if (pfIsPathfinding)
+if (EventPlayer().DistanceTo(pfCurrentNode == -1 ? pfDestination : loadedMap.nodes[pfCurrentNode]) <= 0.4)
+{
+    SmallMessage(AllPlayers(), 'Node reached');
+    if (pfCurrentNode == -1) {
+        StopThrottleInDirection(EventPlayer());
+        # Stop pathfinding.
+        pfIsPathfinding = false;
+    } else {
+        // TODO: set attributes.
+        pfAttributes = loadedMap.attributes.FilteredArray(a => a.X == pfCurrentNode && a.Y == pfPath.Last).Map(v => v.Z);
+        pfCurrentNode = pfPath.Last;
+        pfPath.ModRemoveByIndex(pfPath.Length - 1);
+    }
+    Wait(0.2);
+    LoopIfConditionIsTrue();
+}
+
+# Selects a node index from a position.
+Number chooseNodeFromPosition(in Vector vector)
+{
+    Vector closestNode = loadedMap.nodes
+        .SortedArray(n => n.DistanceTo(vector))
+        .Slice(0, 5)
+        .SortedArray(n => !IsInLineOfSight(n + Up() * 2, vector + Up() * 2))
+        .First;
+    
+    return loadedMap.nodes.IndexOf(closestNode);
+}
+
+void pathfindPlayer(Player player, Vector destination, Number[] attributes) globalvar 'Subroutine: Pathfind Player'
+{
+    Number start = chooseNodeFromPosition(player.Position());
+    Number goal = chooseNodeFromPosition(destination);
+    player.pfPath = aStar(loadedMap, start, goal, attributes);
+    player.pfDestination = destination;
+    player.pfIsPathfinding = true;
+    player.pfUpdatePath = true;
+    player.pfCurrentNode = player.pfPath.Last;
+}
+
+void pathfind(in PfMap map, in Number start, in Number goal, in Number[] attributes)
+{
+    // If the node is close enough and attributes are mismatched, do a dynamic pathfind.
+    // if (map.nodes[start].DistanceTo(map.nodes[goal]) < 20 && map.globalAttributes.Remove(attributes).Length)
+    // {
+        // aStar(map, start, goal);
+    // }
+    // else
+    // {
+    // }
+}
+
+# Gets the shortest path from start to goal.
+# - `map`: The input map.
+# - `start`: Index of the starting node.
+# - `goal`: Index of the goal node.
+Number[] aStar(in PfMap map, in Number start, in Number goal, in Number[] attributes) {
+    Number heuristicWeight: 2;
+    const Number => Number h: n => map.nodes[n].DistanceTo(map.nodes[goal]) * heuristicWeight;
+
+    Number[] open = [start];
+    Number[] cameFrom = map.nodes.Map(n => -1);
+    Number[] gScore = map.nodes.Map(n => 9999);
+    // Number[] fScore = gScore;
+    gScore[start] = 0;
+    // fScore[start] = h(start);
+
+    while (open.Length)
+    {
+        // highlight open
+        // Any[] wah = [];
+        // Any[] bah = [];
+        // foreach (Number o in open) {
+        //     wah += CreateIcon(AllPlayers(), loadedMap.nodes[o], Icon.QuestionMark, IconRev.VisibleTo, gScore[o] == 9999 ? Color.Gray : Color.White, true);
+        //     bah += CreateInWorldText(AllPlayers(), gScore[o] + h(o), loadedMap.nodes[o] + Up() * 2, 1, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.Orange);
+        // }
+        // waitForClick();
+        // foreach (Any w in wah) {
+        //     DestroyIcon(w);
+        // }
+        // foreach (Any w in bah) {
+        //     DestroyInWorldText(w);
+        // }
+
+        define current = open.SortedArray((o, i) => gScore[o] + h(o)).First;
+
+        // ! dbg
+        // Any currentIcon = CreateIcon(AllPlayers(), loadedMap.nodes[current], Icon.ArrowDown, IconRev.VisibleTo, Color.Green, true);
+
+        if (current == goal)
+        {
+            // SmallMessage(AllPlayers(), 'Destination found.');
+            // DestroyIcon(currentIcon);
+            return reconstructPath(cameFrom, current);
+        }
+
+        define neighbors = map.paths
+            .FilteredArray(p => p.X == current || p.Y == current)
+            .Map(p => p.X == current ? p.Y : p.X);
+        
+        open.ModRemoveByValue(current);
+
+        Any[] neighborIcons = [];
+        foreach (define neighbor in neighbors)
+        {
+            if (loadedMap.attributes.IsTrueForAll(a =>
+                a.X != current || a.Y != neighbor || attributes.Contains(a.Z)
+            )) {
+                define score = gScore[current] + map.nodes[current].DistanceTo(map.nodes[neighbor]);
+                // Color neighborColor = Color.Yellow;
+                if (score < gScore[neighbor])
+                {
+                    // neighborColor = Color.Blue;
+
+                    cameFrom[neighbor] = current;
+                    gScore[neighbor] = score;
+                    // fScore[neighbor] = gScore[neighbor] + h(neighbor);
+
+                    if (!open.Contains(neighbor))
+                        open += neighbor;
+                }
+                // neighborIcons += CreateIcon(AllPlayers(), loadedMap.nodes[neighbor], Icon.ArrowDown, IconRev.VisibleTo, neighborColor, true);
+            }
+        }
+        MinWait();
+        // waitForClick();
+        // DestroyIcon(currentIcon);
+        // foreach (Any icon in neighborIcons) {
+        //     DestroyIcon(icon);
+        // }
+    }
+
+    return [];
+}
+
+Number[] reconstructPath(in Number[] cameFrom, ref Number current)
+{
+    Number[] path = [-1];
+    while (current != -1)
+    {
+        path += current;
+        current = cameFrom[current];
+
+        // if (current != -1)
+        // {
+        //     CreateBeamEffect(
+        //         AllPlayers(),
+        //         BeamType.GoodBeam,
+        //         loadedMap.nodes[path.Last] + Up() * .2,
+        //         loadedMap.nodes[current] + Up() * .2,
+        //         Color.Rose,
+        //         EffectRev.VisibleTo);
+        //     Any s = CreateIcon(AllPlayers(), loadedMap.nodes[current], Icon.Bolt, IconRev.VisibleTo, Color.Violet, true);
+        //     waitForClick();
+        //     DestroyIcon(s);
+        // }
+    }
+    return path;
+}
+
+// ! DEBUG !
+void waitForClick()
+{
+    WaitUntil(IsButtonHeld(HostPlayer(), Button.PrimaryFire), 9999);
+    WaitUntil(!IsButtonHeld(HostPlayer(), Button.PrimaryFire), 0.05);
+}
+
+Vector ray: RayCastHitPosition(EyePosition(HostPlayer()), EyePosition(HostPlayer()) + FacingDirectionOf(HostPlayer()) * 100, null, HostPlayer(), false);
+
+rule: 'DEBUG: Pathfind dummy bots to cursor'
+if (IsButtonHeld(HostPlayer(), Button.Melee))
+{
+    // Get raycast position
+    Vector rayCast = ray;
+
+    Player[] dummies = AllPlayers().FilteredArray(p => p.IsDummy());
+
+    // Pathfind each dummy bot in the game.
+    DestroyAllEffects();
+    foreach (Player player in dummies) {
+        pathfindPlayer(player, rayCast, [0, 1, 2, 3]);
+        Wait(3);
+    }
+}
+
+rule: 'DEBUG: Create dummy bot'
+if (IsButtonHeld(HostPlayer(), Button.Interact))
+{
+    CreateDummyBot(Hero.Ashe, Team.Team1, -1, ray);
+}
+
+rule: 'DEBUG: Reset dummies'
+if (IsButtonHeld(HostPlayer(), Button.Crouch))
+{
+    Teleport(AllPlayers().FilteredArray(p => p.IsDummy()), HostPlayer());
+}
+
+rule: 'DEBUG: Host disable'
+if (HasSpawned(HostPlayer()))
+{
+    SetPrimaryFireEnabled(HostPlayer(), false);
+    SetMeleeEnabled(HostPlayer(), false);
+}
+
+rule: 'DEBUG: server load'
+{
+    CreateHudText(AllPlayers(), Text: <'CAP: <0>, <1>, <2>', ServerLoad(), ServerLoadAverage(), ServerLoadPeak()>);
+}

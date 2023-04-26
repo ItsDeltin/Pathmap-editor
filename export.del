@@ -52,28 +52,28 @@ rule: 'EXPORT: Workshop'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.ExportWorkshop)
 {
-    Export(OutputLanguage.Workshop);
+    ExportRules(OutputLanguage.Workshop);
 }
 
 rule: 'EXPORT: OSTW'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.ExportOstw)
 {
-    Export(OutputLanguage.OSTW);
+    ExportRules(OutputLanguage.OSTW);
 }
 
 rule: 'EXPORT: OverPy'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.ExportOverpy)
 {
-    Export(OutputLanguage.OverPy);
+    ExportRules(OutputLanguage.OverPy);
 }
 
-void Export(OutputLanguage lang) playervar 'EXPORT: Export'
+void ExportRules(OutputLanguage lang) playervar 'EXPORT: Export'
 {
     // OngoingPlayer is not vital, it's just so we can use player variables here
     // since we are clean out of global ones :')
-    EnableInspectorRecording();
+    EnableInspector();
     SmallMessage(AllPlayers(), 'Exporting rules');
     
     Boolean is_ow: lang == OutputLanguage.Workshop;
@@ -126,18 +126,18 @@ void Export(OutputLanguage lang) playervar 'EXPORT: Export'
         # Workshop code
         if (lang == OutputLanguage.Workshop) {
             LogToInspector('*/ conditions { /*');
-            LogToInspector('*/     Array Contains(Event Player.pf_attributes, {0}) == True; /*'.Format([Rules[i].ExecutesOnAttribute]));
+            LogToInspector('*/     Array Contains(Event Player.pfAttributes, {0}) == True; /*'.Format([Rules[i].ExecutesOnAttribute]));
             LogToInspector('*/ } actions { /*');
         }
         # OSTW code
         else if (lang == OutputLanguage.OSTW) {
-            LogToInspector('*/ if (Pathmap.CurrentSegmentAttribute().Contains({0})) /*'.Format([Rules[i].ExecutesOnAttribute]));
+            LogToInspector('*/ if (pfAttributes.Contains({0})) /*'.Format([Rules[i].ExecutesOnAttribute]));
             LogToInspector('*/ { /*');
         }
         # Overpy code
         else if (lang == OutputLanguage.OverPy) {
             // TODO
-            LogToInspector('*/\n    @Condition get_current_segment.contains({0}) /*'.Format([Rules[i].ExecutesOnAttribute]));
+            LogToInspector('*/\n    @Condition pfAttributes.contains({0}) /*'.Format([Rules[i].ExecutesOnAttribute]));
         }            
         
         # Loop through each action in the rule.
@@ -247,14 +247,14 @@ void Export(OutputLanguage lang) playervar 'EXPORT: Export'
     LogToInspector('*/');
 
     SmallMessage(AllPlayers(), "Rules exported!");
-    DisableInspectorRecording();
+    DisableInspector();
 }
 
 void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to workshop" 
 {
     // This function assumes MakeBake() was already executed.
 
-    EnableInspectorRecording();
+    EnableInspector();
     // String variableCompatibleMapName = '{0}'.Format([CurrentMap()])
     //     .Replace(' ', '')
     //     .Replace('(', '')
@@ -290,6 +290,15 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     # End action & rule block
     LogToInspector('*/ } } /*');
 
+    ExportNodes();
+    ExportAttributes();
+    ExportSegments();
+    
+    DisableInspector();
+}
+
+void ExportNodes()
+{
     # Nodes rule
     LogToInspector('*/ rule(\"GENERATED: {0} nodes\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
     # Conditions
@@ -299,7 +308,7 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     # Start actions
     LogToInspector('*/ } actions { /*');
     # Set pathfinder_nodes
-    LogToInspector('*/     global.pathfinder_nodes = Array( /*');
+    LogToInspector('*/     global.loadedMap_nodes = Array( /*');
     # For each node
     for (Number a = 0; Nodes.Length; 10) {
         String stub = '';
@@ -314,41 +323,38 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     }
     # End action & rule block
     LogToInspector('*/ } } /*');
+}
 
-    if (Attributes.Length)
-    {
-        # Attributes rule
-        LogToInspector('*/ rule(\"GENERATED: {0} attributes\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
-        # Conditions
-        LogToInspector('*/ conditions { /*');
-        # Make sure this is the correct map
-        LogToInspector(mapCondition);
-        # Start actions
-        LogToInspector('*/ } actions { /*');
-        # Set pathfinder_attributes
-        LogToInspector('*/     global.pathfinder_attributes = Array( /*');
+void ExportAttributes()
+{
+    # Attributes rule
+    LogToInspector('*/ rule(\"GENERATED: {0} attributes\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
+    # Conditions
+    LogToInspector('*/ conditions { /*');
+    # Make sure this is the correct map
+    LogToInspector(mapCondition);
+    # Start actions
+    LogToInspector('*/ } actions { /*');
+    # Set pathfinder_attributes
+    LogToInspector('*/     global.loadedMap_attributes = Array( /*');
+    # For each attribute
+    ExportArray(Attributes, 10, (attribute, isLast) => <'Vector(<0>, <1>, <2>)<3>',
+        NodeIndexFromID(attribute.Node1), NodeIndexFromID(attribute.Node2), attribute.Value,
+        isLast ? '); ' : ', '>);
+    # End action & rule block
+    LogToInspector('*/ } } /*');
+}
+
+void ExportSegments()
+{
+    ExportMapBlock('segments', () => {
+        # Set pathfinder_segments
+        LogToInspector('*/     global.loadedMap_paths = Array( /*');
         # For each attribute
-        ExportArray(Attributes, 10, (attribute, isLast) => <'Vector(<0>, <1>, <2>)<3>',
-            NodeIndexFromID(attribute.Node1), NodeIndexFromID(attribute.Node2), attribute.Value,
+        ExportArray(Segments, 10, (segment, isLast) => <'Vector(<0>, <1>, <2>)<3>',
+            NodeIndexFromID(segment.Node1), NodeIndexFromID(segment.Node2), 0,
             isLast ? '); ' : ', '>);
-        # End action & rule block
-        LogToInspector('*/ } } /*');
-    }
-
-    // Export segments if the user needs a strategem other than baking.
-    if (Segments.Length && true)
-    {
-        ExportMapBlock('segments', () => {
-            # Set pathfinder_segments
-            LogToInspector('*/     global.pathfinder_segments = Array( /*');
-            # For each attribute
-            ExportArray(Segments, 10, (segment, isLast) => <'Vector(<0>, <1>, <2>)<3>',
-                NodeIndexFromID(segment.Node1), NodeIndexFromID(segment.Node2), 0,
-                isLast ? '); ' : ', '>);
-        });
-    } 
-    
-    DisableInspectorRecording();
+    });
 }
 
 rule: 'Test'
@@ -356,14 +362,19 @@ Event.OngoingPlayer
 if (button(Button.Melee))
 if (host == eventPlayer)
 {
-    MakeBake();
-    ExportCorePathfinderComponents(0, 0, 0);
-    ExportCompressedDataToWorkshop();
+    // MakeBake();
+    // ExportCorePathfinderComponents(0, 0, 0);
+    // ExportCompressedDataToWorkshop();
+    EnableInspector();
+    ExportCore2();
+    ExportMap2();
+    ExportRules(OutputLanguage.Workshop);
+    DisableInspector();
 }
 
 void ExportCorePathfinderComponents(Number globalRange, Number playerRange, Number subroutineRange) playervar "EXPORT: decompresser to workshop"
 {
-    EnableInspectorRecording();
+    EnableInspector();
 
     // Variables:
     // ~~global.pathfinder_nodes~~
@@ -523,7 +534,18 @@ void ExportCorePathfinderComponents(Number globalRange, Number playerRange, Numb
     # End action & rule block
     LogToInspector('*/ } } /*');
 
-    DisableInspectorRecording();
+    DisableInspector();
+}
+
+void ExportCore2()
+{
+    PrintStub('pathfinder/pathfind.ow', []);
+}
+void ExportMap2()
+{
+    ExportNodes();
+    ExportSegments();
+    ExportAttributes();
 }
 
 playervar String exportArrayStub;

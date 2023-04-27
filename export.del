@@ -1,5 +1,7 @@
 import 'main.del';
-import 'overpy.del';
+import 'map languages.del';
+
+String sep: '\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯';
 
 enum OutputLanguage
 {
@@ -358,21 +360,31 @@ void ExportSegments()
     });
 }
 
-void ExportMapAsJson()
+void ExportMapToOstw()
 {
+    # Introduction message
+    LogToInspector(<'Place the following text into a file named \"<0>.jsonc\":', CurrentMap()> + sep + '\n/*');
+
+    # Export Ostw nodes
     LogToInspector('*/ { "nodes": [ /*');
     ExportArray(Nodes, 10, (wn, isLast) => ExportJsonVector(wn.Node.Position, isLast));
+    # Export Ostw segments
     LogToInspector('*/ ], "segments": [ /*');
     ExportArray(Segments, 10, (seg, isLast) => <'{"x": <0>, "y": <1>, "z": 0}', NodeIndexFromID(seg.Node1), NodeIndexFromID(seg.Node2)>);
+    # Export Ostw attributes
     LogToInspector('*/ ], "attributes": [ /*');
     ExportArray(Attributes, 10, (attr, isLast) => <'{"x": <0>, "y": <1>, "z": 0}', NodeIndexFromID(attr.Node1), NodeIndexFromID(attr.Node2)>);
-    LogToInspector('*/ ] } /*');
+    # Conclude JSON
+    LogToInspector('*/ ] }' + sep + '\n');
+
+    # This exported code should be placed in the overpy file.
+    LogToInspector('Place the following text into your ostw script:' + sep + ExportOstwDataSet("nodes"));
+    LogToInspector('*/' + ExportOstwDataSet("segments"));
+    LogToInspector('*/' + ExportOstwDataSet("attributes"));
 }
 
 void ExportMapToOverpy()
 {
-    String sep: '\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯';
-
     # Introduction message
     LogToInspector(<'Place the following text into a file named \"<0>.js\":', CurrentMap()> + sep + '\n/*');
 
@@ -418,7 +430,7 @@ if (host == eventPlayer)
     EnableInspector();
     # Start block comment chain
     LogToInspector('/*');
-    ExportMapToOverpy();
+    ExportMapToOstw();
     // ExportCore2();
     // ExportMap2();
     // ExportRules(OutputLanguage.Workshop);
@@ -635,6 +647,13 @@ void ExportMapBlock(in String blockName, const () => void exportActions)
 String ExportJsonVector(in Vector vector, in Boolean isLast)
 {
     return <'{"x":<0>, "y":<1>, "z":<2>}<3>', vector.X, vector.Y, vector.Z, isLast ? '' : ', '>;
+}
+
+String ExportOstwDataSet(in String setName)
+{
+    return <'\nrule: "GENERATED <0> <1>"\n', CurrentMap(), setName> +
+        <'if (CurrentMap() == Map.<0>) {\n', mapNameToOstwName(CurrentMap())> +
+        <'    loadedMap.<1> = import("<0>.jsonc").<1>;\n} /*', CurrentMap(), setName>;
 }
 
 void ExportStatement(in OutputLanguage language, in String workshop, in String deltinscript, in String overpy)

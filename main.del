@@ -14,8 +14,20 @@ import 'export.del';
 import 'mirror.del';
 import 'settings.lobby';
 
-globalvar Number version = 1;
+# The current version of the pathmap editor. This is a number for easy comparison.
+# If we wanted semantic versioning we could make a table mapping version numbers to
+# version strings.
+Number currentVersion: 1;
 
+# This is the `currentVersion` value saved to a persistent global variable.
+# This is used to track the version of a loaded map. If this value differs from
+# the `currentVersion` value, then the user loaded a map from a different
+# pathmap editor version.
+globalvar persist Number version = currentVersion;
+
+# The `Current Map` value saved to a variable. Not actually used for anything currently.
+# Just in case anything processing the action-set save data wanted to know what the map
+# it was built on is.
 globalvar Map map = CurrentMap();
 
 globalvar Number maxHistoryLength!;

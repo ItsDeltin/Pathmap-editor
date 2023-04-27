@@ -1,0 +1,98 @@
+String mapNameToOverpyName(in Map map): overpyMaps[overpyMaps.Map(m => m.map).IndexOf(map)].overpyName;
+
+OverpyMap pymap(Map map, String name): { map: map, overpyName: name };
+
+struct OverpyMap
+{
+    public Map map;
+    public String overpyName;
+}
+
+// what a horrible casing decision for the maps
+// absolute L
+// why didn't anyone stop me
+OverpyMap[] overpyMaps: [
+    pymap(Map.Ayutthaya, "AYUTTHAYA"),
+    pymap(Map.Antarctic_Peninsula, "ANTARCTIC_PENINSULA"),
+    pymap(Map.Black_Forest, "BLACK_FOREST"),
+    pymap(Map.Black_Forest_Winter, "BLACK_FOREST_WINTER"),
+    pymap(Map.Blizzard_World, "BLIZZ_WORLD"),
+    pymap(Map.Blizzard_World_Winter, "BLIZZ_WORLD_WINTER"),
+    pymap(Map.Busan, "BUSAN"),
+    pymap(Map.Busan_Downtown_Lunar, "BUSAN_DOWNTOWN_LNY"),
+    pymap(Map.Busan_Sanctuary_Lunar, "BUSAN_SANCTUARY_LNY"),
+    // TODO: not maps
+    // pymap(Map.Busan_Stadium, "BUSAN_STADIUM"),
+    // pymap(Map.Busan_Stadium, "BUSAN_STADIUM_CLASSIC"),
+    pymap(Map.Castillo, "CASTILLO"),
+    pymap(Map.Chateau_Guillard, "CHATEAU_GUILLARD"),
+    pymap(Map.Chateau_Guillard_Halloween, "CHATEAU_GUILLARD_HALLOWEEN"),
+    pymap(Map.Circuit_Royal, "CIRCUIT_ROYAL"),
+    pymap(Map.Colosseo, "COLOSSEO"),
+    pymap(Map.Dorado, "DORADO"),
+    pymap(Map.Ecopoint_Antarctica, "ECOPOINT_ANTARCTICA"),
+    pymap(Map.Ecopoint_Antarctica_Winter, "ECOPOINT_ANTARCTICA_WINTER"),
+    pymap(Map.Eichenwalde, "EICHENWALDE"),
+    pymap(Map.Eichenwalde_Halloween, "EICHENWALDE_HALLOWEEN"),
+    pymap(Map.Esperanca, "ESPERANCA"),
+    // TODO: Not a map
+    // pymap(Map.Estadio_Das_Ras, "ESTADIO_DAS_RAS"),
+    pymap(Map.Hanamura, "HANAMURA"),
+    pymap(Map.Hanamura_Winter, "HANAMURA_WINTER"),
+    pymap(Map.Havana, "HAVANA"),
+    pymap(Map.Hollywood, "HOLLYWOOD"),
+    pymap(Map.Hollywood_Halloween, "HOLLYWOOD_HALLOWEEN"),
+    pymap(Map.Horizon_Lunar_Colony, "HORIZON_LUNAR_COLONY"),
+    pymap(Map.Ilios, "ILIOS"),
+    pymap(Map.Ilios_Lighthouse, "ILIOS_LIGHTHOUSE"),
+    pymap(Map.Ilios_Ruins, "ILIOS_RUINS"),
+    pymap(Map.Ilios_Well, "ILIOS_WELL"),
+    pymap(Map.Junkensteins_Revenge, "JUNKENSTEIN"),
+    pymap(Map.Junkertown, "JUNKERTOWN"),
+    pymap(Map.Kanezaka, "KANEZAKA"),
+    pymap(Map.Kings_Row, "KINGS_ROW"),
+    pymap(Map.Kings_Row_Winter, "KINGS_ROW_WINTER"),
+    pymap(Map.Lijiang_Control_Center, "LIJIANG_CONTROL_CENTER"),
+    pymap(Map.Lijiang_Control_Center_Lunar, "LIJIANG_CONTROL_CENTER_LNY"),
+    pymap(Map.Lijiang_Garden, "LIJIANG_GARDEN"),
+    pymap(Map.Lijiang_Control_Center_Lunar, "LIJIANG_GARDEN_LNY"),
+    pymap(Map.Lijiang_Night_Market, "LIJIANG_NIGHT_MARKET"),
+    pymap(Map.Lijiang_Night_Market_Lunar, "LIJIANG_NIGHT_MARKET_LNY"),
+    pymap(Map.Lijiang_Tower, "LIJIANG_TOWER"),
+    pymap(Map.Lijiang_Tower_Lunar, "LIJIANG_TOWER_LNY"),
+    pymap(Map.Malevento, "MALEVENTO"),
+    pymap(Map.Midtown, "MIDTOWN"),
+    pymap(Map.Necropolis, "NECROPOLIS"),
+    pymap(Map.Nepal, "NEPAL"),
+    pymap(Map.Nepal_Sanctum, "NEPAL_SANCTUM"),
+    pymap(Map.Nepal_Shrine, "NEPAL_SHRINE"),
+    pymap(Map.Nepal_Village, "NEPAL_VILLAGE"),
+    // TODO: ostw is missing nepal village winter
+    pymap(Map.Nepal_Village, "NEPAL_VILLAGE_WINTER"),
+    pymap(Map.New_Queen_Street, "NEW_QUEEN_STREET"),
+    pymap(Map.Numbani, "NUMBANI"),
+    pymap(Map.Oasis, "OASIS"),
+    pymap(Map.Oasis_City_Center, "OASIS_CITY_CENTER"),
+    pymap(Map.Oasis_Gardens, "OASIS_GARDENS"),
+    pymap(Map.Oasis_University, "OASIS_UNIVERSITY"),
+    pymap(Map.Paraiso, "PARAISO"),
+    pymap(Map.Paris, "PARIS"),
+    pymap(Map.Petra, "PETRA"),
+    pymap(Map.PracticeRange, "PRACTICE_RANGE"),
+    pymap(Map.Rialto, "RIALTO"),
+    pymap(Map.Route_66, "ROUTE_66"),
+    pymap(Map.Shambali_Monastery, "SHAMBALI_MONASTERY"),
+    // TODO: ostw is missing sydney harvour arena classic
+    // TODO: not a map
+    // pymap(Map.Sydney_Harbour_Arena, "SYDNEY_HARBOUR_ARENA"),
+    // pymap(Map.Sydney_Harbour_Arena, "SYDNEY_HARBOUR_ARENA_CLASSIC"),
+    pymap(Map.Temple_of_Anubis, "TEMPLE_OF_ANUBIS"),
+    pymap(Map.Volskaya_Industries, "VOLSKAYA"),
+    pymap(Map.Watchpoint_Gibraltar, "WATCHPOINT_GIBRALTAR"),
+    pymap(Map.Workshop_Chamber, "WORKSHOP_CHAMBER"),
+    pymap(Map.Workshop_Expanse, "WORKSHOP_EXPANSE"),
+    pymap(Map.Workshop_Expanse_Night, "WORKSHOP_EXPANSE_NIGHT"),
+    pymap(Map.Workshop_Green_Screen, "WORKSHOP_GREEN_SCREEN"),
+    pymap(Map.Workshop_Island, "WORKSHOP_ISLAND"),
+    pymap(Map.Workshop_Island_Night, "WORKSHOP_ISLAND_NIGHT")
+];

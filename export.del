@@ -1,4 +1,5 @@
 import 'main.del';
+import 'overpy.del';
 
 enum OutputLanguage
 {
@@ -357,6 +358,55 @@ void ExportSegments()
     });
 }
 
+void ExportMapAsJson()
+{
+    LogToInspector('*/ { "nodes": [ /*');
+    ExportArray(Nodes, 10, (wn, isLast) => ExportJsonVector(wn.Node.Position, isLast));
+    LogToInspector('*/ ], "segments": [ /*');
+    ExportArray(Segments, 10, (seg, isLast) => <'{"x": <0>, "y": <1>, "z": 0}', NodeIndexFromID(seg.Node1), NodeIndexFromID(seg.Node2)>);
+    LogToInspector('*/ ], "attributes": [ /*');
+    ExportArray(Attributes, 10, (attr, isLast) => <'{"x": <0>, "y": <1>, "z": 0}', NodeIndexFromID(attr.Node1), NodeIndexFromID(attr.Node2)>);
+    LogToInspector('*/ ] } /*');
+}
+
+void ExportMapToOverpy()
+{
+    String sep: '\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯';
+
+    # Introduction message
+    LogToInspector(<'Place the following text into a file named \"<0>.js\":', CurrentMap()> + sep + '\n/*');
+
+    # Export Overpy nodes
+    LogToInspector('*/ const n = [ /*');
+    ExportArray(Nodes, 10, (wn, isLast) => <'vect(<0>, <1>, <2>)<3>',
+        wn.Node.Position.X, wn.Node.Position.Y, wn.Node.Position.Z, isLast ? '' : ','>);
+    LogToInspector('*/ ]; /*');
+
+    # Export Overpy segments
+    LogToInspector('*/ const s = [ /*');
+    ExportArray(Segments, 10, (seg, isLast) => <'vect(<0>, <1>, 0)<2>',
+        NodeIndexFromID(seg.Node1), NodeIndexFromID(seg.Node2), isLast ? '' : ','>);
+    LogToInspector('*/ ]; /*');
+    
+    # Export Overpy attributes
+    LogToInspector('*/ const a = [ /*');
+    ExportArray(Attributes, 10, (attr, isLast) => <'vect(<0>, <1>, 0)<2>',
+        NodeIndexFromID(attr.Node1), NodeIndexFromID(attr.Node2), isLast ? '' : ','>);
+    LogToInspector('*/ ]; /*');
+
+    # Javascript -> overpy rules
+    LogToInspector('*/ function load(name, array) { return ( /*');
+    LogToInspector(<'*/ `rule "GENERATED <0> ${name}":\n` + /*', CurrentMap()>);
+    LogToInspector(<'*/ `    @Condition getCurrentMap() == Map.<0>\n` + /*', mapNameToOverpyName(CurrentMap())>);
+    LogToInspector(<'*/ `    loadedMap_${name} = [${array.join(\',\')}]\n`); } /*'>);
+    LogToInspector('*/ load("nodes", n) + /*');
+    LogToInspector('*/ load("segments", s) + /*');
+    LogToInspector('*/ load("attributes", a) /*' + sep + '\n');
+
+    # This exported code should be placed in the overpy file.
+    LogToInspector('Place the following text into your overpy script:' + sep + <'*/\n#!define loadMap() __script__("<0>.js")\nloadMap() /*', CurrentMap()>);
+}
+
 rule: 'Test'
 Event.OngoingPlayer
 if (button(Button.Melee))
@@ -366,9 +416,12 @@ if (host == eventPlayer)
     // ExportCorePathfinderComponents(0, 0, 0);
     // ExportCompressedDataToWorkshop();
     EnableInspector();
-    ExportCore2();
-    ExportMap2();
-    ExportRules(OutputLanguage.Workshop);
+    # Start block comment chain
+    LogToInspector('/*');
+    ExportMapToOverpy();
+    // ExportCore2();
+    // ExportMap2();
+    // ExportRules(OutputLanguage.Workshop);
     DisableInspector();
 }
 
@@ -577,6 +630,11 @@ void ExportMapBlock(in String blockName, const () => void exportActions)
     exportActions();
     # End action & rule block
     LogToInspector('*/ } } /*');
+}
+
+String ExportJsonVector(in Vector vector, in Boolean isLast)
+{
+    return <'{"x":<0>, "y":<1>, "z":<2>}<3>', vector.X, vector.Y, vector.Z, isLast ? '' : ', '>;
 }
 
 void ExportStatement(in OutputLanguage language, in String workshop, in String deltinscript, in String overpy)

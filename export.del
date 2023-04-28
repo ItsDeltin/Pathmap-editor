@@ -10,10 +10,35 @@ enum OutputLanguage
     OverPy
 }
 
+# `0` = Workshop, `1` = OSTW, `2` = overpy
+globalvar persist Number outputLanguage;
+
+globalvar Number selectWorkshopButton!;
+globalvar Number selectOstwButton!;
+globalvar Number selectOverpyButton!;
+
 void ExportMenu() 'EXPORT: create export menu'
 {
     setMainLabel("main / export");
     
+    createHelpButton(
+        posX: 1.5,
+        posY: .8,
+        'Pathmaps can be compiled into several workshop languages.   ', [
+            MessageLine.Separator('Workshop Code', Color.Green),
+            MessageLine.Text('Vanilla workshop syntax.\nThis can be pasted directly into the game.\n\n', Color.White),
+            MessageLine.Separator('Ostw', Color.SkyBlue),
+            MessageLine.Text(
+'An abstraction over the workshop allowing programming features such as collections in the form of
+structs or classes, object '+ 'oriented programming, and lambdas.', Color.White),
+            MessageLine.Text('https://github.com/ItsDeltin/Overwatch-Script-To-Workshop\n\n', Color.Blue),
+            MessageLine.Separator('Overpy', Color.Yellow),
+            MessageLine.Text(
+'Code your gamemodes with modern development practices and break the limitations of the
+workshop UI with features such as '+'multiple files, macros, switches, enums, optimizations,
+string splitting, better syntax, etc.', Color.White),
+            MessageLine.Text('https://github.com/Zezombye/overpy', Color.Blue)
+        ]);
     buttonCollectionMain += createButton(
         label: "┏━ Language ━┓",
         posX: 1.5,
@@ -21,27 +46,47 @@ void ExportMenu() 'EXPORT: create export menu'
         defaultColor: Color.White,
         interactable: false
     );
-    buttonCollectionMain += createButton(
-        label: "Workshop",
+    selectWorkshopButton = createButton(
+        label: "【 Workshop 】",
         posX: 1.5,
         posY: .3,
+        clickWidth: 1.2,
         defaultColor: Color.Green,
-        primaryAction: MenuAction.ExportWorkshop
+        onClick: left => {
+            outputLanguage = 0;
+            SetLanguageSelectLabels();
+        },
     );
-    buttonCollectionMain += createButton(
+    selectOstwButton = createButton(
         label: "OSTW",
         posX: 1.5,
         posY: 0.,
+        clickWidth: 1.2,
         defaultColor: Color.SkyBlue,
-        primaryAction: MenuAction.ExportOstw
+        onClick: left => {
+            outputLanguage = 1;
+            SetLanguageSelectLabels();
+        },
     );
-    buttonCollectionMain += createButton(
+    selectOverpyButton = createButton(
         label: "Overpy",
         posX: 1.5,
         posY: -.3,
+        clickWidth: 1.2,
         defaultColor: Color.Yellow,
-        primaryAction: MenuAction.ExportOverpy
+        onClick: left => {
+            outputLanguage = 2;
+            SetLanguageSelectLabels();
+        },
     );
+    buttonCollectionMain += [selectWorkshopButton, selectOstwButton, selectOverpyButton];
+}
+
+void SetLanguageSelectLabels() 'Subroutine: Set Language Select Labels'
+{
+    SetLabel(selectWorkshopButton, outputLanguage == 0 ? '【Workshop】' : 'Workshop');
+    SetLabel(selectOstwButton, outputLanguage == 1 ? '【Ostw】' : 'Ostw');
+    SetLabel(selectOverpyButton, outputLanguage == 2 ? '【Overpy】' : 'Overpy');
 }
 
 rule: 'EXPORT: open export menu'

@@ -12,6 +12,7 @@ import 'pathfinder settings.del';
 import 'cursor menu.del';
 import 'export.del';
 import 'mirror.del';
+import 'message.del';
 import 'settings.lobby';
 
 # The current version of the pathmap editor. This is a number for easy comparison.
@@ -48,7 +49,8 @@ rule: 'Setup: Inspector, Performance HUD, and Settings'
     // Settings
     maxHistoryLength = WorkshopSettingInteger("Pathmap Editor", "Undo history length", 20, 0, 100);
 
-    SetMatchTime(9999);
+    DisableCompletion();
+    SetMatchTime(1);
     PauseMatchTime();
 }
 
@@ -133,7 +135,7 @@ if (!IsDummyBot())
     DisallowButton(eventPlayer, Button.SecondaryFire);
     DisallowButton(eventPlayer, Button.Ultimate);
     DisallowButton(eventPlayer, Button.Ability1);
-    DisableGameModeHud(eventPlayer);
+    // DisableGameModeHud(eventPlayer);
 }
 
 globalvar persist Vector savedPlayerLocation;
@@ -336,6 +338,7 @@ public void UpdateAttributeVisibility() 'Subroutine: Update attribute visibility
 
 playervar Boolean releasePrimary;
 playervar Boolean releaseReload;
+playervar Boolean releaseInteract;
 
 rule: 'Release primary'
 Event.OngoingPlayer
@@ -351,6 +354,14 @@ if (releaseReload)
 if (!IsButtonHeld(EventPlayer(), Button.Reload))
 {
     releaseReload = !releaseReload;
+}
+
+rule: 'Release Interact'
+Event.OngoingPlayer
+if (releaseInteract)
+if (!IsButtonHeld(EventPlayer(), Button.Interact))
+{
+    releaseInteract = !releaseInteract;
 }
 
 globalvar Number inspector;

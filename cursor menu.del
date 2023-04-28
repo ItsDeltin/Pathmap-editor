@@ -44,13 +44,13 @@ rule: "▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒�
 rule: "Global init"
 {
     cm_textBudget = 128;
-    CreateHudText(FilteredArray(AllPlayers(Team.All), ArrayElement().cm_isInMenu), null, null, <"Cursor Menu created by Josbird <0> Code: GETVX", AbilityIconString(Hero.Mercy, Button.Ultimate)>, Location.Right, -100, Color.White, Color.White, Color.Turquoise, HudTextRev.VisibleToAndString, Spectators.DefaultVisibility);
-    cm_textBudget -= 1;
-    if (WorkshopSettingToggle("Josbird's Cursor Menu", "Menu prompt hud", true, 5))
-    {
-        CreateHudText(FilteredArray(AllPlayers(Team.All), !ArrayElement().cm_isInMenu), <"<0>", <"Press Interact [<0>] to open menu", InputBindingString(Button.Interact)>>, null, null, Location.Top, 1, Color.Yellow, Color.White, Color.White, HudTextRev.VisibleToAndString, Spectators.DefaultVisibility);
-        cm_textBudget -= 1;
-    }
+    // CreateHudText(FilteredArray(AllPlayers(Team.All), ArrayElement().cm_isInMenu), null, null, <"Cursor Menu created by Josbird <0> Code: GETVX", AbilityIconString(Hero.Mercy, Button.Ultimate)>, Location.Right, -100, Color.White, Color.White, Color.Turquoise, HudTextRev.VisibleToAndString, Spectators.DefaultVisibility);
+    // cm_textBudget -= 1;
+    // if (WorkshopSettingToggle("Josbird's Cursor Menu", "Menu prompt hud", true, 5))
+    // {
+    //     CreateHudText(FilteredArray(AllPlayers(Team.All), !ArrayElement().cm_isInMenu), <"<0>", <"Press Interact [<0>] to open menu", InputBindingString(Button.Interact)>>, null, null, Location.Top, 1, Color.Yellow, Color.White, Color.White, HudTextRev.VisibleToAndString, Spectators.DefaultVisibility);
+    //     cm_textBudget -= 1;
+    // }
     cm_s_menuWidth = WorkshopSettingReal("Josbird's Cursor Menu", "Menu Width", 5, 0, 10, 1);
     cm_s_menuHeight = WorkshopSettingReal("Josbird's Cursor Menu", "Menu Height", 2.5, 0, 5, 2);
     cm_s_buttonClickSounds = WorkshopSettingToggle("Josbird's Cursor Menu", "Button click sounds", true, 3);
@@ -219,6 +219,8 @@ Event.OngoingPlayer
 if (!IsDummyBot(EventPlayer()) == true)
 if (IsButtonHeld(EventPlayer(), Button.Interact) == true)
 if (!IsCommunicatingAnyEmote(EventPlayer()) == true)
+if (!popupWindowVisible)
+if (!releaseInteract)
 {
     cm_isInMenu = !cm_isInMenu;
 }
@@ -404,12 +406,12 @@ rule: 'CM: Func Primary'
 Event.OngoingPlayer
 if (cm_currActionID[0] == MenuAction.FuncPrimary)
 {
-    (<Boolean => void>cm_currActionID[1]).Invoke(false);
+    (<Boolean => void>cm_currActionID[1]).Invoke(true);
 }
 
 rule: 'CM: Func Secondary'
 Event.OngoingPlayer
 if (cm_currActionID[0] == MenuAction.FuncSecondary)
 {
-    (<Boolean => void>cm_currActionID[1]).Invoke(true);
+    (<Boolean => void>cm_currActionID[1]).Invoke(false);
 }

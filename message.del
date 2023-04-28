@@ -1,0 +1,153 @@
+import 'main.del';
+
+playervar Boolean popupWindowVisible;
+
+void createHelpButton(in Number posX, in Number posY, in String header, in MessageLine[] lines)
+{
+    buttonCollectionMain += createButton(
+        label: "〔?〕",
+        posX: posX,
+        posY: posY,
+        defaultColor: CustomColor(233, 9, 215, 255),
+        onClick: left => showMessage(header, lines));
+}
+
+void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: Display message'
+{
+    HostPlayer().popupWindowVisible = true;
+    SetObjectiveDescription(HostPlayer(), objectiveDescription);
+    EnableGameModeHud(HostPlayer());
+
+    Any[] hudTexts = [];
+    Any[] progressTexts = [];
+    # Centers the black background to the center of the screen.
+    MakeBox(hudTexts, Location.Left);
+    MakeBox(hudTexts, Location.Right);
+    # Aligns the messages into the box.
+    hudTexts += CreateHudText(
+        HostPlayer(),
+        Text: '\n ',
+        Location: Location.Top,
+        SortOrder: -1
+    );
+    // Make lines
+    Number i = 0;
+    for (i = 0; lines.Length; 1) {
+        # Text
+        if (lines[i].Type == 0) {
+            hudTexts += CreateHudText(
+                HostPlayer(),
+                Text: lines[i].Content,
+                Location: Location.Top,
+                TextColor: lines[i].Color,
+                SortOrder: i + 1,
+                Reevaluation: HudTextRev.VisibleTo
+            );
+        }
+        # Header
+        else if (lines[i].Type == 2) {
+            hudTexts += CreateHudText(
+                HostPlayer(),
+                Header: lines[i].Content,
+                Location: Location.Top,
+                HeaderColor: lines[i].Color,
+                SortOrder: i + 1,
+                Reevaluation: HudTextRev.VisibleTo
+            );
+        }
+        # Separator
+        else if (lines[i].Type == 1) {
+            progressTexts += CreateProgressBarHudText(
+                HostPlayer(),
+                Value: 100,
+                Text: lines[i].Content,
+                Location: Location.Top,
+                TextColor: lines[i].Color,
+                ProgressBarColor: CustomColor(195, 14, 150, 100),
+                SortOrder: i + 1,
+                Reevaluation: ProgressBarHudEvaluation.VisibleTo
+            );
+        }
+    }
+
+    # Close menu spacing
+    hudTexts += CreateHudText(HostPlayer(), Text: '\n ', Location: Location.Top, SortOrder: i + 2, Reevaluation: HudTextRev.VisibleTo);
+
+    # Close menu hud
+    hudTexts += CreateHudText(
+        HostPlayer(),
+        Header: <'Press <0> to close', InputBindingString(Button.Interact)>,
+        Location: Location.Top,
+        HeaderColor: Color.Violet,
+        SortOrder: i + 3,
+        Reevaluation: HudTextRev.VisibleToAndString
+    );
+
+    # Wait for the user to click interact to close the menu.
+    WaitUntil(!button(Button.Interact), 9999);
+    WaitUntil(button(Button.Interact), 9999);
+    HostPlayer().releaseInteract = true;
+    HostPlayer().popupWindowVisible = false;
+    DisableGameModeHud(HostPlayer());
+
+    # Destroy hud texts.
+    foreach (Any hudText in hudTexts) {
+        DestroyHudText(hudText);
+    }
+    # Destroy progress texts.
+    foreach (Any progressText in progressTexts) {
+        DestroyProgressBarHudText(progressText);
+    }
+}
+
+struct MessageLine
+{
+    public static MessageLine Text(in String content, in Color color = Color.White) {
+        return {
+            Type: 0,
+            Content: content,
+            Color: color
+        };
+    }
+
+    public static MessageLine Header(in String content, in Color color = Color.White) {
+        return {
+            Type: 2,
+            Content: content,
+            Color: color
+        };
+    }
+
+    public static MessageLine Separator(in String content, in Color color = Color.White) {
+        return {
+            Type: 1,
+            Content: content,
+            Color: color
+        };
+    }
+
+    public Number Type;
+    public String Content;
+    public Color Color;
+}
+
+void MakeBox(ref Any[] hudArray, Location location)
+{
+    # Centers the black background to the center of the screen.
+    hudArray += CreateHudText(
+        HostPlayer(),
+        // This string is very deliberate.
+        // It contains the maximum number of tabs we can fit under 128 bytes repeated thrice.
+        // It will perfectly align the next box to the center of the screen.
+        Text: <'<0><0><0>', '                                          '>,
+        Location: location,
+        SortOrder: -2
+    );
+    # The black background.
+    hudArray += CreateHudText(
+        HostPlayer(),
+        Header: '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n                           ' + '                           ',
+        Location: location,
+        SortOrder: -1
+    );
+}

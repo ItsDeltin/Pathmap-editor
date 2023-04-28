@@ -131,12 +131,12 @@ void initiatePager() 'CM: Initiate pager'
     );
     moveActionsUpText = createButton(
         '↑',
-        onClick: wasSecondary => MoveSelectedActions(true),
+        onClick: left => MoveSelectedActions(true),
         posX: -0.825, posY: -0.8, clickWidth: .2, clickHeight: .2,
     );
     moveActionsDownText = createButton(
         '↓',
-        onClick: wasSecondary => MoveSelectedActions(false),
+        onClick: left => MoveSelectedActions(false),
         posX: -0.625, posY: -0.8, clickWidth: .2, clickHeight: .2,
     );
     rulePageText = createButton(

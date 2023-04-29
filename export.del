@@ -167,25 +167,57 @@ if (cm_currActionID == MenuAction.Export)
     SetMenuState(MenuState.Export);
 }
 
-void Export()
+void Export() 'Subroutine: Generate map code.'
 {
-    
+    # Enable inspector so we can log the exported code to it.
+    EnableInspector();
+
+    # First export the map.
+    if (buildToggles[0]) {
+        # Export map to workshop.
+        if (outputLanguage == 0)
+            ExportMapToWorkshop();
+        # Export map to ostw.
+        else if (outputLanguage == 1)
+            ExportMapToOstw();
+        # Export map to overpy.
+        else if (outputLanguage == 2)
+            ExportMapToOverpy();
+    }
+    # Secondly export the rules.
+    if (buildToggles[1]) {
+        ExportRules();
+    }
+    # Finally, export the core pathfinding code.
+    if (buildToggles[2]) {
+        ExportCore();
+    }
+
+    # Disable inspector.
+    DisableInspector();
 }
 
-void ExportRules(OutputLanguage lang) playervar 'EXPORT: Export'
+void ExportCore() 'Subroutine: Export: Core'
+{
+    # Export core code to workshop.
+    if (outputLanguage == 0)
+        PrintStub('pathfinder/pathfind.ow', []);
+    # Export core code to ostw.
+    else if (outputLanguage == 1)
+        PrintStub('pathfinder/pathfind.ostw', []);
+    # Export core code to overpy.
+    else if (outputLanguage == 2)
+    {
+    }
+}
+
+void ExportRules() playervar 'EXPORT: Export'
 {
     // OngoingPlayer is not vital, it's just so we can use player variables here
-    // since we are clean out of global ones :')
-    EnableInspector();
-    SmallMessage(AllPlayers(), 'Exporting rules');
-    
+    OutputLanguage lang: <OutputLanguage>outputLanguage;
     Boolean is_ow: lang == OutputLanguage.Workshop;
     Boolean is_ostw: lang == OutputLanguage.OSTW;
     Boolean is_overpy: lang == OutputLanguage.OverPy;
-
-    LogToInspector('\n\n/*********\n* BEGIN *\n*********');
-    LogToInspector('* You can use the following regex expression to remove the timestamps:');
-    LogToInspector('* \"^\\[[0-9]{{2}}:[0-9]{{2}}:[0-9]{{2}}\\] \*\/ \"');
 
     for(define i = 0; Rules.Length; 1) {
         # Rule syntax
@@ -346,11 +378,6 @@ void ExportRules(OutputLanguage lang) playervar 'EXPORT: Export'
         
         MinWait();
     }
-
-    LogToInspector('*/');
-
-    SmallMessage(AllPlayers(), "Rules exported!");
-    DisableInspector();
 }
 
 void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to workshop" 
@@ -400,6 +427,13 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
     DisableInspector();
 }
 
+void ExportMapToWorkshop()
+{
+    ExportNodes();
+    ExportSegments();
+    ExportAttributes();
+}
+
 void ExportNodes()
 {
     # Nodes rule
@@ -413,9 +447,9 @@ void ExportNodes()
     # Set pathfinder_nodes
     LogToInspector('*/     global.loadedMap_nodes = Array( /*');
     # For each node
-    for (Number a = 0; Nodes.Length; 10) {
+    for (Number a! = 0; Nodes.Length; 10) {
         String stub = '';
-        for (Number b = a; Min(a + 10, Nodes.Length); 1) {
+        for (Number b! = a; Min(a + 10, Nodes.Length); 1) {
             define vector = Nodes[b].Node.Position;
             stub = stub + <'Vector<0><1>',
                 vector,
@@ -524,9 +558,6 @@ Event.OngoingPlayer
 if (button(Button.Melee))
 if (host == eventPlayer)
 {
-    // MakeBake();
-    // ExportCorePathfinderComponents(0, 0, 0);
-    // ExportCompressedDataToWorkshop();
     EnableInspector();
     # Start block comment chain
     LogToInspector('/*');
@@ -700,17 +731,6 @@ void ExportCorePathfinderComponents(Number globalRange, Number playerRange, Numb
     LogToInspector('*/ } } /*');
 
     DisableInspector();
-}
-
-void ExportCore2()
-{
-    PrintStub('pathfinder/pathfind.ow', []);
-}
-void ExportMap2()
-{
-    ExportNodes();
-    ExportSegments();
-    ExportAttributes();
 }
 
 playervar String exportArrayStub;

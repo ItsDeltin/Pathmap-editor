@@ -21,8 +21,8 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
     Any[] hudTexts = [];
     Any[] progressTexts = [];
     # Centers the black background to the center of the screen.
-    MakeBox(hudTexts, Location.Left);
-    MakeBox(hudTexts, Location.Right);
+    MakeBox(hudTexts, Location.Left, '                       Press   to close', CustomColor(255, 0, 255, 255));
+    MakeBox(hudTexts, Location.Right, '                      〔     F        〕', Color.White);
     # Aligns the messages into the box.
     hudTexts += CreateHudText(
         HostPlayer(),
@@ -70,18 +70,18 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
         }
     }
 
-    # Close menu spacing
-    hudTexts += CreateHudText(HostPlayer(), Text: '\n ', Location: Location.Top, SortOrder: i + 2, Reevaluation: HudTextRev.VisibleTo);
+    // # Close menu spacing
+    // hudTexts += CreateHudText(HostPlayer(), Text: '\n ', Location: Location.Top, SortOrder: i + 2, Reevaluation: HudTextRev.VisibleTo);
 
-    # Close menu hud
-    hudTexts += CreateHudText(
-        HostPlayer(),
-        Header: <'Press <0> to close', InputBindingString(Button.Interact)>,
-        Location: Location.Top,
-        HeaderColor: Color.Violet,
-        SortOrder: i + 3,
-        Reevaluation: HudTextRev.VisibleToAndString
-    );
+    // # Close menu hud
+    // hudTexts += CreateHudText(
+    //     HostPlayer(),
+    //     Header: <'Press <0> to close', InputBindingString(Button.Interact)>,
+    //     Location: Location.Top,
+    //     HeaderColor: Color.Violet,
+    //     SortOrder: i + 3,
+    //     Reevaluation: HudTextRev.VisibleToAndString
+    // );
 
     # Wait for the user to click interact to close the menu.
     WaitUntil(!button(Button.Interact), 9999);
@@ -131,7 +131,7 @@ struct MessageLine
     public Color Color;
 }
 
-void MakeBox(ref Any[] hudArray, Location location)
+void MakeBox(ref Any[] hudArray, Location location, in String extra, in Color color)
 {
     # Centers the black background to the center of the screen.
     hudArray += CreateHudText(
@@ -146,8 +146,9 @@ void MakeBox(ref Any[] hudArray, Location location)
     # The black background.
     hudArray += CreateHudText(
         HostPlayer(),
-        Header: '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n                           ' + '                           ',
+        Header: <'\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0>\n\n                           ', extra> + '                           ',
         Location: location,
-        SortOrder: -1
+        SortOrder: -1,
+        HeaderColor: color
     );
 }

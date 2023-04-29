@@ -13,17 +13,45 @@ enum OutputLanguage
 # `0` = Workshop, `1` = OSTW, `2` = overpy
 globalvar persist Number outputLanguage;
 
+# Determines which components get built.
+# `[0]`: The map itself. (default: true)
+# `[1]`: The custom rules. (default: true)
+# `[2]`: The core pathfinding code. (default: false)
+globalvar Boolean[] buildToggles = [true, true, false];
+
 globalvar Number selectWorkshopButton!;
 globalvar Number selectOstwButton!;
 globalvar Number selectOverpyButton!;
+globalvar Number exportButton!;
 
 void ExportMenu() 'EXPORT: create export menu'
 {
     setMainLabel("main / export");
+
+    createHelpButton(posX: -1.25, posY: .8,
+        'Export settings', [
+            MessageLine.Text('These settings decide which pathfinding components will be exported.\n'
+                + 'The generated code exported should be copied into your gamemode.\n\n', Color.White),
+            MessageLine.Separator('Export Map', Color.Green),
+            MessageLine.Text(<'If enabled, the nav mesh you created for <0> will be generated.\n\n', CurrentMap()>, Color.White),
+            MessageLine.Separator('Export Custom Rules', Color.Green),
+            MessageLine.Text('If enabled, the custom rules in the rule menu will be compiled into the specified workshop language.\n\n', Color.White),
+            MessageLine.Separator('Core pathfinding code', Color.Yellow),
+            MessageLine.Text('If enabled, the core pathfinding algorithm will be generated.\n' +
+            'This only needs to be added to your project once.', Color.White)
+        ]);
+    buttonCollectionMain += createButton(
+        label: "┏━ Export Settings ━┓",
+        posX: -1.25,
+        posY: .6,
+        defaultColor: Color.White,
+        interactable: false
+    );
+    CreateToggle(0, 'Export Map', posX: -1.25, posY: .3);
+    CreateToggle(1, 'Export Custom Rules', posX: -1.25, posY: .0);
+    CreateToggle(2, 'Core Pathfinding Code', posX: -1.25, posY: -.3);
     
-    createHelpButton(
-        posX: 1.5,
-        posY: .8,
+    createHelpButton(posX: 1.5, posY: .8,
         'Pathmaps can be compiled into several workshop languages.   ', [
             MessageLine.Separator('Workshop Code', Color.Green),
             MessageLine.Text('Vanilla workshop syntax.\nThis can be pasted directly into the game.\n\n', Color.White),
@@ -47,7 +75,7 @@ string splitting, better syntax, etc.', Color.White),
         interactable: false
     );
     selectWorkshopButton = createButton(
-        label: "【 Workshop 】",
+        label: "",
         posX: 1.5,
         posY: .3,
         clickWidth: 1.2,
@@ -58,7 +86,7 @@ string splitting, better syntax, etc.', Color.White),
         },
     );
     selectOstwButton = createButton(
-        label: "OSTW",
+        label: "",
         posX: 1.5,
         posY: 0.,
         clickWidth: 1.2,
@@ -69,7 +97,7 @@ string splitting, better syntax, etc.', Color.White),
         },
     );
     selectOverpyButton = createButton(
-        label: "Overpy",
+        label: "",
         posX: 1.5,
         posY: -.3,
         clickWidth: 1.2,
@@ -79,7 +107,29 @@ string splitting, better syntax, etc.', Color.White),
             SetLanguageSelectLabels();
         },
     );
-    buttonCollectionMain += [selectWorkshopButton, selectOstwButton, selectOverpyButton];
+
+    createHelpButton(posX: 0, posY: -0.7,
+        'Code generation', [
+            MessageLine.Text('This button will generate code that you will need to copy into your gamemode.\n' +
+                'The code can be copied from the inspector by clicking the "Copy to clipboard all log" button.')
+        ]);
+    exportButton = createButton(
+        label: '',
+        posY: -0.9,
+        clickWidth: 3,
+        defaultColor: CustomColor(218, 253, 253, 255),
+        onClick: left => {
+            # Do nothing if nothing is going to be exported.
+            if (!buildToggles[0] && !buildToggles[1] && !buildToggles[2]) {
+                showMessage('Error', [MessageLine.Text('\n\nAll exporting options disabled, nothing to export.', Color.Rose)]);
+            } else {
+                Export();
+            }
+        }
+    );
+
+    buttonCollectionMain += [selectWorkshopButton, selectOstwButton, selectOverpyButton, exportButton];
+    SetLanguageSelectLabels();
 }
 
 void SetLanguageSelectLabels() 'Subroutine: Set Language Select Labels'
@@ -87,7 +137,28 @@ void SetLanguageSelectLabels() 'Subroutine: Set Language Select Labels'
     SetLabel(selectWorkshopButton, outputLanguage == 0 ? '【Workshop】' : 'Workshop');
     SetLabel(selectOstwButton, outputLanguage == 1 ? '【Ostw】' : 'Ostw');
     SetLabel(selectOverpyButton, outputLanguage == 2 ? '【Overpy】' : 'Overpy');
+    SetLabel(exportButton, <'☆Generate code for <0>☆', ['the workshop', 'ostw', 'overpy'][outputLanguage]>);
 }
+
+void CreateToggle(in Number index, in String label, in Number posX, in Number posY)
+{
+    Number bid: NextButtonId();
+    buttonCollectionMain += createButton(
+        label: ExportBuildLabel(label, index),
+        defaultColor: ExportBuildColor(index),
+        posX: posX,
+        posY: posY,
+        clickWidth: 1.2,
+        onClick: left => {
+            buildToggles[index] = !buildToggles[index];
+            SetLabel(bid, ExportBuildLabel(label, index));
+            SetColor(bid, ExportBuildColor(index));
+        },
+    );
+}
+
+String ExportBuildLabel(String label, Number index): <'<0>: <1>', label, buildToggles[index] ? 'on' : 'off'>;
+Color ExportBuildColor(Number index): buildToggles[index] ? Color.LimeGreen : CustomColor(182, 57, 57, 255);
 
 rule: 'EXPORT: open export menu'
 Event.OngoingPlayer
@@ -96,25 +167,9 @@ if (cm_currActionID == MenuAction.Export)
     SetMenuState(MenuState.Export);
 }
 
-rule: 'EXPORT: Workshop'
-Event.OngoingPlayer
-if (cm_currActionID == MenuAction.ExportWorkshop)
+void Export()
 {
-    ExportRules(OutputLanguage.Workshop);
-}
-
-rule: 'EXPORT: OSTW'
-Event.OngoingPlayer
-if (cm_currActionID == MenuAction.ExportOstw)
-{
-    ExportRules(OutputLanguage.OSTW);
-}
-
-rule: 'EXPORT: OverPy'
-Event.OngoingPlayer
-if (cm_currActionID == MenuAction.ExportOverpy)
-{
-    ExportRules(OutputLanguage.OverPy);
+    
 }
 
 void ExportRules(OutputLanguage lang) playervar 'EXPORT: Export'

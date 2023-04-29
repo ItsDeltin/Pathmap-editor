@@ -195,6 +195,18 @@ void Export() 'Subroutine: Generate map code.'
 
     # Disable inspector.
     DisableInspector();
+
+    # Show code generation completed message.
+    showMessage('Pathfinding code generated!', [
+        MessageLine.Separator('Your code has been generated, and you are almost ready to start pathfinding players!\n\n', Color.LimeGreen),
+        MessageLine.Text(
+            'Open the inspector and click the "Copy To Workshop All Log" button to copy the generated code to your clipboard.\n' +
+            <'Paste the contents into a text editor<0>\n\n', outputLanguage == 0 ?
+            '. Remove the first timestamp and then you can paste the workshop\ncode directly into your game.' : ', then follow the instructions in the text to use the pathfinder.'>),
+        MessageLine.Separator(''),
+        MessageLine.Text('It is recommended to restart the game instance before doing another export\n' +
+            'because the copy will include *all* exports. Remember to save your map beforehand\nby copying the action set code!')
+    ]);
 }
 
 void ExportCore() 'Subroutine: Export: Core'

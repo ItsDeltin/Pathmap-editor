@@ -119,11 +119,10 @@ void initiatePager() 'CM: Initiate pager'
     );
     pagerButtons += createButton(
         'add action...',
-        primaryAction: MenuAction.AddAction,
+        onClick: l => OpenActionSelectMenu(),
         clickWidth: 1.2,
         posY: 0.75,
-        posX: -1.75,
-        scale: 2
+        posX: -1.75
     );
     pagerButtons += createButton(
         ' attribute',
@@ -286,48 +285,6 @@ if (cm_currActionID == MenuAction.RuleMenu)
     SetMenuState(MenuState.Rules);
 }
 
-rule: 'CM: Add action'
-Event.OngoingPlayer
-if (cm_currActionID == MenuAction.AddAction)
-{
-    SetMenuState(MenuState.AddAction);
-    actionScrollBar = new Scrollbar(0, 0.75, [
-        'wait...',
-        'jump',
-        'start holding jump',
-        'stop holding jump',
-        'ability 1',
-        'ability 2',
-        'melee',
-        'primary fire',
-        'secondary fire',
-        'stop walking',
-        'walk to destination',
-        'look at floor',
-        'look at destination'
-    ], 8, item => {
-        DestroyScrollbar();
-
-        // Wait length
-        if (item == 0)
-        {
-            SetMenuState(MenuState.ChooseWaitLength);
-            waitTime = 0.016;
-            waitTimeText = createButton('wait time: ' + waitTime + ' seconds', scale: 1.5, defaultColor: Color.Yellow, interactable: false);
-            
-            buttonCollectionMain += createButton('←', primaryAction: MenuAction.WaitTimeDown, secondaryAction: MenuAction.WaitTimeDownBig, posX: -0.6, scale: 4);
-            buttonCollectionMain += createButton('→', primaryAction: MenuAction.WaitTimeUp, secondaryAction: MenuAction.WaitTimeUpBig, posX: 0.6, scale: 4);
-            buttonCollectionMain += createButton('Add action', primaryAction: MenuAction.WaitConfirm, posY: -0.15, scale: 2, defaultColor: Color.Green);
-            buttonCollectionMain += waitTimeText;
-        }
-        else
-        {            
-            DocumentAction(CreateAction(item));
-            SetMenuState(MenuState.Rules);
-        }
-    });
-}
-
 rule: 'CM: Delete action'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.DeleteAction)
@@ -446,7 +403,7 @@ if (cm_currActionID == MenuAction.ToggleAll)
 rule: 'CM: Exit rule menu'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.Back)
-if (menuState == MenuState.Rules || menuState == MenuState.Guide || menuState == MenuState.Export)
+if (menuState == MenuState.Rules || menuState == MenuState.Guide || menuState == MenuState.Export || menuState == MenuState.ChooseHero)
 {
     SetMenuState(MenuState.Main);
 }
@@ -458,6 +415,14 @@ if (menuState == MenuState.AddAction)
 {
     DestroyScrollbar();
     SetMenuState(MenuState.Rules);
+}
+
+rule: 'CM: Exit wait selection'
+Event.OngoingPlayer
+if (cm_currActionID == MenuAction.Back)
+if (menuState == MenuState.ChooseWaitLength)
+{
+    OpenActionSelectMenu();
 }
 
 void DocumentAction(in RuleAction createdAction)
@@ -568,4 +533,44 @@ void DoMove(Boolean[] selected!, Boolean up!, Number page!) 'Subroutine: Execute
             }
         }
     }
+}
+
+void OpenActionSelectMenu() 'Subroutine: Open Add Action menu'
+{
+    SetMenuState(MenuState.AddAction);
+    actionScrollBar = new Scrollbar(0, 0.75, [
+        'wait...',
+        'jump',
+        'start holding jump',
+        'stop holding jump',
+        'ability 1',
+        'ability 2',
+        'melee',
+        'primary fire',
+        'secondary fire',
+        'stop walking',
+        'walk to destination',
+        'look at floor',
+        'look at destination'
+    ], 8, item => {
+        DestroyScrollbar();
+
+        // Wait length
+        if (item == 0)
+        {
+            SetMenuState(MenuState.ChooseWaitLength);
+            waitTime = 0.016;
+            waitTimeText = createButton('wait time: ' + waitTime + ' seconds', scale: 1.5, defaultColor: Color.Yellow, interactable: false);
+            
+            buttonCollectionMain += createButton('←', primaryAction: MenuAction.WaitTimeDown, secondaryAction: MenuAction.WaitTimeDownBig, posX: -0.6, scale: 4);
+            buttonCollectionMain += createButton('→', primaryAction: MenuAction.WaitTimeUp, secondaryAction: MenuAction.WaitTimeUpBig, posX: 0.6, scale: 4);
+            buttonCollectionMain += createButton('Add action', primaryAction: MenuAction.WaitConfirm, posY: -0.15, scale: 2, defaultColor: Color.Green);
+            buttonCollectionMain += waitTimeText;
+        }
+        else
+        {            
+            DocumentAction(CreateAction(item));
+            SetMenuState(MenuState.Rules);
+        }
+    });
 }

@@ -381,7 +381,12 @@ if (IsButtonHeld(EventPlayer(), Button.PrimaryFire) || IsButtonHeld(EventPlayer(
             cm_currActionID = primary ? cm_buttons[i].PrimaryAction : cm_buttons[i].SecondaryAction;
 
     if (cm_currActionID && cm_s_buttonClickSounds)
+    {
+        if (primary)
+            releasePrimary = true;
+
         PlayEffect(EventPlayer(), PlayEffect.ExplosionSound, Color.White, EventPlayer(), 30);
+    }
 
     MinWait();
     cm_currActionID = null;

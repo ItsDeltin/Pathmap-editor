@@ -58,7 +58,7 @@ void SetupRuleMenu() 'Setup rule menu'
         MessageLine.Text('Rules can be created which allows pathfinding bots to execute actions when they reach a path tagged\n'
             + 'with a certain attribute. You can make bots jump over obstacles, melee fences, or even use hero abilities\n'
             + 'to scale walls and cliffs.\n'),
-        MessageLine.Text('The rules created here can be exported into workshop code in the export menu.\n', Color.LimeGreen),
+        MessageLine.Text('The rules created here can be compiled into workshop code in the export menu.\n', Color.LimeGreen),
         MessageLine.Separator('Action list', Color.SkyBlue),
         MessageLine.Text('The actions that are executed when the attribute is reached.'),
         MessageLine.Separator('Attribute', Color.Yellow),

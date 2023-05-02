@@ -111,12 +111,16 @@ string splitting, better syntax, etc.', Color.White),
     createHelpButton(posX: 0, posY: -0.7, null, [
         MessageLine.Separator('Code Generation', Color.Green),
         MessageLine.Text('This button will generate the pathfinding code that you can copy into your gamemode.\n' +
-            'The code can be copied from the inspector by clicking the "Copy to clipboard all log" button.')]);
+            'The code can be copied from the inspector by clicking the "Copy to clipboard all log" button.\n'),
+        MessageLine.Text('Make sure the "Enable Workshop Inspector Log File" setting is enabled under Options >\n' +
+            'Gameplay > General.\n\n'),
+        MessageLine.Text('Don\'t confuse this with saving your map in the editor, you won\'t be able to re-edit\n' +
+            'your map with the code generated from this. To do that, see the guide in the main menu.', Color.Yellow)]);
     exportButton = createButton(
         label: '',
         posY: -0.9,
         clickWidth: 3,
-        defaultColor: CustomColor(218, 253, 253, 255),
+        defaultColor: Color.Green,
         onClick: left => {
             # Do nothing if nothing is going to be exported.
             if (!buildToggles[0] && !buildToggles[1] && !buildToggles[2]) {

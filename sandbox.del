@@ -120,6 +120,27 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             defaultColor: Color.White);
         
         buttonCollectionMain += createButton(
+            'credits',
+            onClick: l => {
+                showMessage(null, [
+                    MessageLine.Separator('Pathmap Editor v1.0.0', Color.LimeGreen),
+                    MessageLine.Text('https://github.com/ItsDeltin/Pathmap-editor\n', Color.Blue),
+                    MessageLine.Header('  ☆ Credits ☆  ', Color.Rose),
+                    MessageLine.Separator('Created by Deltin', Color.SkyBlue),
+                    MessageLine.Text('with Overwatch Script To Workshop'),
+                    MessageLine.Text('https://github.com/ItsDeltin/Overwatch-Script-To-Workshop\n', Color.Blue),
+                    MessageLine.Separator('Josbird', Color.Orange),
+                    MessageLine.Text('- Cursor menu lirbrary\n- Noclip\n'),
+                    MessageLine.Separator('Zezombye', Color.Yellow),
+                    MessageLine.Text('- Map symmetry data\n- overpy')
+                ]);
+            },
+            posX: 1.7,
+            posY: -0.8,
+            clickWidth: 1.2,
+            defaultColor: Color.White);
+        
+        buttonCollectionMain += createButton(
             'Rule editor',
             primaryAction: MenuAction.RuleMenu,
             scale: 2.5,
@@ -139,8 +160,24 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
 
         buttonCollectionMain += createButton(
             'Guide',
-            primaryAction: MenuAction.Guide,
-            scale: 2.5,
+            onClick: l => {
+                showMessage(null, [
+                    MessageLine.Separator('Getting Started', Color.Orange),
+                    MessageLine.Text('Make sure the "Enable Workshop Inspector" & "Enable Workshop Inspector Log File"\n'
+                        + 'settings are enabled in Options > Gameplay > General'),
+                    MessageLine.Separator('How To Save', Color.SkyBlue),
+                    MessageLine.Text('1. Press Escape.\n2. Click "Open Workshop Inspector".\n'
+                        + '3. Click the (X) button below the timeline.\n'
+                        + '4. Save the copied contents into a text file.'),
+                    MessageLine.Separator('How to load', Color.Yellow),
+                    MessageLine.Text('1. Import the pathmap editor workshop code.\n2. Open the workshop editor.\n'
+                        + '3. scroll to the top of the page to the rule that says:'),
+                    MessageLine.Header('【◈ Paste the actions to load a previous save here!! ◈】', CustomColor(179, 179, 179, 255)),
+                    MessageLine.Text('4. Paste the saved text into the rule.\n'),
+                    MessageLine.Text('Always remember that the workshop won\'t auto-save your map.', Color.Rose),
+                    MessageLine.Text('If the game restarts or is closed you will lose your progress.')
+                ]);
+            },
             clickWidth: 0.4,
             posX: 1.7,
             posY: 0,
@@ -309,7 +346,7 @@ void updateFreecamLabel() '(Subroutine) CM: Update freecam label'
 void updateSegmentModeLabel() '(Subroutine) CM: Update segment mode label'
 {
     SetLabel(linkModeID, !attributeMode ? 'Connect: Paths' : '          Connect: Attributes');
-    SetColor(attributeDescriptionButton, attributeMode ? Color.White : Color.Gray);
+    SetColor(attributeDescriptionButton, attributeMode ? CustomColor(240, 240, 240, 255) : Color.Gray);
     if (attributeSelector)
         attributeSelector.SetInteractable(attributeMode);
 }

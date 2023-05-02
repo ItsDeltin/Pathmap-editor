@@ -128,6 +128,7 @@ if (button(Button.PrimaryFire))
 if (editorState == EditorState.Node)
 if (SelectedNodeID == -1)
 if (SelectedPlayer == null)
+if (!host.releasePrimary)
 if (!host.cm_isInMenu)
 {
     NodeUniqueID++;
@@ -395,6 +396,7 @@ rule: 'Editor: tutorial' 1000
         Button.Ability1,
         AllPlayers().IsTrueForAny(p => p.IsDummy())
     );
+    AddControlText('menu', Button.Interact, true);
 }
 
 void AddControlText(in String text, in Button button, in Boolean condition = true)

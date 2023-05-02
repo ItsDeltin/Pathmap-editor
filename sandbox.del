@@ -3,6 +3,7 @@ import 'main.del';
 playervar MenuState menuState!;
 playervar Number freecamSwitchID!;
 playervar Number linkModeID!;
+playervar Number attributeDescriptionButton!;
 playervar NumberSelector attributeSelector!;
 playervar Number mainText!;
 globalvar Number undoText! = -1;
@@ -75,7 +76,7 @@ if (eventPlayer == host)
         'main',
         scale: 2,
         posX: 0,
-        posY: 1,
+        posY: 1.15,
         defaultColor: Color.Gray,
         interactable: false);
     createButton(
@@ -165,11 +166,21 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             defaultColor: Color.White);
         
         linkModeID = createButton(
-            'Node link mode (segment)',
+            null,
+            posX: -1.5,
+            posY: 0,
             clickWidth: 1.7,
-            primaryAction: MenuAction.LinkMode,
-            scale: 2.5,
-            posY: 0.7);
+            onClick: l => {
+                attributeMode = !attributeMode;
+                updateSegmentModeLabel();
+            });
+        
+        attributeDescriptionButton = createButton(
+            label: ' Attribute:',
+            posX: -1.7,
+            posY: -0.2,
+            interactable: false
+        );
         
         buttonCollectionMain += createButton(
             'Mirror map',
@@ -179,10 +190,24 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             clickWidth: 1.0,
             defaultColor: Color.White);
         
-        updateFreecamLabel();
+        createHelpButton(-2.3, -0.1, null, [
+            MessageLine.Separator('Connect: Paths', Color.Rose),
+            MessageLine.Text('In path mode, you can select two nodes in order to create a path.'
+                + '\nThis will allow bots to walk between both nodes.'),
+            MessageLine.Separator('Connect: Attributes', Color.Orange),
+            MessageLine.Text('You can tag a path with the current "Attribute" value. Tagging paths'
+                + '\nmay have a few uses, for example:\n\n1. Creating one-ways, such as paths that drop from ledges.'
+                + '\n\n2: Creating paths that can utilize hero abilities to get across.'
+                + '\n\n3: Only allowing the bots on the correct team to enter a spawn room.'
+                + '\n\n4: Doors which are only open depending on the objective progress.'
+                + '\n\n5: Meleeing or jumping over fences that are in a path.')
+        ]);
         
-        attributeSelector = new NumberSelector(attribute, 0, 0.5, false, value => attribute = value);
-        buttonCollectionMain += [freecamSwitchID, linkModeID];
+        attributeSelector = new NumberSelector(attribute, posX: -.95, posY: -0.2, true, value => attribute = value);
+        buttonCollectionMain += [freecamSwitchID, linkModeID, attributeDescriptionButton];
+
+        updateFreecamLabel();
+        updateSegmentModeLabel();
     }
     else if (newState == MenuState.Rules)
         SetupRuleMenu();
@@ -264,9 +289,6 @@ Event.OngoingPlayer
 if (cm_currActionID == MenuAction.LinkMode)
 {
     attributeMode = !attributeMode;
-    SetLabel(linkModeID, !attributeMode ? 'Node link mode (segment)' : 'Node link mode (attribute)');
-    if (attributeSelector)
-        attributeSelector.SetVisible(attributeMode);
 }
 
 rule: 'CM: Add dummy'
@@ -282,6 +304,14 @@ if (cm_currActionID == MenuAction.AddDummy)
 void updateFreecamLabel() '(Subroutine) CM: Update freecam label'
 {
     SetLabel(freecamSwitchID, IsNoclipping ? 'noclip: on' : 'noclip: off');
+}
+
+void updateSegmentModeLabel() '(Subroutine) CM: Update segment mode label'
+{
+    SetLabel(linkModeID, !attributeMode ? 'Connect: Paths' : '          Connect: Attributes');
+    SetColor(attributeDescriptionButton, attributeMode ? Color.White : Color.Gray);
+    if (attributeSelector)
+        attributeSelector.SetInteractable(attributeMode);
 }
 
 void destroyButtonCollection(ref Number[] buttonCollection)

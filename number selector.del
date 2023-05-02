@@ -40,11 +40,18 @@ class NumberSelector
         this.onUpdate = onUpdate;
     }
 
-    void SetVisible(in Boolean visible)
+    public void SetVisible(in Boolean visible)
     {
         SetVisible(numberText, visible);
         SetVisible(incrementText, visible);
         SetVisible(decrementText, visible);
+    }
+
+    public void SetInteractable(in Boolean interactable)
+    {
+        SetInteractabilityAndColor(numberText, interactable, interactable ? Color.Yellow : CustomColor(112, 101, 0, 140));
+        SetInteractabilityAndColor(incrementText, interactable, interactable ? Color.White : CustomColor(217, 217, 217, 69));
+        SetInteractabilityAndColor(decrementText, interactable, interactable ? Color.White : CustomColor(217, 217, 217, 69));
     }
 
     public void Add(in Number amount)

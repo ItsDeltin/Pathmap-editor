@@ -49,9 +49,23 @@ void SetupRuleMenu() 'Setup rule menu'
     buttonCollectionMain += createButton(
         'Add rule',
         primaryAction: MenuAction.CreateRule,
-        posY: 0.75,
+        posY: 0.8,
         scale: 3
     );
+
+    createHelpButton(0, 1, null, [
+        MessageLine.Separator('Rule Editor', Color.Rose),
+        MessageLine.Text('Rules can be created which allows pathfinding bots to execute actions when they reach a path tagged\n'
+            + 'with a certain attribute. You can make bots jump over obstacles, melee fences, or even use hero abilities\n'
+            + 'to scale walls and cliffs.\n'),
+        MessageLine.Text('The rules created here can be exported into workshop code in the export menu.\n', Color.LimeGreen),
+        MessageLine.Separator('Action list', Color.SkyBlue),
+        MessageLine.Text('The actions that are executed when the attribute is reached.'),
+        MessageLine.Separator('Attribute', Color.Yellow),
+        MessageLine.Text('When a bot begins walking on a path with this value, the rule is executed.'),
+        MessageLine.Separator('Hero list', Color.Red),
+        MessageLine.Text('The list of heroes that this rule will execute for.')
+    ]);
 
     if (Rules.Length)
         initiatePager();
@@ -107,17 +121,17 @@ void initiatePager() 'CM: Initiate pager'
         'add action...',
         primaryAction: MenuAction.AddAction,
         clickWidth: 1.2,
-        posY: 0.8,
-        posX: -2,
+        posY: 0.75,
+        posX: -1.75,
         scale: 2
     );
     pagerButtons += createButton(
-        'executes on attribute',
+        ' attribute',
         posY: 0.3,
         scale: 1.75,
         interactable: false
     );
-    ruleAttributeSelector = new NumberSelector(Rules[rulePage].ExecutesOnAttribute, 0, 0.175, true, value => Rules[rulePage].ExecutesOnAttribute = value);
+    ruleAttributeSelector = new NumberSelector(Rules[rulePage].ExecutesOnAttribute, 0, 0.1, true, value => Rules[rulePage].ExecutesOnAttribute = value);
     deleteActionText = createButton(
         'delete action',
         primaryAction: MenuAction.DeleteAction,

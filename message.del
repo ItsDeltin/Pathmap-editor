@@ -8,15 +8,20 @@ void createHelpButton(in Number posX, in Number posY, in String header, in Messa
         label: "〔?〕",
         posX: posX,
         posY: posY,
-        defaultColor: CustomColor(233, 9, 215, 255),
+        defaultColor: Color.Rose,
         onClick: left => showMessage(header, lines));
 }
 
 void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: Display message'
 {
+    HostPlayer().cm_isInMenu = false;
     HostPlayer().popupWindowVisible = true;
-    SetObjectiveDescription(HostPlayer(), objectiveDescription);
-    EnableGameModeHud(HostPlayer());
+
+    if (objectiveDescription != null)
+    {
+        SetObjectiveDescription(HostPlayer(), objectiveDescription);
+        EnableGameModeHud(HostPlayer());
+    }
 
     Any[] hudTexts = [];
     Any[] progressTexts = [];
@@ -89,6 +94,7 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
     HostPlayer().releaseInteract = true;
     HostPlayer().popupWindowVisible = false;
     DisableGameModeHud(HostPlayer());
+    HostPlayer().cm_isInMenu = true;
 
     # Destroy hud texts.
     foreach (Any hudText in hudTexts) {

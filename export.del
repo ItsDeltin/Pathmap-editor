@@ -108,11 +108,10 @@ string splitting, better syntax, etc.', Color.White),
         },
     );
 
-    createHelpButton(posX: 0, posY: -0.7,
-        'Code generation', [
-            MessageLine.Text('This button will generate code that you will need to copy into your gamemode.\n' +
-                'The code can be copied from the inspector by clicking the "Copy to clipboard all log" button.')
-        ]);
+    createHelpButton(posX: 0, posY: -0.7, null, [
+        MessageLine.Separator('Code Generation', Color.Green),
+        MessageLine.Text('This button will generate the pathfinding code that you can copy into your gamemode.\n' +
+            'The code can be copied from the inspector by clicking the "Copy to clipboard all log" button.')]);
     exportButton = createButton(
         label: '',
         posY: -0.9,

@@ -73,7 +73,7 @@ Number createButton(
     in Number clickWidth = 0.2,
     in Number clickHeight = 0.2,
     in Color defaultColor = Color.White,
-    in Color hoverColor = Color.Turquoise,
+    in Color hoverColor = Color.Blue,
     in Boolean interactable = true,
     in Boolean visible = true
 ) {
@@ -352,16 +352,18 @@ if (!cm_isInMenu)
     SetAimSpeed(EventPlayer(), 100);
     SetPrimaryFireEnabled(EventPlayer(), true);
     SetSecondaryFireEnabled(EventPlayer(), true);
-    if (cm_s_disableGameHud)
-    {
-        EnableHeroHud(EventPlayer());
-        EnableGameModeHud(EventPlayer());
-    }
     for (cm_i; cm_menuFrame.Length; 1) {
         DestroyInWorldText(cm_menuFrame[cm_i]);
         cm_textBudget += 1;
     }
     DestroyIcon(cm_exitIconEntity);
+}
+
+rule: 'Game mode hud'
+Event.OngoingPlayer
+if (!cm_isInMenu && !popupWindowVisible)
+{
+    EnableHeroHud();
 }
 
 rule: "Detect button press"

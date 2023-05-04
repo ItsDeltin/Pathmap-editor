@@ -92,18 +92,6 @@ void pathfindPlayer(Player player, Vector destination, Number[] attributes) glob
     player.pfCurrentNode = player.pfPath.Last;
 }
 
-void pathfind(in PfMap map, in Number start, in Number goal, in Number[] attributes)
-{
-    // If the node is close enough and attributes are mismatched, do a dynamic pathfind.
-    // if (map.nodes[start].DistanceTo(map.nodes[goal]) < 20 && map.globalAttributes.Remove(attributes).Length)
-    // {
-        // aStar(map, start, goal);
-    // }
-    // else
-    // {
-    // }
-}
-
 # Gets the shortest path from start to goal.
 # - `map`: The input map.
 # - `start`: Index of the starting node.

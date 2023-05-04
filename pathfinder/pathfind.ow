@@ -1,31 +1,30 @@
 variables
 {
     global:
-        0: __loadPersist
-        1: loadedMap_nodes
-        2: loadedMap_paths
-        3: loadedMap_attributes
-        4: loadedMap_globalAttributes
-        5: rayCast
-        6: dummies
-        7: foreachIndex
-        8: player
-        9: destination
-        10: attributes
-        11: closestNode
-        12: start
-        13: closestNode_0
-        14: goal
-        15: returnValue_aStar
-        16: open
-        17: cameFrom
-        18: gScore
-        19: current
-        20: path
-        21: neighbors
-        22: neighborIcons
-        23: foreachIndex_0
-        24: score
+        0: loadedMap_nodes
+        1: loadedMap_paths
+        2: loadedMap_attributes
+        3: loadedMap_globalAttributes
+        4: rayCast
+        5: dummies
+        6: foreachIndex
+        7: player
+        8: destination
+        9: attributes
+        10: closestNode
+        11: start
+        12: closestNode_0
+        13: goal
+        14: returnValue_aStar
+        15: open
+        16: cameFrom
+        17: gScore
+        18: current
+        19: path
+        20: neighbors
+        21: neighborIcons
+        22: foreachIndex_0
+        23: score
     player:
         0: pfUpdatePath
         1: pfDestination
@@ -40,28 +39,7 @@ subroutines
     0: pathfindPlayer
 }
 
-rule("Initial Global")
-{
-
-    event
-    {
-        Ongoing - Global;
-    }
-
-    // Action count: 7
-    actions
-    {
-        Set Global Variable(loadedMap_nodes, 0);
-        Set Global Variable(loadedMap_paths, 0);
-        Set Global Variable(loadedMap_attributes, 0);
-        Set Global Variable(loadedMap_globalAttributes, 0);
-        If(Not(Global Variable(__loadPersist)));
-            Set Global Variable(__loadPersist, True);
-        End;
-    }
-}
-
-rule("Pathfinder: Update Current Path")
+rule("Pathfinder: Throttle to next node")
 {
 
     event
@@ -76,7 +54,6 @@ rule("Pathfinder: Update Current Path")
         Player Variable(Event Player, pfUpdatePath) == True;
     }
 
-    // Action count: 2
     actions
     {
         Start Throttle In Direction(Event Player, Direction Towards(Position Of(Event Player), If-Then-Else(Compare(Player Variable(Event Player, pfCurrentNode), ==, -1), Player Variable(Event Player, pfDestination), Value In Array(Global Variable(loadedMap_nodes), Player Variable(Event Player, pfCurrentNode)))), 1, To World, Replace Existing Throttle, Direction And Magnitude);
@@ -100,20 +77,19 @@ rule("Pathfinder: Node reached")
         Distance Between(Event Player, If-Then-Else(Compare(Player Variable(Event Player, pfCurrentNode), ==, -1), Player Variable(Event Player, pfDestination), Value In Array(Global Variable(loadedMap_nodes), Player Variable(Event Player, pfCurrentNode)))) <= 0.4;
     }
 
-    // Action count: 11
     actions
     {
-        Small Message(All Players(Team(All)), Custom String("Node reached"));
+        Small Message(All Players(All Teams), Custom String("Node reached"));
         If(Compare(Player Variable(Event Player, pfCurrentNode), ==, -1));
             Stop Throttle In Direction(Event Player);
             "Stop pathfinding."
             Set Player Variable(Event Player, pfIsPathfinding, False);
         Else;
+            Set Player Variable(Event Player, pfAttributes, Mapped Array(Filtered Array(Global Variable(loadedMap_attributes), And(Compare(X Component Of(Current Array Element), ==, Player Variable(Event Player, pfCurrentNode)), Compare(Y Component Of(Current Array Element), ==, Last Of(Player Variable(Event Player, pfPath))))), Z Component Of(Current Array Element)));
             Set Player Variable(Event Player, pfCurrentNode, Last Of(Player Variable(Event Player, pfPath)));
             Modify Player Variable(Event Player, pfPath, Remove From Array By Index, Subtract(Count Of(Player Variable(Event Player, pfPath)), 1));
-            Set Player Variable(Event Player, pfAttributes, Filtered Array(Global Variable(loadedMap_attributes), And(Compare(X Component Of(Current Array Element), ==, Player Variable(Event Player, pfCurrentNode)), Compare(Y Component Of(Current Array Element), ==, Last Of(Player Variable(Event Player, pfPath))))));
         End;
-        Wait(0.5, Ignore Condition);
+        Wait(0.2, Ignore Condition);
         Loop If Condition Is True;
     }
 }
@@ -127,7 +103,6 @@ rule("Subroutine: Pathfind Player")
         pathfindPlayer;
     }
 
-    // Action count: 42
     actions
     {
         Set Global Variable(closestNode, First Of(Sorted Array(Array Slice(Sorted Array(Global Variable(loadedMap_nodes), Distance Between(Current Array Element, Position Of(Global Variable(player)))), 0, 5), Not(Is In Line Of Sight(Add(Current Array Element, Multiply(Up, 2)), Add(Position Of(Global Variable(player)), Multiply(Up, 2)), Barriers Do Not Block LOS)))));
@@ -188,11 +163,10 @@ rule("DEBUG: Pathfind dummy bots to cursor")
         Is Button Held(Host Player, Button(Melee)) == True;
     }
 
-    // Action count: 10
     actions
     {
         Set Global Variable(rayCast, Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Host Player, False));
-        Set Global Variable(dummies, Filtered Array(All Players(Team(All)), Is Dummy Bot(Current Array Element)));
+        Set Global Variable(dummies, Filtered Array(All Players(All Teams), Is Dummy Bot(Current Array Element)));
         Destroy All Effects;
         For Global Variable(foreachIndex, 0, Count Of(Global Variable(dummies)), 1);
             Set Global Variable(player, Value In Array(Global Variable(dummies), Global Variable(foreachIndex)));
@@ -217,10 +191,9 @@ rule("DEBUG: Create dummy bot")
         Is Button Held(Host Player, Button(Interact)) == True;
     }
 
-    // Action count: 1
     actions
     {
-        Create Dummy Bot(Hero(Kiriko), Team(Team1), -1, Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Host Player, False), Subtract(Left, Left));
+        Create Dummy Bot(Hero(Ashe), Team 1, -1, Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Host Player, False), Subtract(Left, Left));
     }
 }
 
@@ -237,10 +210,9 @@ rule("DEBUG: Reset dummies")
         Is Button Held(Host Player, Button(Crouch)) == True;
     }
 
-    // Action count: 1
     actions
     {
-        Teleport(Filtered Array(All Players(Team(All)), Is Dummy Bot(Current Array Element)), Host Player);
+        Teleport(Filtered Array(All Players(All Teams), Is Dummy Bot(Current Array Element)), Host Player);
     }
 }
 
@@ -257,7 +229,6 @@ rule("DEBUG: Host disable")
         Has Spawned(Host Player) == True;
     }
 
-    // Action count: 2
     actions
     {
         Set Primary Fire Enabled(Host Player, False);
@@ -273,10 +244,9 @@ rule("DEBUG: server load")
         Ongoing - Global;
     }
 
-    // Action count: 1
     actions
     {
-        Create HUD Text(All Players(Team(All)), Null, Null, Custom String("CAP: {0}, {1}, {2}", Server Load, Server Load Average, Server Load Peak), Left, 0, Color(White), Color(White), Color(White), Visible To And String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("CAP: {0}, {1}, {2}", Server Load, Server Load Average, Server Load Peak), Left, 0, Color(White), Color(White), Color(White), Visible To And String, Default Visibility);
     }
 }
 

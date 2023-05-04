@@ -1,6 +1,7 @@
 import 'main.del';
 import 'map languages.del';
 
+# A newline followed by a bunch of horizontal lines.
 String sep: '\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯';
 
 enum OutputLanguage
@@ -175,7 +176,18 @@ void Export() 'Subroutine: Generate map code.'
     # Enable inspector so we can log the exported code to it.
     EnableInspector();
 
-    # First export the map.
+    # Export introduction.
+    LogToInspector(<'Place the following text into your <0> script:<1>\n/*', ['workshop', 'ostw', 'overpy'][outputLanguage], sep>);
+
+    # 1. Export the core pathfinding code.
+    if (buildToggles[2]) {
+        ExportCore();
+    }
+    # 2. Export the rules.
+    if (buildToggles[1]) {
+        ExportRules();
+    }
+    # 3. Export the map.
     if (buildToggles[0]) {
         # Export map to workshop.
         if (outputLanguage == 0)
@@ -186,14 +198,6 @@ void Export() 'Subroutine: Generate map code.'
         # Export map to overpy.
         else if (outputLanguage == 2)
             ExportMapToOverpy();
-    }
-    # Secondly export the rules.
-    if (buildToggles[1]) {
-        ExportRules();
-    }
-    # Finally, export the core pathfinding code.
-    if (buildToggles[2]) {
-        ExportCore();
     }
 
     # Disable inspector.
@@ -222,8 +226,7 @@ void ExportCore() 'Subroutine: Export: Core'
         PrintStub('pathfinder/pathfind.ostw', []);
     # Export core code to overpy.
     else if (outputLanguage == 2)
-    {
-    }
+        PrintStub('pathfinder/pathfind.opy', []);
 }
 
 void ExportRules() playervar 'EXPORT: Export'
@@ -273,21 +276,20 @@ void ExportRules() playervar 'EXPORT: Export'
                 'zarya', 'zenyatta', 'ramattra'][firstEnabledHero]>);
         } 
 
-        # Workshop code
+        # Workshop condition
         if (lang == OutputLanguage.Workshop) {
             LogToInspector('*/ conditions { /*');
             LogToInspector('*/     Array Contains(Event Player.pfAttributes, {0}) == True; /*'.Format([Rules[i].ExecutesOnAttribute]));
             LogToInspector('*/ } actions { /*');
         }
-        # OSTW code
+        # OSTW condition
         else if (lang == OutputLanguage.OSTW) {
             LogToInspector('*/ if (pfAttributes.Contains({0})) /*'.Format([Rules[i].ExecutesOnAttribute]));
             LogToInspector('*/ { /*');
         }
-        # Overpy code
+        # Overpy condition
         else if (lang == OutputLanguage.OverPy) {
-            // TODO
-            LogToInspector('*/\n    @Condition pfAttributes.contains({0}) /*'.Format([Rules[i].ExecutesOnAttribute]));
+            LogToInspector('*/\n    @Condition {0} in eventPlayer.pfAttributes /*'.Format([Rules[i].ExecutesOnAttribute]));
         }            
         
         # Loop through each action in the rule.
@@ -451,66 +453,51 @@ void ExportMapToWorkshop()
 
 void ExportNodes()
 {
-    # Nodes rule
-    LogToInspector('*/ rule(\"GENERATED: {0} nodes\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
-    # Conditions
-    LogToInspector('*/ conditions { /*');
-    # Make sure this is the correct map
-    LogToInspector(mapCondition);
-    # Start actions
-    LogToInspector('*/ } actions { /*');
-    # Set pathfinder_nodes
-    LogToInspector('*/     global.loadedMap_nodes = Array( /*');
-    # For each node
-    for (Number a! = 0; Nodes.Length; 10) {
-        String stub = '';
-        for (Number b! = a; Min(a + 10, Nodes.Length); 1) {
-            define vector = Nodes[b].Node.Position;
-            stub = stub + <'Vector<0><1>',
-                vector,
-                b < Nodes.Length - 1 ? ', ' : ');'>;
-        }
-        LogToInspector('*/{0}/*'.Format([stub]));
-        MinWait();
-    }
-    # End action & rule block
-    LogToInspector('*/ } } /*');
+    ExportMapBlock('nodes', () => {
+        # Set loadedMap_segments
+        LogToInspector('*/     global.loadedMap_nodes = Array( /*');
+        # For each attribute
+        ExportArray(Nodes, 10, (node, isLast) => <'Vector<0><1>', node.Node.Position, isLast ? '' : ', '>);
+        # End pathfinder segments
+        LogToInspector('*/ ); /*');
+    });
 }
 
 void ExportAttributes()
 {
-    # Attributes rule
-    LogToInspector('*/ rule(\"GENERATED: {0} attributes\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
-    # Conditions
-    LogToInspector('*/ conditions { /*');
-    # Make sure this is the correct map
-    LogToInspector(mapCondition);
-    # Start actions
-    LogToInspector('*/ } actions { /*');
-    # Set pathfinder_attributes
-    LogToInspector('*/     global.loadedMap_attributes = Array( /*');
-    # For each attribute
-    ExportArray(Attributes, 10, (attribute, isLast) => <'Vector(<0>, <1>, <2>)<3>',
-        NodeIndexFromID(attribute.Node1), NodeIndexFromID(attribute.Node2), attribute.Value,
-        isLast ? '); ' : ', '>);
-    # End action & rule block
-    LogToInspector('*/ } } /*');
+    ExportMapBlock('attributes', () => {
+        # Set loadedMap_segments
+        LogToInspector('*/     global.loadedMap_attributes = Array( /*');
+        # For each attribute
+        ExportArray(Segments, 10, (segment, isLast) => <'Vector(<0>, <1>, <2>)<3>',
+            NodeIndexFromID(segment.Node1), NodeIndexFromID(segment.Node2), 0,
+            isLast ? '' : ', '>);
+        # End pathfinder segments
+        LogToInspector('*/ ); /*');
+    });
 }
 
 void ExportSegments()
 {
-    ExportMapBlock('segments', () => {
-        # Set pathfinder_segments
+    ExportMapBlock('paths', () => {
+        # Set loadedMap_segments
         LogToInspector('*/     global.loadedMap_paths = Array( /*');
         # For each attribute
         ExportArray(Segments, 10, (segment, isLast) => <'Vector(<0>, <1>, <2>)<3>',
             NodeIndexFromID(segment.Node1), NodeIndexFromID(segment.Node2), 0,
-            isLast ? '); ' : ', '>);
+            isLast ? '' : ', '>);
+        # End pathfinder segments
+        LogToInspector('*/ ); /*');
     });
 }
 
 void ExportMapToOstw()
 {
+    # This exported code should be placed in the ostw file.
+    LogToInspector('*/' + ExportOstwDataSet("nodes") + '/*');
+    LogToInspector('*/' + ExportOstwDataSet("paths") + '/*');
+    LogToInspector('*/' + ExportOstwDataSet("attributes") + sep);
+    
     # Introduction message
     LogToInspector(<'Place the following text into a file named \"<0>.jsonc\":', CurrentMap()> + sep + '\n/*');
 
@@ -518,22 +505,20 @@ void ExportMapToOstw()
     LogToInspector('*/ { "nodes": [ /*');
     ExportArray(Nodes, 10, (wn, isLast) => ExportJsonVector(wn.Node.Position, isLast));
     # Export Ostw segments
-    LogToInspector('*/ ], "segments": [ /*');
-    ExportArray(Segments, 10, (seg, isLast) => <'{"x": <0>, "y": <1>, "z": 0}', NodeIndexFromID(seg.Node1), NodeIndexFromID(seg.Node2)>);
+    LogToInspector('*/ ], "paths": [ /*');
+    ExportArray(Segments, 10, (seg, isLast) => <'{"x": <0>, "y": <1>, "z": 0}<2>', NodeIndexFromID(seg.Node1), NodeIndexFromID(seg.Node2), isLast ? '' : ','>);
     # Export Ostw attributes
     LogToInspector('*/ ], "attributes": [ /*');
-    ExportArray(Attributes, 10, (attr, isLast) => <'{"x": <0>, "y": <1>, "z": 0}', NodeIndexFromID(attr.Node1), NodeIndexFromID(attr.Node2)>);
+    ExportArray(Attributes, 10, (attr, isLast) => <'{"x": <0>, "y": <1>, "z": 0}<2>', NodeIndexFromID(attr.Node1), NodeIndexFromID(attr.Node2), isLast ? '' : ','>);
     # Conclude JSON
-    LogToInspector('*/ ] }' + sep + '\n');
-
-    # This exported code should be placed in the overpy file.
-    LogToInspector('Place the following text into your ostw script:' + sep + ExportOstwDataSet("nodes"));
-    LogToInspector('*/' + ExportOstwDataSet("segments"));
-    LogToInspector('*/' + ExportOstwDataSet("attributes"));
+    LogToInspector('*/ ] }' + sep);
 }
 
 void ExportMapToOverpy()
 {
+    # This exported code should be placed in the overpy file.
+    LogToInspector(<'*/\n#!define loadMap() __script__("<0>.js")\nloadMap()<1>', CurrentMap(), sep>);
+
     # Introduction message
     LogToInspector(<'Place the following text into a file named \"<0>.js\":', CurrentMap()> + sep + '\n/*');
 
@@ -561,26 +546,8 @@ void ExportMapToOverpy()
     LogToInspector(<'*/ `    @Condition getCurrentMap() == Map.<0>\n` + /*', mapNameToOverpyName(CurrentMap())>);
     LogToInspector(<'*/ `    loadedMap_${name} = [${array.join(\',\')}]\n`); } /*'>);
     LogToInspector('*/ load("nodes", n) + /*');
-    LogToInspector('*/ load("segments", s) + /*');
-    LogToInspector('*/ load("attributes", a) /*' + sep + '\n');
-
-    # This exported code should be placed in the overpy file.
-    LogToInspector('Place the following text into your overpy script:' + sep + <'*/\n#!define loadMap() __script__("<0>.js")\nloadMap() /*', CurrentMap()>);
-}
-
-rule: 'Test'
-Event.OngoingPlayer
-if (button(Button.Melee))
-if (host == eventPlayer)
-{
-    EnableInspector();
-    # Start block comment chain
-    LogToInspector('/*');
-    ExportMapToOstw();
-    // ExportCore2();
-    // ExportMap2();
-    // ExportRules(OutputLanguage.Workshop);
-    DisableInspector();
+    LogToInspector('*/ load("paths", s) + /*');
+    LogToInspector('*/ load("attributes", a)' + sep);
 }
 
 void ExportCorePathfinderComponents(Number globalRange, Number playerRange, Number subroutineRange) playervar "EXPORT: decompresser to workshop"
@@ -788,7 +755,7 @@ String ExportOstwDataSet(in String setName)
 {
     return <'\nrule: "GENERATED <0> <1>"\n', CurrentMap(), setName> +
         <'if (CurrentMap() == Map.<0>) {\n', mapNameToOstwName(CurrentMap())> +
-        <'    loadedMap.<1> = import("<0>.jsonc").<1>;\n} /*', CurrentMap(), setName>;
+        <'    loadedMap.<1> = import("<0>.jsonc").<1>;\n}', CurrentMap(), setName>;
 }
 
 void ExportStatement(in OutputLanguage language, in String workshop, in String deltinscript, in String overpy)

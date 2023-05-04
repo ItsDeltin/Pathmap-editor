@@ -29,7 +29,7 @@ globalvar persist Number version = currentVersion;
 # The `Current Map` value saved to a variable. Not actually used for anything currently.
 # Just in case anything processing the action-set save data wanted to know what the map
 # it was built on is.
-globalvar Map map = CurrentMap();
+globalvar persist Map map = CurrentMap();
 
 globalvar Number maxHistoryLength!;
 

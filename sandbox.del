@@ -130,7 +130,7 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
                     MessageLine.Text('with Overwatch Script To Workshop'),
                     MessageLine.Text('https://github.com/ItsDeltin/Overwatch-Script-To-Workshop\n', Color.Blue),
                     MessageLine.Separator('Josbird', Color.Orange),
-                    MessageLine.Text('- Cursor menu lirbrary\n- Noclip\n'),
+                    MessageLine.Text('- Cursor menu library\n- Noclip\n'),
                     MessageLine.Separator('Zezombye', Color.Yellow),
                     MessageLine.Text('- Map symmetry data\n- overpy')
                 ]);

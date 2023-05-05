@@ -2,16 +2,9 @@ struct PfMap
 {
     # The points in the map.
     public Vector[] nodes;
-    # The paths connecting the points.
-    # The X component is the index of the first node, the Y component is the index of the second node.
-    public Vector[] paths;
-    # Marked paths.
-    # The X component is the index of the first node.
-    # The Y component is the index of the second node.
-    # The Z component is the attribute value.
-    public Vector[] attributes;
-    # Attributes that are valid for every player.
-    public Number[] globalAttributes;
+    # `[node][i][0]` = neighbor index,
+    # `[node][i][1][j]` = attributes
+    public Any[][][] neighbors;
 }
 
 # The currently loaded map
@@ -60,8 +53,7 @@ if (EventPlayer().DistanceTo(pfCurrentNode == -1 ? pfDestination : loadedMap.nod
         # Stop pathfinding.
         pfIsPathfinding = false;
     } else {
-        // TODO: set attributes.
-        pfAttributes = loadedMap.attributes.FilteredArray(a => a.X == pfCurrentNode && a.Y == pfPath.Last).Map(v => v.Z);
+        pfAttributes = loadedMap.neighbors[pfCurrentNode].FilteredArray(segment => segment[0] == pfPath.Last).First.Last;
         pfCurrentNode = pfPath.Last;
         pfPath.ModRemoveByIndex(pfPath.Length - 1);
     }
@@ -135,36 +127,30 @@ Number[] aStar(in PfMap map, in Number start, in Number goal, in Number[] attrib
             // DestroyIcon(currentIcon);
             return reconstructPath(cameFrom, current);
         }
-
-        define neighbors = map.paths
-            .FilteredArray(p => p.X == current || p.Y == current)
-            .Map(p => p.X == current ? p.Y : p.X);
         
         open.ModRemoveByValue(current);
 
-        Any[] neighborIcons = [];
-        foreach (define neighbor in neighbors)
-        {
-            if (loadedMap.attributes.IsTrueForAll(a =>
-                a.X != current || a.Y != neighbor || attributes.Contains(a.Z)
-            )) {
-                define score = gScore[current] + map.nodes[current].DistanceTo(map.nodes[neighbor]);
+        // Any[] neighborIcons = [];
+        foreach (Any[] neighbor in map.neighbors[current]) {
+            if ((<Number[]>neighbor[1]).IsTrueForAll(a => attributes.Contains(a))) {
+                Number neighborI = neighbor[0];
+                define score = gScore[current] + map.nodes[current].DistanceTo(map.nodes[neighborI]);
                 // Color neighborColor = Color.Yellow;
-                if (score < gScore[neighbor])
+                if (score < gScore[neighborI])
                 {
                     // neighborColor = Color.Blue;
 
-                    cameFrom[neighbor] = current;
-                    gScore[neighbor] = score;
+                    cameFrom[neighborI] = current;
+                    gScore[neighborI] = score;
                     // fScore[neighbor] = gScore[neighbor] + h(neighbor);
 
-                    if (!open.Contains(neighbor))
-                        open += neighbor;
+                    if (!open.Contains(neighborI))
+                        open += neighborI;
                 }
                 // neighborIcons += CreateIcon(AllPlayers(), loadedMap.nodes[neighbor], Icon.ArrowDown, IconRev.VisibleTo, neighborColor, true);
             }
         }
-        MinWait();
+        // MinWait();
         // waitForClick();
         // DestroyIcon(currentIcon);
         // foreach (Any icon in neighborIcons) {

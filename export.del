@@ -171,7 +171,7 @@ if (cm_currActionID == MenuAction.Export)
     SetMenuState(MenuState.Export);
 }
 
-void Export() 'Subroutine: Generate map code.'
+void Export() playervar 'Subroutine: Generate map code.'
 {
     # Enable inspector so we can log the exported code to it.
     EnableInspector();
@@ -447,8 +447,9 @@ void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to work
 void ExportMapToWorkshop()
 {
     ExportNodes();
-    ExportSegments();
-    ExportAttributes();
+    ExportNeighbors();
+    // ExportSegments();
+    // ExportAttributes();
 }
 
 void ExportNodes()
@@ -463,14 +464,48 @@ void ExportNodes()
     });
 }
 
+void ExportNeighbors()
+{
+    ExportMapBlock('neighbors', () => {
+        LogToInspector('*/     global.loadedMap_neighbors = Array( /*');
+        # For each attribute
+        for (Number n = 0; Nodes.Length; 1)
+        {
+            LogToInspector('*/ Array( /*');
+            # Get connected segments.
+            Number[] connected = Segments
+                .Map((s, i) => i)
+                .FilteredArray(i => Segments[i].Node1 == Nodes[n].Node.UniqueID || Segments[i].Node2 == Nodes[n].Node.UniqueID);
+            # Export segments.
+            ExportArray(connected, 10, (i, isLast) =>
+            {
+                Number[] attributes = Attributes
+                    .FilteredArray(attr => Nodes[n].Node.UniqueID == attr.Node1 && (attr.Node2 == Segments[i].Node1 || attr.Node2 == Segments[i].Node2))
+                    .Map(attr => attr.Value);
+                
+                String attrString = StringJoin(attributes, ',', v => v);
+
+                return <'Array(<0>, Array(<1>))<2>',
+                    NodeIndexFromID(Segments[i].Node1 == Nodes[n].Node.UniqueID ? Segments[i].Node2 : Segments[i].Node1),
+                    attrString,
+                    isLast ? '' : ','>;
+            });
+            LogToInspector(<'*/ )<0> /*', n == Nodes.Length - 1 ? '' : ','>);
+            MinWait();
+        }
+        # End pathfinder segments
+        LogToInspector('*/ ); /*');
+    });
+}
+
 void ExportAttributes()
 {
     ExportMapBlock('attributes', () => {
         # Set loadedMap_segments
         LogToInspector('*/     global.loadedMap_attributes = Array( /*');
         # For each attribute
-        ExportArray(Segments, 10, (segment, isLast) => <'Vector(<0>, <1>, <2>)<3>',
-            NodeIndexFromID(segment.Node1), NodeIndexFromID(segment.Node2), 0,
+        ExportArray(Attributes, 10, (attr, isLast) => <'Vector(<0>, <1>, <2>)<3>',
+            NodeIndexFromID(attr.Node1), NodeIndexFromID(attr.Node2), 0,
             isLast ? '' : ', '>);
         # End pathfinder segments
         LogToInspector('*/ ); /*');
@@ -728,6 +763,18 @@ void ExportArray<T>(in T[] array, in Number step, const (T, Boolean) => String v
         LogToInspector('*/{0}/*'.Format([exportArrayStub]));
         MinWait();
     }
+}
+
+playervar Number joinStringI!;
+playervar String joinStringResult!;
+String StringJoin<T>(in T[] array, in String joinValue, const T => Any tToString)
+{
+    joinStringResult = '';
+    for (joinStringI = 0; array.Length; 1)
+    {
+        joinStringResult = <'<0><1>', joinStringResult, tToString(array[joinStringI])>;
+    }
+    return joinStringResult;
 }
 
 void ExportMapBlock(in String blockName, const () => void exportActions)

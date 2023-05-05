@@ -44,7 +44,10 @@ rule: 'Setup: Inspector, Performance HUD, and Settings'
     if (!WorkshopSettingToggle('Pathmap Editor', 'Enable inspector recording', false, 1))
         DisableInspectorRecording();
     // HUD
-    CreateHudText(AllPlayers(), Text: <"cap: <0> <1> <2>\nposition: <3>", ServerLoad(), ServerLoadAverage(), ServerLoadPeak(), PositionOf(host)>);
+    CreateHudText(AllPlayers(),
+        Text: <"cap: <0> <1> <2>\nposition: <3>\n<4>",
+        ServerLoad(), ServerLoadAverage(), ServerLoadPeak(),
+        PositionOf(host), SelectedNodeIndex == -1 ? '' : <'Selected node: <0>', SelectedNodeIndex>>);
     SetObjectiveDescription(AllPlayers(), '', HudTextRev.VisibleTo);
     // Settings
     maxHistoryLength = WorkshopSettingInteger("Pathmap Editor", "Undo history length", 20, 0, 100);
@@ -102,8 +105,11 @@ globalvar persist Number AttributeUniqueID = 1;
 Number NodeSize: 0.3;
 Boolean AnyNodesSelected: Nodes.IsTrueForAny(node => node.Selected);
 
+# The index of the selected node.
+# `-1` if none are selected.
 globalvar Number SelectedNodeIndex! = -1;
 globalvar Number SelectedNodeID! = -1;
+# The index of the selected segment.
 globalvar Number SelectedSegment! = -1;
 globalvar Player SelectedPlayer!;
 globalvar Any[] AttributeTexts = [];
@@ -148,14 +154,14 @@ playervar Vector lastUpdatePosition;
 rule: 'Preload nodes'
 {
     Number preload! = 0;
-    for (preload = 0; 40; 1)
+    for (preload = 0; 25; 1)
     {
         define node: Nodes[host.renderingNodes[EvaluateOnce(preload)]];
         CreateEffect(
             EvaluateOnce(preload) < host.renderingNodes.Length ? host : null,
             Effect.Sphere, node.Color(), node.ShownPosition(), NodeSize, EffectRev.VisibleToPositionRadiusAndColor);
     }
-    for (preload = 0; 40; 1)
+    for (preload = 0; 55; 1)
     {
         define seg: Segments[host.renderingSegments[EvaluateOnce(preload)]];
         CreateBeamEffect(
@@ -191,7 +197,7 @@ void updateRenderingNodes() 'Subroutine: Update rendering nodes'
 void updateRenderingSegments() 'Subroutine: Update rendering segments'
 {
     // Get the unique IDs of the 20 closest nodes.
-    define x = host.renderingNodes.Slice(0, 20).Map(i => Nodes[i].Node.UniqueID);
+    define x = host.renderingNodes.Slice(0, 10).Map(i => Nodes[i].Node.UniqueID);
     // Set the segments that will be rendered.
     host.renderingSegments = Segments.FilteredArray(
         s => x.Contains(s.Node1) || x.Contains(s.Node2)

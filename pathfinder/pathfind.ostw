@@ -16,7 +16,6 @@ playervar Vector pfDestination;
 # Determines if the player is pathfinding.
 playervar Boolean pfIsPathfinding;
 # The current node that the player is walking to.
-# Doing `pfPath[pfCurrentNode]` will get the next node.
 # If this is -1 but `pfIsPathfinding` is true, then the player
 # is walking to `pfDestination`.
 playervar Number pfCurrentNode;
@@ -47,7 +46,6 @@ Event.OngoingPlayer
 if (pfIsPathfinding)
 if (EventPlayer().DistanceTo(pfCurrentNode == -1 ? pfDestination : loadedMap.nodes[pfCurrentNode]) <= 0.4)
 {
-    SmallMessage(AllPlayers(), 'Node reached');
     if (pfCurrentNode == -1) {
         StopThrottleInDirection(EventPlayer());
         # Stop pathfinding.
@@ -95,67 +93,32 @@ Number[] aStar(in PfMap map, in Number start, in Number goal, in Number[] attrib
     Number[] open = [start];
     Number[] cameFrom = map.nodes.Map(n => -1);
     Number[] gScore = map.nodes.Map(n => 9999);
-    // Number[] fScore = gScore;
     gScore[start] = 0;
-    // fScore[start] = h(start);
+    Number iter = 0;
 
-    while (open.Length)
-    {
-        // highlight open
-        // Any[] wah = [];
-        // Any[] bah = [];
-        // foreach (Number o in open) {
-        //     wah += CreateIcon(AllPlayers(), loadedMap.nodes[o], Icon.QuestionMark, IconRev.VisibleTo, gScore[o] == 9999 ? Color.Gray : Color.White, true);
-        //     bah += CreateInWorldText(AllPlayers(), gScore[o] + h(o), loadedMap.nodes[o] + Up() * 2, 1, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.Orange);
-        // }
-        // waitForClick();
-        // foreach (Any w in wah) {
-        //     DestroyIcon(w);
-        // }
-        // foreach (Any w in bah) {
-        //     DestroyInWorldText(w);
-        // }
-
-        define current = open.SortedArray((o, i) => gScore[o] + h(o)).First;
-
-        // ! dbg
-        // Any currentIcon = CreateIcon(AllPlayers(), loadedMap.nodes[current], Icon.ArrowDown, IconRev.VisibleTo, Color.Green, true);
-
-        if (current == goal)
-        {
-            // SmallMessage(AllPlayers(), 'Destination found.');
-            // DestroyIcon(currentIcon);
+    while (open.Length) {
+        Number current = open.SortedArray((o, i) => gScore[o] + h(o)).First;
+        # If the goal was found, reconstruct the path.
+        if (current == goal) {
+            SmallMessage(AllPlayers(), <'Completed in <0> iterations', iter>);
             return reconstructPath(cameFrom, current);
         }
         
         open.ModRemoveByValue(current);
 
-        // Any[] neighborIcons = [];
         foreach (Any[] neighbor in map.neighbors[current]) {
             if ((<Number[]>neighbor[1]).IsTrueForAll(a => attributes.Contains(a))) {
                 Number neighborI = neighbor[0];
                 define score = gScore[current] + map.nodes[current].DistanceTo(map.nodes[neighborI]);
-                // Color neighborColor = Color.Yellow;
-                if (score < gScore[neighborI])
-                {
-                    // neighborColor = Color.Blue;
-
+                if (score < gScore[neighborI]) {
                     cameFrom[neighborI] = current;
                     gScore[neighborI] = score;
-                    // fScore[neighbor] = gScore[neighbor] + h(neighbor);
-
                     if (!open.Contains(neighborI))
                         open += neighborI;
                 }
-                // neighborIcons += CreateIcon(AllPlayers(), loadedMap.nodes[neighbor], Icon.ArrowDown, IconRev.VisibleTo, neighborColor, true);
             }
         }
-        // MinWait();
-        // waitForClick();
-        // DestroyIcon(currentIcon);
-        // foreach (Any icon in neighborIcons) {
-        //     DestroyIcon(icon);
-        // }
+        iter++;
     }
 
     return [];
@@ -164,24 +127,9 @@ Number[] aStar(in PfMap map, in Number start, in Number goal, in Number[] attrib
 Number[] reconstructPath(in Number[] cameFrom, ref Number current)
 {
     Number[] path = [-1];
-    while (current != -1)
-    {
+    while (current != -1) {
         path += current;
         current = cameFrom[current];
-
-        // if (current != -1)
-        // {
-        //     CreateBeamEffect(
-        //         AllPlayers(),
-        //         BeamType.GoodBeam,
-        //         loadedMap.nodes[path.Last] + Up() * .2,
-        //         loadedMap.nodes[current] + Up() * .2,
-        //         Color.Rose,
-        //         EffectRev.VisibleTo);
-        //     Any s = CreateIcon(AllPlayers(), loadedMap.nodes[current], Icon.Bolt, IconRev.VisibleTo, Color.Violet, true);
-        //     waitForClick();
-        //     DestroyIcon(s);
-        // }
     }
     return path;
 }
@@ -207,7 +155,7 @@ if (IsButtonHeld(HostPlayer(), Button.Melee))
     DestroyAllEffects();
     foreach (Player player in dummies) {
         pathfindPlayer(player, rayCast, [0, 1, 2, 3]);
-        Wait(3);
+        MinWait();
     }
 }
 

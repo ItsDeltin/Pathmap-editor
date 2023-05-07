@@ -1,1 +1,2 @@
 compile_miscellaneous_comments = false
+out_file = 'pathfind.ow'

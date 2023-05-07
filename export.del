@@ -220,13 +220,13 @@ void ExportCore() 'Subroutine: Export: Core'
 {
     # Export core code to workshop.
     if (outputLanguage == 0)
-        PrintStub('pathfinder/pathfind.ow', []);
+        PrintFileToWorkshopLog('pathfinder/pathfind.ow', []);
     # Export core code to ostw.
     else if (outputLanguage == 1)
-        PrintStub('pathfinder/pathfind.ostw', []);
+        PrintFileToWorkshopLog('pathfinder/pathfind.ostw', []);
     # Export core code to overpy.
     else if (outputLanguage == 2)
-        PrintStub('pathfinder/pathfind.opy', []);
+        PrintFileToWorkshopLog('pathfinder/pathfind.opy', []);
 }
 
 void ExportRules() playervar 'EXPORT: Export'
@@ -268,12 +268,7 @@ void ExportRules() playervar 'EXPORT: Export'
         }
         # Add event (overpy)
         else if (is_overpy && numberOfEnabledHeroes == 1) {
-            LogToInspector(<'*/\n    @hero <0> /*',
-                // todo: this needs to be in the same order as the heroes in AllHeroes().
-                ['ana', 'ashe', 'baptiste', 'bastion', 'brigitte', 'doomfist', 'dva', 'echo', 'genji', 'hammond', 'hanzo',
-                'junkerQueen', 'junkrat', 'kiriko', 'lucio', 'mccree', 'mei', 'mercy', 'moira', 'orisa', 'pharah', 'reaper',
-                'reinhardt', 'roadhog', 'sigma', 'sojourn', 'soldier', 'sombra', 'torbjorn', 'tracer', 'widowmaker', 'winston',
-                'zarya', 'zenyatta', 'ramattra'][firstEnabledHero]>);
+            LogToInspector(<'*/\n    @Hero <0> /*', heroIndexToOverpyHero(firstEnabledHero)>);
         } 
 
         # Workshop condition
@@ -370,18 +365,24 @@ void ExportRules() playervar 'EXPORT: Export'
             }
             # Walk to destination
             else if (actionID == 10) {
-                ExportAction(lang, "uhh;", "uhh();", "uhh()");
+                ExportAction(lang,
+                    '',
+                    '',
+                    '');
             }
             # Look at floor
             else if (actionID == 11) {
                 ExportAction(lang,
-                    "Start Facing(Event Player, Direction From Angles(Horizontal Facing Angle Of(Event Player), 89), 1000, To World, None);",
-                    "StartFacing(EventPlayer(), DirectionFromAngles(HorizontalFacingAngleOf(), 89), 1000, Relative.ToWorld, FacingRev.None);",
-                    "eventPlayer.startFacing(angleToDirection(eventPlayer.getHorizontalFacingAngle(), 89), 1000, Relativity.TO_WORLD, FacingReeval.NONE)");
+                    'Start Facing(Event Player, Direction From Angles(Horizontal Facing Angle Of(Event Player), 89), 1000, To World, None);',
+                    'StartFacing(EventPlayer(), DirectionFromAngles(HorizontalFacingAngleOf(), 89), 1000, Relative.ToWorld, FacingRev.None);',
+                    'eventPlayer.startFacing(angleToDirection(eventPlayer.getHorizontalFacingAngle(), 89), 1000, Relativity.TO_WORLD,' + ' FacingReeval.NONE)');
             }
             # Look at destination
             else if (actionID == 12) {
-                ExportAction(lang, "uhh;", "uhh();", "uhh()");
+                ExportAction(lang,
+                    'Start Facing(Event Player, Direction Towards(Eye Position(Event Player), ' + 'Event Player.pfDestination + Up() * 1.5), 100, To World, Direction And Turn Rate);',
+                    'StartFacing(EventPlayer(), DirectionTowards(EyePosition(), pfDestination + Up() * 1.5), ' + '100, Relative.ToWorld, FacingRev.DirectionAndTurnRate);',
+                    'eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition(), ' + 'eventPlayer.pfDestination + Vector.UP * 1.5), 100, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)');
             }
 
             MinWait();
@@ -467,33 +468,10 @@ void ExportNodes()
 void ExportNeighbors()
 {
     ExportMapBlock('neighbors', () => {
+        # Set loadedMap_neighors
         LogToInspector('*/     global.loadedMap_neighbors = Array( /*');
-        # For each attribute
-        for (Number n = 0; Nodes.Length; 1)
-        {
-            LogToInspector('*/ Array( /*');
-            # Get connected segments.
-            Number[] connected = Segments
-                .Map((s, i) => i)
-                .FilteredArray(i => Segments[i].Node1 == Nodes[n].Node.UniqueID || Segments[i].Node2 == Nodes[n].Node.UniqueID);
-            # Export segments.
-            ExportArray(connected, 10, (i, isLast) =>
-            {
-                Number[] attributes = Attributes
-                    .FilteredArray(attr => Nodes[n].Node.UniqueID == attr.Node1 && (attr.Node2 == Segments[i].Node1 || attr.Node2 == Segments[i].Node2))
-                    .Map(attr => attr.Value);
-                
-                String attrString = StringJoin(attributes, ',', v => v);
-
-                return <'Array(<0>, Array(<1>))<2>',
-                    NodeIndexFromID(Segments[i].Node1 == Nodes[n].Node.UniqueID ? Segments[i].Node2 : Segments[i].Node1),
-                    attrString,
-                    isLast ? '' : ','>;
-            });
-            LogToInspector(<'*/ )<0> /*', n == Nodes.Length - 1 ? '' : ','>);
-            MinWait();
-        }
-        # End pathfinder segments
+        ExportNeighborsPattern('Array(', ')');
+        # End array
         LogToInspector('*/ ); /*');
     });
 }
@@ -530,8 +508,7 @@ void ExportMapToOstw()
 {
     # This exported code should be placed in the ostw file.
     LogToInspector('*/' + ExportOstwDataSet("nodes") + '/*');
-    LogToInspector('*/' + ExportOstwDataSet("paths") + '/*');
-    LogToInspector('*/' + ExportOstwDataSet("attributes") + sep);
+    LogToInspector('*/' + ExportOstwDataSet("neighbors") + '/*');
     
     # Introduction message
     LogToInspector(<'Place the following text into a file named \"<0>.jsonc\":', CurrentMap()> + sep + '\n/*');
@@ -540,11 +517,8 @@ void ExportMapToOstw()
     LogToInspector('*/ { "nodes": [ /*');
     ExportArray(Nodes, 10, (wn, isLast) => ExportJsonVector(wn.Node.Position, isLast));
     # Export Ostw segments
-    LogToInspector('*/ ], "paths": [ /*');
-    ExportArray(Segments, 10, (seg, isLast) => <'{"x": <0>, "y": <1>, "z": 0}<2>', NodeIndexFromID(seg.Node1), NodeIndexFromID(seg.Node2), isLast ? '' : ','>);
-    # Export Ostw attributes
-    LogToInspector('*/ ], "attributes": [ /*');
-    ExportArray(Attributes, 10, (attr, isLast) => <'{"x": <0>, "y": <1>, "z": 0}<2>', NodeIndexFromID(attr.Node1), NodeIndexFromID(attr.Node2), isLast ? '' : ','>);
+    LogToInspector('*/ ], "neighbors": [ /*');
+    ExportNeighborsPattern('[', ']');
     # Conclude JSON
     LogToInspector('*/ ] }' + sep);
 }
@@ -558,196 +532,53 @@ void ExportMapToOverpy()
     LogToInspector(<'Place the following text into a file named \"<0>.js\":', CurrentMap()> + sep + '\n/*');
 
     # Export Overpy nodes
-    LogToInspector('*/ const n = [ /*');
+    LogToInspector('*/ const nodes = [ /*');
     ExportArray(Nodes, 10, (wn, isLast) => <'vect(<0>, <1>, <2>)<3>',
         wn.Node.Position.X, wn.Node.Position.Y, wn.Node.Position.Z, isLast ? '' : ','>);
     LogToInspector('*/ ]; /*');
 
-    # Export Overpy segments
-    LogToInspector('*/ const s = [ /*');
-    ExportArray(Segments, 10, (seg, isLast) => <'vect(<0>, <1>, 0)<2>',
-        NodeIndexFromID(seg.Node1), NodeIndexFromID(seg.Node2), isLast ? '' : ','>);
+    # Export Overpy neighors
+    LogToInspector('*/ const neighbors = [ /*');
+    ExportNeighborsPattern('[', ']');
     LogToInspector('*/ ]; /*');
     
-    # Export Overpy attributes
-    LogToInspector('*/ const a = [ /*');
-    ExportArray(Attributes, 10, (attr, isLast) => <'vect(<0>, <1>, 0)<2>',
-        NodeIndexFromID(attr.Node1), NodeIndexFromID(attr.Node2), isLast ? '' : ','>);
-    LogToInspector('*/ ]; /*');
-
     # Javascript -> overpy rules
     LogToInspector('*/ function load(name, array) { return ( /*');
     LogToInspector(<'*/ `rule "GENERATED <0> ${name}":\n` + /*', CurrentMap()>);
     LogToInspector(<'*/ `    @Condition getCurrentMap() == Map.<0>\n` + /*', mapNameToOverpyName(CurrentMap())>);
     LogToInspector(<'*/ `    loadedMap_${name} = [${array.join(\',\')}]\n`); } /*'>);
-    LogToInspector('*/ load("nodes", n) + /*');
-    LogToInspector('*/ load("paths", s) + /*');
-    LogToInspector('*/ load("attributes", a)' + sep);
+    LogToInspector('*/ load("nodes", nodes) + load("neighbors", neighbors)');
 }
 
-void ExportCorePathfinderComponents(Number globalRange, Number playerRange, Number subroutineRange) playervar "EXPORT: decompresser to workshop"
+# Exports the segments and attributes in a nicely optimized way.
+# - `beginArray`: The term used to begin an array in the intended output language.
+# - `endArray`: The term used to end an array in the intended output language.
+void ExportNeighborsPattern(String beginArray, String endArray) playervar 'Subroutine: Export Neighbors Pattern'
 {
-    EnableInspector();
+    # For each attribute
+    for (Number n = 0; Nodes.Length; 1)
+    {
+        # Get connected segments.
+        Number[] connected = Segments
+            .Map((s, i) => i)
+            .FilteredArray(i => Segments[i].Node1 == Nodes[n].Node.UniqueID || Segments[i].Node2 == Nodes[n].Node.UniqueID);
+        # Export segments.
+        LogToInspector(<'*/ <0><1><2><3> /*', beginArray, StringJoin(connected, ',', i =>
+        {
+            Number[] attributes = Attributes
+                .FilteredArray(attr => Nodes[n].Node.UniqueID == attr.Node1 && (attr.Node2 == Segments[i].Node1 || attr.Node2 == Segments[i].Node2))
+                .Map(attr => attr.Value);
+            
+            String attrString = StringJoin(attributes, ',', v => v);
 
-    // Variables:
-    // ~~global.pathfinder_nodes~~
-    // ~~global.pathfinder_attributes~~
-    // *global.pathfinder_compressed
-    // global.pathfinder_matcher
-    // global.pathfinder_parent_map
-    // global.pathfinder_i_node
-    // global.pathfinder_current_node_array
-    // global.pathfinder_i_string
-    // global.pathfinder_index_mapper
-
-    // Subroutine params:
-    // global.pathfind_players
-    // global.pathfind_destination
-    
-    // Player variables:
-    // player.pf_path_index (parent array)
-    // player.pf_destination
-    // player.pf_update_path
-    // player.pf_current_node
-    // player.pf_attributes
-
-    // Subroutines:
-    // pathfind
-
-    Number gr: globalRange;
-    Number pr: playerRange;
-    # Variables
-    LogToInspector(<'variables { global: <0>: pathfinder_compressed <1>: pathfinder_matcher <2>: pathfinder_parent_map <3>: pathfinder_i_node /*', gr, gr + 1, gr + 2, gr + 3>);
-    LogToInspector(<'*/ <0>: pathfinder_current_node_array <1>: pathfinder_i_string <2>: pathfinder_index_mapper <3>: pathfinder_nodes /*', gr + 4, gr + 5, gr + 6, gr + 7>);
-    LogToInspector(<'*/ <0>: pathfinder_attributes <1>: pathfind_players <2>: pathfind_destination /*', gr + 8, gr + 9, gr + 10>);
-    LogToInspector(<'*/ player: <0>: pf_path_index <1>: pf_destination <2>: pf_update_path <3>: pf_current_node <4>: pf_attributes } /*', pr, pr + 1, pr + 2, pr + 3, pr + 4>);
-    # Subroutines
-    LogToInspector(<'*/ subroutines { <0>: pathfind } /*', subroutineRange>);
-    # Add rule and event
-    LogToInspector('*/ rule(\"GENERATED: decompress map\") { event { Ongoing - Global; } /*');
-    # Conditions
-    LogToInspector('*/ conditions { /*');
-    # Wait for pathfinder_compressed to contain a value before starting.
-    LogToInspector('*/     global.pathfinder_compressed != Null; /*');
-    # Start actions
-    LogToInspector('*/ } actions { /*');
-    # Create the Matcher
-    LogToInspector('*/     global.pathfinder_matcher = Array( /*');
-    MinWait();
-    // todo: splice bake matcher to only export as much as required. 
-    # Add matcher elements
-    ExportArray(bakeMatcher, 20, (char, isLast) => <'Custom String(\"<0>\")<1>', char, isLast ? '); ' : ', '>);
-    # Initialize pathfinder_parent_map
-    LogToInspector('*/     global.pathfinder_parent_map = Empty Array; /*');
-    # Start the node loop
-    LogToInspector('*/     For Global Variable(pathfinder_i_node, 0, Count Of(global.pathfinder_compressed), 1); /*');
-    # Initialize global.pathfinder_current_node_array
-    LogToInspector('*/         global.pathfinder_current_node_array = Empty Array; /*');
-    # Start the string loop
-    LogToInspector('*/         For Global Variable(pathfinder_i_string, 0, Count Of(global.pathfinder_compressed[global.pathfinder_i_node]), 1); /*');
-    # Initialize the index matcher
-    LogToInspector('*/             global.pathfinder_index_mapper = Empty Array; /*');
-    # Stretch index matcher to length of string.
-    LogToInspector('*/             global.pathfinder_index_mapper[String Length(global.pathfinder_compressed[global.pathfinder_i_node] /*');
-    LogToInspector('*/                 [global.pathfinder_i_string])] = 0; /*');
-    # Append the stub to the current node array.
-    LogToInspector('*/             Modify Global Variable(pathfinder_current_node_array, Append To Array, Mapped Array( /*');
-    LogToInspector('*/                 global.pathfinder_index_mapper, Index Of Array Value(global.pathfinder_matcher, /*');
-    LogToInspector('*/                 String Slice(global.pathfinder_compressed[global.pathfinder_i_node][global.pathfinder_i_string], /*');
-    LogToInspector('*/                 Current Array Index, 1)) - 1)); /*'); // - 1 is adjustment
-    # Wait
-    LogToInspector('*/             Wait(0.016, Ignore Condition)');
-    # End the string loop
-    LogToInspector('*/         end; /*');
-    # Add pathfinder_current_node_array to pathfinder_parent_map
-    LogToInspector('*/     Modify Global Variable(pathfinder_parent_map, Append To Array, Array(Global.pathfinder_current_node_array)); /*');
-    # Wait
-    LogToInspector('*/         Wait(0.016, Ignore Condition)');
-    # End the node loop
-    LogToInspector('*/     end; /*');
-    # End action & rule block
-    LogToInspector('*/ } } /*');
-    MinWait();
-
-    # Pathfind subroutine
-    LogToInspector('*/ rule(\"GENERATED: pathfind Subroutine\") { event { subroutine; pathfind; } /*');
-    # Actions
-    LogToInspector('*/ actions { /*');
-    // todo: should we set the pathmap that the player is using?
-    # Set player's path index
-    LogToInspector('*/     global.pathfind_players.pf_path_index = Index Of Array Value(global.pathfinder_nodes, ' + 'First Of(Sorted Array(global.pathfinder_nodes, Distance Between(Current Array Element, ' + 'Global.pathfind_destination)))); /*');
-    # Set each player's destination
-    LogToInspector('*/     global.pathfind_players.pf_destination = global.pathfind_destination; /*');
-    # Update each player's path
-    LogToInspector('*/     global.pathfind_players.pf_update_path = True; /*');
-    # End action & rule block
-    LogToInspector('*/ } } /*');
-    MinWait();
-
-    # Player init rule
-    LogToInspector('*/ rule(\"GENERATED: PLAYER: update path\") { event { Ongoing - Each Player; All; All; } /*');
-    # Start actions
-    LogToInspector('*/ actions { /*');
-    # Init pf_path_index
-    LogToInspector('*/     Event Player.pf_path_index = -1; /*');
-    # End action & rule block
-    LogToInspector('*/ } } /*');
-    MinWait();
-
-    # Player Update Path rule
-    LogToInspector('*/ rule(\"GENERATED: PLAYER: update path\") { event { Ongoing - Each Player; All; All; } /*');
-    # Conditions
-    LogToInspector('*/ conditions { /*');
-    # Execute when pf_update_path
-    LogToInspector('*/     Event Player.pf_update_path == True; /*');
-    # Start actions
-    LogToInspector('*/ } actions { /*');
-    # Update current node
-    LogToInspector('*/     Event Player.pf_current_node = Index Of Array Value(global.pathfinder_nodes, ' + 'First Of(Sorted Array(global.pathfinder_nodes, Distance Between(Current Array Element, ' + 'Position Of(Event Player))))); /*');
-    # Throttle
-    LogToInspector('*/     Start Throttle In Direction(Event Player, Direction Towards(Position Of(Event Player), /*');
-    LogToInspector('*/         Event Player.pf_current_node == -1 ? Event Player.pf_destination : global.pathfinder_nodes[ /*');
-    LogToInspector('*/         Event Player.pf_current_node]), 1, To World, Replace existing throttle, Direction and Magnitude); /*');
-    # Reset pf_update_path
-    LogToInspector('*/     Event Player.pf_update_path = False; /*');
-    # End action & rule block
-    LogToInspector('*/ } } /*');
-    MinWait();
-
-    # Player Next Node rule
-    LogToInspector('*/ rule(\"GENERATED: PLAYER: next node\") { event { Ongoing - Each Player; All; All; } /*');
-    # Conditions
-    LogToInspector('*/ conditions { /*');
-    # Execute when node reached
-    LogToInspector('*/     Distance Between(Position Of(Event Player), Event Player.pf_current_node == -1 ? /*');
-    LogToInspector('*/         Event Player.pf_destination : Global.pathfinder_nodes[Event Player.pf_current_node]) <= 0.400; /*');
-    # Is pathfinding?
-    LogToInspector('*/     Event Player.pf_path_index != -1; /*');
-    # Start actions
-    LogToInspector('*/ } actions { /*');
-    # Is destination reached?
-    LogToInspector('*/     If (Event Player.pf_current_node == -1); /*');
-    # Destination reached, stop moxing.
-    LogToInspector('*/         Stop Throttle In Direction(Event Player); /*');
-    # Stop pathfinding.
-    LogToInspector('*/         Event Player.pf_path_index = -1; /*');
-    # Set next node
-    LogToInspector('*/     Else; /*');
-    # Set current attribute
-    LogToInspector('*/         Event Player.pf_attributes = Mapped Array(Filtered Array(Global.pathfinder_attributes, /*');
-    LogToInspector('*/             X Component Of(Current Array Element) == Event Player.pf_current_node && /*');
-    LogToInspector('*/             Y Component Of(Current Array Element) == global.pathfinder_parent_map[Event Player.pf_path_index] /*');
-    LogToInspector('*/             [Event Player.pf_current_node]), Z Component Of(Current Array Element)); /*');
-    # Set current node
-    LogToInspector('*/         Event Player.pf_current_node = global.pathfinder_parent_map[Event Player.pf_path_index]' + '[Event Player.pf_current_node]; /*');
-    LogToInspector('*/     End; /*');
-    # Loop if needed
-    LogToInspector('*/     Wait(0.250, Ignore Condition); /*');
-    LogToInspector('*/     Loop If Condition Is True(); /*');
-    # End action & rule block
-    LogToInspector('*/ } } /*');
-
-    DisableInspector();
+            return <'<0><1>, <0><2><3><3>',
+                beginArray,
+                NodeIndexFromID(Segments[i].Node1 == Nodes[n].Node.UniqueID ? Segments[i].Node2 : Segments[i].Node1),
+                attrString,
+                endArray>;
+        }), endArray, n == Nodes.Length - 1 ? '' : ','>);
+        MinWait();
+    }
 }
 
 playervar String exportArrayStub;
@@ -765,14 +596,13 @@ void ExportArray<T>(in T[] array, in Number step, const (T, Boolean) => String v
     }
 }
 
-playervar Number joinStringI!;
-playervar String joinStringResult!;
 String StringJoin<T>(in T[] array, in String joinValue, const T => Any tToString)
 {
-    joinStringResult = '';
-    for (joinStringI = 0; array.Length; 1)
+    String joinStringResult! = '';
+    for (Number joinStringI! = 0; array.Length; 1)
     {
-        joinStringResult = <'<0><1>', joinStringResult, tToString(array[joinStringI])>;
+        joinStringResult = <'<0><1><2>', joinStringResult, tToString(array[joinStringI]), joinStringI != array.Length - 1 ? joinValue : ''>;
+        MinWait();
     }
     return joinStringResult;
 }

@@ -1,44 +1,42 @@
 #Global variables
 
-globalvar loadedMap_nodes
-globalvar loadedMap_paths
-globalvar loadedMap_attributes
-globalvar loadedMap_globalAttributes
-globalvar rayCast
-globalvar dummies
-globalvar foreachIndex
-globalvar player
-globalvar destination
-globalvar attributes
-globalvar closestNode
-globalvar start
-globalvar closestNode_0
-globalvar goal
-globalvar returnValue_aStar
-globalvar open
-globalvar cameFrom
-globalvar gScore
-globalvar current
-globalvar path
-globalvar neighbors
-globalvar neighborIcons
-globalvar foreachIndex_0
-globalvar score
+globalvar loadedMap_nodes 0
+globalvar loadedMap_neighbors 1
+globalvar rayCast 2
+globalvar dummies 3
+globalvar foreachIndex 4
+globalvar player 5
+globalvar destination 6
+globalvar attributes 7
+globalvar closestNode 8
+globalvar start 9
+globalvar closestNode_0 10
+globalvar goal 11
+globalvar returnValue_aStar 12
+globalvar open 13
+globalvar cameFrom 14
+globalvar gScore 15
+globalvar iter 16
+globalvar current 17
+globalvar path 18
+globalvar foreachIndex_0 19
+globalvar neighborI 20
+globalvar score 21
 
 
 #Player variables
 
-playervar pfUpdatePath
-playervar pfDestination
-playervar pfIsPathfinding
-playervar pfCurrentNode
-playervar pfAttributes
-playervar pfPath
+playervar pfUpdatePath 0
+playervar pfDestination 1
+playervar pfIsPathfinding 2
+playervar pfCurrentNode 3
+playervar pfAttributes 4
+playervar pfPath 5
 
 
 #Subroutine names
 
-subroutine pathfindPlayer
+subroutine pathfindPlayer 0
 
 
 rule "Pathfinder: Throttle to next node":
@@ -54,13 +52,12 @@ rule "Pathfinder: Node reached":
     @Condition eventPlayer.pfIsPathfinding == true
     @Condition (distance(eventPlayer, eventPlayer.pfDestination if eventPlayer.pfCurrentNode == -1 else loadedMap_nodes[eventPlayer.pfCurrentNode])) <= 0.4
     
-    smallMessage(getAllPlayers(), "Node reached")
     if eventPlayer.pfCurrentNode == -1:
         eventPlayer.stopThrottleInDirection()
         #Stop pathfinding.
         eventPlayer.pfIsPathfinding = false
     else:
-        eventPlayer.pfAttributes = [i.z for i in loadedMap_attributes if i.x == eventPlayer.pfCurrentNode and i.y == eventPlayer.pfPath.last()]
+        eventPlayer.pfAttributes = (([i for i in loadedMap_neighbors[eventPlayer.pfCurrentNode] if i[0] == eventPlayer.pfPath.last()])[0]).last()
         eventPlayer.pfCurrentNode = eventPlayer.pfPath.last()
         del eventPlayer.pfPath[len(eventPlayer.pfPath) - 1]
     wait(0.2)
@@ -79,27 +76,29 @@ def pathfindPlayer():
     cameFrom = [-1 for player_ in loadedMap_nodes]
     gScore = [9999 for player_ in loadedMap_nodes]
     gScore[start] = 0
+    iter = 0
     while len(open):
         current = (sorted(open, lambda player_: gScore[player_] + distance(loadedMap_nodes[player_], loadedMap_nodes[goal]) * 2))[0]
+        #If the goal was found, reconstruct the path.
         if current == goal:
+            smallMessage(getAllPlayers(), "Completed in {0} iterations".format(iter))
             path = [-1]
             while current != -1:
                 path.append(current)
                 current = cameFrom[current]
             returnValue_aStar = path
             goto lbl_0
-        neighbors = [i.y if i.x == current else i.x for i in loadedMap_paths if i.x == current or i.y == current]
         open.remove(current)
-        neighborIcons = []
-        for foreachIndex_0 in range(len(neighbors)):
-            if all([player_.x != current or player_.y != neighbors[foreachIndex_0] or player_.z in attributes for player_ in loadedMap_attributes]):
-                score = gScore[current] + distance(loadedMap_nodes[current], loadedMap_nodes[neighbors[foreachIndex_0]])
-                if score < gScore[neighbors[foreachIndex_0]]:
-                    cameFrom[neighbors[foreachIndex_0]] = current
-                    gScore[neighbors[foreachIndex_0]] = score
-                    if not neighbors[foreachIndex_0] in open:
-                        open.append(neighbors[foreachIndex_0])
-        wait()
+        for foreachIndex_0 in range(len(loadedMap_neighbors[current])):
+            if all([i in attributes for i in loadedMap_neighbors[current][foreachIndex_0][1]]):
+                neighborI = loadedMap_neighbors[current][foreachIndex_0][0]
+                score = gScore[current] + distance(loadedMap_nodes[current], loadedMap_nodes[neighborI])
+                if score < gScore[neighborI]:
+                    cameFrom[neighborI] = current
+                    gScore[neighborI] = score
+                    if not neighborI in open:
+                        open.append(neighborI)
+        iter += 1
     returnValue_aStar = []
     lbl_0:
     player.pfPath = returnValue_aStar
@@ -120,7 +119,7 @@ rule "DEBUG: Pathfind dummy bots to cursor":
         destination = rayCast
         attributes = [0, 1, 2, 3]
         pathfindPlayer()
-        wait(3)
+        wait()
 
 
 rule "DEBUG: Create dummy bot":

@@ -1,23 +1,23 @@
 variables
 {
     global:
-        0: __loadPersist
-        1: loadedMap_nodes
-        2: loadedMap_neighbors
-        3: rayCast
-        4: dummies
-        5: foreachIndex
-        6: player
-        7: destination
-        8: attributes
-        9: closestNode
-        10: start
-        11: closestNode_0
-        12: goal
-        13: returnValue_aStar
-        14: open
-        15: cameFrom
-        16: gScore
+        0: loadedMap_nodes
+        1: loadedMap_neighbors
+        2: rayCast
+        3: dummies
+        4: foreachIndex
+        5: player
+        6: destination
+        7: attributes
+        8: closestNode
+        9: start
+        10: closestNode_0
+        11: goal
+        12: returnValue_aStar
+        13: open
+        14: cameFrom
+        15: gScore
+        16: iter
         17: current
         18: path
         19: foreachIndex_0
@@ -37,25 +37,6 @@ subroutines
     0: pathfindPlayer
 }
 
-rule("Initial Global")
-{
-
-    event
-    {
-        Ongoing - Global;
-    }
-
-    // Action count: 5
-    actions
-    {
-        Set Global Variable(loadedMap_nodes, 0);
-        Set Global Variable(loadedMap_neighbors, 0);
-        If(Not(Global Variable(__loadPersist)));
-            Set Global Variable(__loadPersist, True);
-        End;
-    }
-}
-
 rule("Pathfinder: Throttle to next node")
 {
 
@@ -71,7 +52,6 @@ rule("Pathfinder: Throttle to next node")
         Player Variable(Event Player, pfUpdatePath) == True;
     }
 
-    // Action count: 2
     actions
     {
         Start Throttle In Direction(Event Player, Direction Towards(Position Of(Event Player), If-Then-Else(Compare(Player Variable(Event Player, pfCurrentNode), ==, -1), Player Variable(Event Player, pfDestination), Value In Array(Global Variable(loadedMap_nodes), Player Variable(Event Player, pfCurrentNode)))), 1, To World, Replace Existing Throttle, Direction And Magnitude);
@@ -95,10 +75,8 @@ rule("Pathfinder: Node reached")
         Distance Between(Event Player, If-Then-Else(Compare(Player Variable(Event Player, pfCurrentNode), ==, -1), Player Variable(Event Player, pfDestination), Value In Array(Global Variable(loadedMap_nodes), Player Variable(Event Player, pfCurrentNode)))) <= 0.4;
     }
 
-    // Action count: 11
     actions
     {
-        Small Message(All Players(Team(All)), Custom String("Node reached"));
         If(Compare(Player Variable(Event Player, pfCurrentNode), ==, -1));
             Stop Throttle In Direction(Event Player);
             "Stop pathfinding."
@@ -122,7 +100,6 @@ rule("Subroutine: Pathfind Player")
         pathfindPlayer;
     }
 
-    // Action count: 40
     actions
     {
         Set Global Variable(closestNode, First Of(Sorted Array(Array Slice(Sorted Array(Global Variable(loadedMap_nodes), Distance Between(Current Array Element, Position Of(Global Variable(player)))), 0, 5), Not(Is In Line Of Sight(Add(Current Array Element, Multiply(Up, 2)), Add(Position Of(Global Variable(player)), Multiply(Up, 2)), Barriers Do Not Block LOS)))));
@@ -133,16 +110,19 @@ rule("Subroutine: Pathfind Player")
         Set Global Variable(cameFrom, Mapped Array(Global Variable(loadedMap_nodes), -1));
         Set Global Variable(gScore, Mapped Array(Global Variable(loadedMap_nodes), 9999));
         Set Global Variable At Index(gScore, Global Variable(start), 0);
+        Set Global Variable(iter, 0);
         While(Count Of(Global Variable(open)));
             Set Global Variable(current, First Of(Sorted Array(Global Variable(open), Add(Value In Array(Global Variable(gScore), Current Array Element), Multiply(Distance Between(Value In Array(Global Variable(loadedMap_nodes), Current Array Element), Value In Array(Global Variable(loadedMap_nodes), Global Variable(goal))), 2)))));
+            "If the goal was found, reconstruct the path."
             If(Compare(Global Variable(current), ==, Global Variable(goal)));
+                Small Message(All Players(All Teams), Custom String("Completed in {0} iterations", Global Variable(iter)));
                 Set Global Variable(path, Array(-1));
                 While(Compare(Global Variable(current), !=, -1));
                     Modify Global Variable(path, Append To Array, Global Variable(current));
                     Set Global Variable(current, Value In Array(Global Variable(cameFrom), Global Variable(current)));
                 End;
                 Set Global Variable(returnValue_aStar, Global Variable(path));
-                Skip(17);
+                Skip(18);
             End;
             Modify Global Variable(open, Remove From Array By Value, Global Variable(current));
             For Global Variable(foreachIndex_0, 0, Count Of(Value In Array(Global Variable(loadedMap_neighbors), Global Variable(current))), 1);
@@ -158,6 +138,7 @@ rule("Subroutine: Pathfind Player")
                     End;
                 End;
             End;
+            Modify Global Variable(iter, Add, 1);
         End;
         Set Global Variable(returnValue_aStar, Empty Array);
         Set Player Variable(Global Variable(player), pfPath, Global Variable(returnValue_aStar));
@@ -181,18 +162,17 @@ rule("DEBUG: Pathfind dummy bots to cursor")
         Is Button Held(Host Player, Button(Melee)) == True;
     }
 
-    // Action count: 10
     actions
     {
         Set Global Variable(rayCast, Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Host Player, False));
-        Set Global Variable(dummies, Filtered Array(All Players(Team(All)), Is Dummy Bot(Current Array Element)));
+        Set Global Variable(dummies, Filtered Array(All Players(All Teams), Is Dummy Bot(Current Array Element)));
         Destroy All Effects;
         For Global Variable(foreachIndex, 0, Count Of(Global Variable(dummies)), 1);
             Set Global Variable(player, Value In Array(Global Variable(dummies), Global Variable(foreachIndex)));
             Set Global Variable(destination, Global Variable(rayCast));
             Set Global Variable(attributes, Array(0, 1, 2, 3));
             Call Subroutine(pathfindPlayer);
-            Wait(3, Ignore Condition);
+            Wait(0.016, Ignore Condition);
         End;
     }
 }
@@ -210,10 +190,9 @@ rule("DEBUG: Create dummy bot")
         Is Button Held(Host Player, Button(Interact)) == True;
     }
 
-    // Action count: 1
     actions
     {
-        Create Dummy Bot(Hero(Ashe), Team(Team1), -1, Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Host Player, False), Subtract(Left, Left));
+        Create Dummy Bot(Hero(Ashe), Team 1, -1, Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Host Player, False), Subtract(Left, Left));
     }
 }
 
@@ -230,10 +209,9 @@ rule("DEBUG: Reset dummies")
         Is Button Held(Host Player, Button(Crouch)) == True;
     }
 
-    // Action count: 1
     actions
     {
-        Teleport(Filtered Array(All Players(Team(All)), Is Dummy Bot(Current Array Element)), Host Player);
+        Teleport(Filtered Array(All Players(All Teams), Is Dummy Bot(Current Array Element)), Host Player);
     }
 }
 
@@ -250,7 +228,6 @@ rule("DEBUG: Host disable")
         Has Spawned(Host Player) == True;
     }
 
-    // Action count: 2
     actions
     {
         Set Primary Fire Enabled(Host Player, False);
@@ -266,9 +243,8 @@ rule("DEBUG: server load")
         Ongoing - Global;
     }
 
-    // Action count: 1
     actions
     {
-        Create HUD Text(All Players(Team(All)), Null, Null, Custom String("CAP: {0}, {1}, {2}", Server Load, Server Load Average, Server Load Peak), Left, 0, Color(White), Color(White), Color(White), Visible To And String, Default Visibility);
+        Create HUD Text(All Players(All Teams), Null, Null, Custom String("CAP: {0}, {1}, {2}", Server Load, Server Load Average, Server Load Peak), Left, 0, Color(White), Color(White), Color(White), Visible To And String, Default Visibility);
     }
 }

@@ -141,7 +141,7 @@ void SetLanguageSelectLabels() 'Subroutine: Set Language Select Labels'
     SetLabel(selectWorkshopButton, outputLanguage == 0 ? '【Workshop】' : 'Workshop');
     SetLabel(selectOstwButton, outputLanguage == 1 ? '【Ostw】' : 'Ostw');
     SetLabel(selectOverpyButton, outputLanguage == 2 ? '【Overpy】' : 'Overpy');
-    SetLabel(exportButton, <'☆Generate code for <0>☆', ['the workshop', 'ostw', 'overpy'][outputLanguage]>);
+    SetLabel(exportButton, <'<1>Generate code for <0><1>', ['the workshop', 'ostw', 'overpy'][outputLanguage], AbilityIconString(Hero.Torbjorn, Button.Ability2)>);
 }
 
 void CreateToggle(in Number index, in String label, in Number posX, in Number posY)

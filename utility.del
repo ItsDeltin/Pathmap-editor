@@ -4,6 +4,7 @@ Boolean button(Button button): IsButtonHeld(host, button);
 Vector eye: EyePosition(host);
 Player host: HostPlayer();
 Player eventPlayer: EventPlayer();
+Boolean isHost: host == eventPlayer;
 Vector ray(Vector start, Vector end): RayCastHitPosition(start, end, null, null, false);
 
 

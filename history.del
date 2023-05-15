@@ -3,10 +3,10 @@ import 'main.del';
 Boolean CanUndo: historyPage > 0;
 Boolean CanRedo: historyPage < historyItems.Length;
 
-globalvar Number historyPage;
-globalvar HistoryCatalog[] historyItems = [];
+playervar Number historyPage;
+playervar HistoryCatalog[] historyItems = [];
 
-void Document(in HistoryCatalog catalogItem)
+void Document(HistoryCatalog catalogItem) '(Subroutine) Document Undoable Action'
 {
     // If we went back in time and something is documented, the future states are now stale so we can remove them.
     while (historyItems.Length > historyPage)

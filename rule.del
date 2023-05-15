@@ -10,9 +10,7 @@ struct Rule
 
 struct RuleAction
 {
-    public String Label;
-    public () => void Executor;
-    public Vector Export;
+    public Any[] Data;
 }
 
 globalvar persist Rule[] Rules = [];
@@ -50,7 +48,8 @@ void SetupRuleMenu() 'Setup rule menu'
         'Add rule',
         primaryAction: MenuAction.CreateRule,
         posY: 0.8,
-        scale: 3
+        scale: 3,
+        clickWidth: .6
     );
 
     createHelpButton(0, 1, null, [
@@ -178,6 +177,14 @@ void initiatePager() 'CM: Initiate pager'
         scale: 1.75,
         primaryAction: MenuAction.ToggleAll
     );
+    pagerButtons += createButton(
+        'delete rule',
+        defaultColor: Color.Red,
+        posX: 0,
+        posY: -1.1,
+        clickWidth: 1.4,
+        onClick: l => DeleteRule()
+    );
 
     pagerButtons += [previousRuleText, nextRuleText, deleteActionText, moveActionsUpText, moveActionsDownText, rulePageText];
     buttonCollectionMain += pagerButtons;
@@ -189,7 +196,7 @@ void loadActionScrollbar() '(Subroutine) CM: Load action scrollbar'
     actionScrollBar = new Scrollbar(
         -1.75,
         0.5,
-        Rules[rulePage].Actions.Map(action => action.Label),
+        Rules[rulePage].Actions.Map(action => LabelFromAction(action)),
         6,
         item => {
             actionsSelected[item] = !actionsSelected[item];
@@ -322,7 +329,7 @@ if (cm_currActionID == MenuAction.DeleteAction)
                 Rules[ruleIndex].Actions = insert(Rules[ruleIndex].Actions, originalIndices[i], deleting[i]);
 
                 if (isRulePageVisible(ruleIndex))
-                    actionScrollBar.Insert(originalIndices[i], deleting[i].Label);
+                    actionScrollBar.Insert(originalIndices[i], LabelFromAction(deleting[i]));
             }
         }
     });
@@ -355,12 +362,12 @@ if (cm_currActionID == MenuAction.CreateRule)
     Document({
         Set: () => {
             Rules.ModAppend([{ Actions: [], ExecutesOnAttribute: 0, EnabledHeroes: AllHeroes().Map(hero => true) }]);
-            initiatePager();
-            updateRuleContent();
+            OnRuleAdded();
         },
         Revert: () => {
             define removeIndex! = Rules.Length - 1;
             Rules.ModRemoveByIndex(removeIndex);
+            OnRuleRemoved();
         }
     });
 }
@@ -387,7 +394,7 @@ Event.OngoingPlayer
 if (cm_currActionID == MenuAction.WaitConfirm)
 {
     Number wait: waitTime;
-    DocumentAction({ Label: 'wait ' + wait, Executor: () => Wait(wait), Export: Vector(0, wait, 0) });
+    DocumentAction({ Data: [0, wait] });
     SetMenuState(MenuState.Rules);
 }
 
@@ -431,9 +438,8 @@ void DocumentAction(in RuleAction createdAction)
     Document({
         Set: () => {
             Rules[ruleIndex].Actions += [createdAction];
-            // RefreshActionList();
             if (menuState == MenuState.Rules && actionScrollBar)
-                actionScrollBar.Add(createdAction.Label);
+                actionScrollBar.Add(LabelFromAction(createdAction));
         },
         Revert: () => {
             Number i! = Rules[ruleIndex].Actions.Length - 1;
@@ -527,7 +533,7 @@ void DoMove(Boolean[] selected!, Boolean up!, Number page!) 'Subroutine: Execute
             if (isRulePageVisible(page))
             {
                 actionScrollBar.Remove(i);
-                actionScrollBar.Insert(i + direction, action.Label);
+                actionScrollBar.Insert(i + direction, LabelFromAction(action));
                 actionsSelected[i + direction] = true;
                 updateActionSelectColor(i + direction);
             }
@@ -538,21 +544,7 @@ void DoMove(Boolean[] selected!, Boolean up!, Number page!) 'Subroutine: Execute
 void OpenActionSelectMenu() 'Subroutine: Open Add Action menu'
 {
     SetMenuState(MenuState.AddAction);
-    actionScrollBar = new Scrollbar(0, 0.75, [
-        'wait...',
-        'jump',
-        'start holding jump',
-        'stop holding jump',
-        'ability 1',
-        'ability 2',
-        'melee',
-        'primary fire',
-        'secondary fire',
-        'stop walking',
-        'walk to destination',
-        'look at floor',
-        'look at destination'
-    ], 8, item => {
+    actionScrollBar = new Scrollbar(0, 0.75, host.actionLabels, 8, item => {
         DestroyScrollbar();
 
         // Wait length
@@ -569,8 +561,54 @@ void OpenActionSelectMenu() 'Subroutine: Open Add Action menu'
         }
         else
         {            
-            DocumentAction(CreateAction(item));
+            DocumentAction({ Data: [item, ''] });
             SetMenuState(MenuState.Rules);
         }
     });
+}
+
+void DeleteRule() 'Subroutine: Delete rule'
+{
+    Rule deleteRule: Rules[rulePage];
+    Number ruleIndex: rulePage;
+
+    Document({
+        Set: () => {
+            Rules.ModRemoveByIndex(ruleIndex);
+            OnRuleRemoved();
+        },
+        Revert: () => {
+            Rules = insert(Rules, ruleIndex, deleteRule);
+            OnRuleAdded();
+        }
+    });
+}
+
+void OnRuleAdded() 'Subroutine: On Rule Added'
+{
+    # Update the visible rule content if the rule menu is opened.
+    if (menuState == MenuState.Rules)
+    {
+        initiatePager();
+        updateRuleContent();
+    }
+}
+
+void OnRuleRemoved() 'Subroutine: On Rule Removed'
+{
+    # Update UI after removing rule if the rule menu is opened.
+    if (menuState == MenuState.Rules && pagerInitialized)
+    {
+        # No more rules, remove the pager.
+        if (Rules.Length == 0)
+            DestroyPager();
+        # Switch the currently visible rule to the next visible rule.
+        else
+        {
+            # Ensure that the rule page is in range.
+            ModifyVariable(rulePage, Operation.Min, Rules.Length - 1);
+            # Update the visible rule content.
+            updateRuleContent();
+        }
+    }
 }

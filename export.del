@@ -152,7 +152,7 @@ void CreateToggle(in Number index, in String label, in Number posX, in Number po
         defaultColor: ExportBuildColor(index),
         posX: posX,
         posY: posY,
-        clickWidth: 1.2,
+        clickWidth: 1.5,
         onClick: left => {
             buildToggles[index] = !buildToggles[index];
             SetLabel(bid, ExportBuildLabel(label, index));
@@ -290,15 +290,15 @@ void ExportRules() playervar 'EXPORT: Export'
         # Loop through each action in the rule.
         for(define a = 0; Rules[i].Actions.Length; 1) {
             # Extract the action ID.
-            define export = Rules[i].Actions[a].Export;
-            define actionID: export.X;
+            define data = Rules[i].Actions[a].Data;
+            define actionID: data[0];
 
             # Wait
             if (actionID == 0) {
                 ExportAction(lang,
-                    <'Wait(<0>, Ignore Condition);', export.Y>,
-                    <'Wait(<0>);', export.Y>,
-                    <'wait(<0>)', export.Y>);
+                    <'Wait(<0>, Ignore Condition);', data[1]>,
+                    <'Wait(<0>);', data[1]>,
+                    <'wait(<0>)', data[1]>);
             }
             # Jump
             else if (actionID == 1) {

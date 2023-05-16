@@ -174,6 +174,11 @@ if (EventPlayer() == HostPlayer())
         MinWait();
     }
     cm_textBudget -= 40;
+    cm_menuFrame = [];
+    createCursor();
+    MinWait();
+    createBorderCorners();
+    createBorderEdges();    
 }
 
 void DestroyButton(Number buttonID) "CM: Destroy button"
@@ -227,17 +232,17 @@ if (!releaseInteract)
 
 void createCursor() "Create menu cursor"
 {
-    cm_menuFrame += CreateInWorldText(FilteredArray(EventPlayer(), TotalTimeElapsed() % 0.032 < 0.016), "▲", UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 3, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, Color.White, Spectators.DefaultVisibility);
-    cm_menuFrame += CreateInWorldText(FilteredArray(EventPlayer(), TotalTimeElapsed() % 0.032 >= 0.016), "▲", UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 3, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, Color.White, Spectators.DefaultVisibility);
+    cm_menuFrame += CreateInWorldText(FilteredArray(EventPlayer(), cm_isInMenu && TotalTimeElapsed() % 0.032 < 0.016), "▲", UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 3, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, Color.White, Spectators.DefaultVisibility);
+    cm_menuFrame += CreateInWorldText(FilteredArray(EventPlayer(), cm_isInMenu && TotalTimeElapsed() % 0.032 >= 0.016), "▲", UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 3, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, Color.White, Spectators.DefaultVisibility);
     cm_textBudget -= 2;
 }
 
 void createBorderCorners() "Create menu border corners"
 {
-    cm_menuFrame += CreateInWorldText(EventPlayer(), "┌", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth * -1 / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
-    cm_menuFrame += CreateInWorldText(EventPlayer(), "┐", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
-    cm_menuFrame += CreateInWorldText(EventPlayer(), "└", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth * -1 / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight * -1 / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
-    cm_menuFrame += CreateInWorldText(EventPlayer(), "┘", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight * -1 / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    cm_menuFrame += CreateInWorldText(cm_isInMenu ? EventPlayer() : null, "┌", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth * -1 / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    cm_menuFrame += CreateInWorldText(cm_isInMenu ? EventPlayer() : null, "┐", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    cm_menuFrame += CreateInWorldText(cm_isInMenu ? EventPlayer() : null, "└", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth * -1 / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight * -1 / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
+    cm_menuFrame += CreateInWorldText(cm_isInMenu ? EventPlayer() : null, "┘", <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_s_menuHeight * -1 / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), 4, Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.White, Spectators.DefaultVisibility);
     cm_textBudget -= 4;
 }
 
@@ -263,7 +268,7 @@ void createBorderEdges() "Create menu border edges"
 Any MakeHorizontalLine(in String str, in Number multiplier)
 {
     return CreateInWorldText(
-        EventPlayer(),
+        cm_isInMenu ? EventPlayer() : null,
         str,
         <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * ((cm_s_menuHeight * multiplier / 2 - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))),
         4,
@@ -276,7 +281,7 @@ Any MakeHorizontalLine(in String str, in Number multiplier)
 
 Any MakeVerticalLine(in String str, in Number multiplier) {
     return CreateInWorldText(
-        EventPlayer(),
+        cm_isInMenu ? EventPlayer() : null,
         str,
         <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_s_menuWidth * multiplier / 2 * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (-0.095 * RoundToInteger(cm_s_menuHeight / 0.3, Rounding.Down) - 0.2) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))),
         4,
@@ -317,12 +322,6 @@ if (cm_isInMenu)
         DisableHeroHud(EventPlayer());
         DisableGameModeHud(EventPlayer());
     }
-    cm_menuFrame = [];
-    createCursor();
-    MinWait();
-    createBorderCorners();
-    createBorderEdges();
-    MinWait();
     createExitButton();
     MinWait();
     if (cm_s_debugMode)
@@ -352,10 +351,10 @@ if (!cm_isInMenu)
     SetAimSpeed(EventPlayer(), 100);
     SetPrimaryFireEnabled(EventPlayer(), true);
     SetSecondaryFireEnabled(EventPlayer(), true);
-    for (cm_i; cm_menuFrame.Length; 1) {
-        DestroyInWorldText(cm_menuFrame[cm_i]);
-        cm_textBudget += 1;
-    }
+    // for (cm_i; cm_menuFrame.Length; 1) {
+    //     DestroyInWorldText(cm_menuFrame[cm_i]);
+    //     cm_textBudget += 1;
+    // }
     DestroyIcon(cm_exitIconEntity);
 }
 

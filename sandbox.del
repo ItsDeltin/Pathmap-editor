@@ -68,8 +68,19 @@ enum MenuState
 
 rule: 'CM: Make buttons: Main'
 Event.OngoingPlayer
-if (eventPlayer == host)
+if (isHost)
 {
+    for (define b = 0; b < 2; b++)
+    {
+        String s = '';
+        for (define c = 0; c < 13; c++)
+        {
+            s = <'<0><1>', s, '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒\n'>;
+            MinWait();
+        }
+        createButton(s, defaultColor: Color.Black, posX: 0, posY: -.9-b*.1, interactable: false);
+    }
+
     SetMenuState(MenuState.Main);
 
     mainText = createButton(
@@ -87,6 +98,10 @@ if (eventPlayer == host)
         posY: 1,
         clickWidth: 0.4,
         defaultColor: Color.Red);
+    createButton('▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒', defaultColor: Color.Black, posX: 0, posY: 1.375, interactable: false);
+    createButton('♡              ♡', defaultColor: Color.Red, posX: 0, posY: 1.375, interactable: false);
+    createButton('ｈｔ ｓ／ｋ  -ｉ  ｏ ／ｅｔｎ\n               ', posX: .15, posY: 1.375 - .17, interactable: false);
+    createButton('ｔｐ ：／ｏｆ.ｃ ｍｄｌｉ\n               ', posX: .23, posY: 1.375 - .17, interactable: false);
 }
 
 void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
@@ -233,17 +248,17 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
                     MessageLine.Text('Step #2: delete the unnecessary variable assignment actions. The variables below\n' +
                         'are part of the save, remove anything else.\n', Color.LimeGreen),
                     MessageLine.Text(
-'- GLOBAL.VERSION                        '+'            - GLOBAL.SAVEDPLAYERLOCATION
-- GLOBAL.MAP                             '+'               - GLOBAL.SAVEDPLAYERDIRECTION
-- GLOBAL.UNIQUENODEID                    '+'   - Global.IsNoclipping
-- GLOBAL.SEGMENTUNIQUEID              '+'- Global.Rules_Actions_Label
-- GLOBAL.ATTRIBUTEUNIQUEID           '+'- Global.Rules_Actions_Executor
-- GLOBAL.NODES_NODE_UNIQUEID    '+'- Global.Rules_Actions_Export
-- GLOBAL.NODES_NODE_POSITION    '+'- Global.Rules_ExecutesOnAttribute
-- GLOBAL.SEGMENTS_ID                '+'         - Global.Rules_EnabledHeroes
-- GLOBAL.SEGMENTS_NODE1'+'
-- GLOBAL.SEGMENTS_NODE2
-- GLOBAL.ATTRIBUTES_VALUE
+'- VERSION                        '+'            - SAVEDPLAYERLOCATION
+- MAP                             '+'               - SAVEDPLAYERDIRECTION
+- UNIQUENODEID                    '+'  - IsNoclipping
+- SEGMENTUNIQUEID              '+'- Rules_Actions_Data
+- ATTRIBUTEUNIQUEID           '+'- Rules_ExecutesOnAttribute
+- NODES_NODE_UNIQUEID    '+'- Rules_EnabledHeroes
+- NODES_NODE_POSITION    '+'
+- SEGMENTS_ID                '+'
+- SEGMENTS_NODE1'+'
+- SEGMENTS_NODE2
+- ATTRIBUTES_VALUE
 - ATTRIBUTES_ID
 - ATTRIBUTES_NODE1
 - ATTRIBUTES_NODE2')
@@ -437,7 +452,6 @@ void setMainLabel(String label) '(Subroutine) CM: Set main label'
 }
 
 globalvar Hero => void chooseHeroCallback!;
-globalvar Number[] buttonCollectionHeroes! = [];
 
 void chooseHeroMenu(Hero => void callback) playervar '(Subroutine) CM: Choose hero'
 {
@@ -445,7 +459,7 @@ void chooseHeroMenu(Hero => void callback) playervar '(Subroutine) CM: Choose he
 
     for (Number i = 0; AllHeroes().Length; 1)
     {
-        buttonCollectionHeroes += createButton(
+        buttonCollectionMain += createButton(
             label: HeroIconString(AllHeroes()[i]),
             primaryAction: [MenuAction.ChooseHero, AllHeroes()[i]],
             posX: -2 + (i % 13) / 3,
@@ -462,7 +476,7 @@ Event.OngoingPlayer
 if (cm_currActionID[0] == MenuAction.ChooseHero)
 if (chooseHeroCallback)
 {
-    destroyButtonCollection(buttonCollectionHeroes);
+    destroyButtonCollection(buttonCollectionMain);
     chooseHeroCallback(cm_currActionID[1]);
     SetMenuState(MenuState.Main);
     chooseHeroCallback = null;

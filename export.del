@@ -449,15 +449,13 @@ void ExportMapToWorkshop()
 {
     ExportNodes();
     ExportNeighbors();
-    // ExportSegments();
-    // ExportAttributes();
 }
 
 void ExportNodes()
 {
     ExportMapBlock('nodes', () => {
         # Set loadedMap_segments
-        LogToInspector('*/     global.loadedMap_nodes = Array( /*');
+        LogToInspector('*/     global.pfLoadedMap_nodes = Array( /*');
         # For each attribute
         ExportArray(Nodes, 10, (node, isLast) => <'Vector<0><1>', node.Node.Position, isLast ? '' : ', '>);
         # End pathfinder segments
@@ -469,7 +467,7 @@ void ExportNeighbors()
 {
     ExportMapBlock('neighbors', () => {
         # Set loadedMap_neighors
-        LogToInspector('*/     global.loadedMap_neighbors = Array( /*');
+        LogToInspector('*/     global.pfLoadedMap_neighbors = Array( /*');
         ExportNeighborsPattern('Array(', ')');
         # End array
         LogToInspector('*/ ); /*');
@@ -480,7 +478,7 @@ void ExportAttributes()
 {
     ExportMapBlock('attributes', () => {
         # Set loadedMap_segments
-        LogToInspector('*/     global.loadedMap_attributes = Array( /*');
+        LogToInspector('*/     global.pfLoadedMap_attributes = Array( /*');
         # For each attribute
         ExportArray(Attributes, 10, (attr, isLast) => <'Vector(<0>, <1>, <2>)<3>',
             NodeIndexFromID(attr.Node1), NodeIndexFromID(attr.Node2), 0,
@@ -494,7 +492,7 @@ void ExportSegments()
 {
     ExportMapBlock('paths', () => {
         # Set loadedMap_segments
-        LogToInspector('*/     global.loadedMap_paths = Array( /*');
+        LogToInspector('*/     global.pfLoadedMap_paths = Array( /*');
         # For each attribute
         ExportArray(Segments, 10, (segment, isLast) => <'Vector(<0>, <1>, <2>)<3>',
             NodeIndexFromID(segment.Node1), NodeIndexFromID(segment.Node2), 0,
@@ -546,7 +544,7 @@ void ExportMapToOverpy()
     LogToInspector('*/ function load(name, array) { return ( /*');
     LogToInspector(<'*/ `rule "GENERATED <0> ${name}":\n` + /*', CurrentMap()>);
     LogToInspector(<'*/ `    @Condition getCurrentMap() == Map.<0>\n` + /*', mapNameToOverpyName(CurrentMap())>);
-    LogToInspector(<'*/ `    loadedMap_${name} = [${array.join(\',\')}]\n`); } /*'>);
+    LogToInspector(<'*/ `    pfLoadedMap_${name} = [${array.join(\',\')}]\n`); } /*'>);
     LogToInspector('*/ load("nodes", nodes) + load("neighbors", neighbors)');
 }
 
@@ -632,7 +630,7 @@ String ExportOstwDataSet(in String setName)
 {
     return <'\nrule: "GENERATED <0> <1>"\n', CurrentMap(), setName> +
         <'if (CurrentMap() == Map.<0>) {\n', mapNameToOstwName(CurrentMap())> +
-        <'    loadedMap.<1> = import("<0>.jsonc").<1>;\n}', CurrentMap(), setName>;
+        <'    pfLoadedMap.<1> = import("<0>.jsonc").<1>;\n}', CurrentMap(), setName>;
 }
 
 void ExportStatement(in OutputLanguage language, in String workshop, in String deltinscript, in String overpy)

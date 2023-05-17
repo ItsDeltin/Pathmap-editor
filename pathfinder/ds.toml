@@ -1,2 +1,3 @@
 compile_miscellaneous_comments = false
 out_file = 'pathfind.ow'
+c_style_workshop_output = true

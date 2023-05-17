@@ -380,9 +380,30 @@ void ExportRules() playervar 'EXPORT: Export'
             # Look at destination
             else if (actionID == 12) {
                 ExportAction(lang,
-                    'Start Facing(Event Player, Direction Towards(Eye Position(Event Player), ' + 'Event Player.pfDestination + Up() * 1.5), 100, To World, Direction And Turn Rate);',
-                    'StartFacing(EventPlayer(), DirectionTowards(EyePosition(), pfDestination + Up() * 1.5), ' + '100, Relative.ToWorld, FacingRev.DirectionAndTurnRate);',
-                    'eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition(), ' + 'eventPlayer.pfDestination + Vector.UP * 1.5), 100, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)');
+                    'Start Facing(Event Player, Direction Towards(Eye Position(Event Player), ' + 'Event Player.pfWalkingToPosition + Up() * 1.5), 100, To World, Direction And Turn Rate);',
+                    'StartFacing(EventPlayer(), DirectionTowards(EyePosition(), pfWalkingToPosition + Up() * 1.5), ' + '100, Relative.ToWorld, FacingRev.DirectionAndTurnRate);',
+                    'eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition(), ' + 'eventPlayer.pfWalkingToPosition + Vector.UP * 1.5), 100, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)');
+            }
+            # Wait for ability 1
+            else if (actionID == 13) {
+                ExportAction(lang,
+                    'Wait(Ability Cooldown(Event Player, Button(Ability 1)), Ignore Condition);',
+                    'Wait(AbilityCooldown(eventPlayer, Button.Ability1));',
+                    'wait(eventPlayer.getAbilityCooldown(Button.ABILITY_1))');
+            }
+            # Wait for ability 2
+            else if (actionID == 14) {
+                ExportAction(lang,
+                    'Wait(Ability Cooldown(Event Player, Button(Ability 2)), Ignore Condition);',
+                    'Wait(AbilityCooldown(eventPlayer, Button.Ability2));',
+                    'wait(eventPlayer.getAbilityCooldown(Button.ABILITY_2))');
+            }
+            # Wait for secondary fire
+            else if (actionID == 15) {
+                ExportAction(lang,
+                    'Wait(Ability Cooldown(Event Player, Button(Secondary Fire)), Ignore Condition);',
+                    'Wait(AbilityCooldown(eventPlayer, Button.SecondaryFire));',
+                    'wait(eventPlayer.getAbilityCooldown(Button.SECONDARY_FIRE))');
             }
 
             MinWait();

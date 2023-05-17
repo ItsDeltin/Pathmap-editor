@@ -257,34 +257,56 @@ void ExportRules() playervar 'EXPORT: Export'
         else if (is_ostw) {
             LogToInspector('*/ Event.OngoingPlayer /*');
             if (numberOfEnabledHeroes == 1) {
-                LogToInspector(<'*/ Player.<0> /*', <'<0>',
-                    AllHeroes()[firstEnabledHero]>
-                    .Replace(' ', '') // wrecking ball/junker queen
-                    .Replace(':', '') // soldier
-                    .Replace('ú', '') // lucio
-                    .Replace('.', '') // dva
-                    .Replace('ö', '')>); // torb
+                LogToInspector(<'*/ Player.<0> /*', heroIndexToOstwHero(firstEnabledHero)>); // torb
             }
         }
         # Add event (overpy)
         else if (is_overpy && numberOfEnabledHeroes == 1) {
             LogToInspector(<'*/\n    @Hero <0> /*', heroIndexToOverpyHero(firstEnabledHero)>);
-        } 
+        }
+
+        Number[] enabledHeroIndexes! = Rules[i].EnabledHeroes.Map((b, hi) => hi).FilteredArray(hi => Rules[i].EnabledHeroes[hi]);
+        String heroListString! = null;
+        if (numberOfEnabledHeroes > 1)
+        {
+            heroListString = StringJoin(enabledHeroIndexes, ', ', v =>
+            {
+                if (is_ow)
+                    return <'Hero(<0>)', AllHeroes()[v]>;
+                if (is_ostw)
+                    return <'Hero.<0>', heroIndexToOstwHero(v)>;
+                if (is_overpy)
+                    return <'Hero.<0>', heroIndexToOverpyHero(v)>;
+            });
+        }
 
         # Workshop condition
         if (lang == OutputLanguage.Workshop) {
             LogToInspector('*/ conditions { /*');
             LogToInspector('*/     Array Contains(Event Player.pfAttributes, {0}) == True; /*'.Format([Rules[i].ExecutesOnAttribute]));
+            # Multiple heroes
+            if (numberOfEnabledHeroes > 1) {
+                LogToInspector(<'*/     Array Contains(Array(<0>), Hero Of(Event Player)) == True; /*', heroListString>);
+            }
             LogToInspector('*/ } actions { /*');
         }
         # OSTW condition
         else if (lang == OutputLanguage.OSTW) {
             LogToInspector('*/ if (pfAttributes.Contains({0})) /*'.Format([Rules[i].ExecutesOnAttribute]));
+            # Multiple heroes
+            if (numberOfEnabledHeroes > 1) {
+                LogToInspector(<'*/ if ([<0>].Contains(HeroOf())) /*', heroListString>);
+            }
+            # Start rule block
             LogToInspector('*/ { /*');
         }
         # Overpy condition
         else if (lang == OutputLanguage.OverPy) {
             LogToInspector('*/\n    @Condition {0} in eventPlayer.pfAttributes /*'.Format([Rules[i].ExecutesOnAttribute]));
+            # Multiple heroes
+            if (numberOfEnabledHeroes > 1) {
+                LogToInspector(<'*/\n    @Condition eventPlayer.getCurrentHero() in [<0>] /*', heroListString>);
+            }
         }            
         
         # Loop through each action in the rule.

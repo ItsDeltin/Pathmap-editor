@@ -366,9 +366,9 @@ void ExportRules() playervar 'EXPORT: Export'
             # Walk to destination
             else if (actionID == 10) {
                 ExportAction(lang,
-                    '',
-                    '',
-                    '');
+                    'Start Throttle In Direction(Event Player, Direction Towards(Position Of(Event Player), Global.player.pfWalkingToPosition),' + ' 1, To World, Replace Existing Throttle, Direction And Magnitude);',
+                    'StartThrottleInDirection(EventPlayer(), PositionOf().DirectionTowards(player.pfWalkingToPosition),' + ' 1, Relative.ToWorld, ThrottleBehavior.ReplaceExistingThrottle, ThrottleRev.DirectionAndMagnitude);',
+                    'eventPlayer.startThrottleInDirection(directionTowards(eventPlayer.getPosition(), player.pfWalkingToPosition), 1,' + ' Relativity.TO_WORLD, Throttle.REPLACE_EXISTING, ThrottleReeval.DIRECTION_AND_MAGNITUDE)');
             }
             # Look at floor
             else if (actionID == 11) {

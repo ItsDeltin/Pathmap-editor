@@ -6,7 +6,7 @@ Boolean CanRedo: historyPage < historyItems.Length;
 playervar Number historyPage;
 playervar HistoryCatalog[] historyItems = [];
 
-void Document(HistoryCatalog catalogItem) '(Subroutine) Document Undoable Action'
+void Document(HistoryCatalog catalogItem) playervar '(Subroutine) Document Undoable Action'
 {
     // If we went back in time and something is documented, the future states are now stale so we can remove them.
     while (historyItems.Length > historyPage)

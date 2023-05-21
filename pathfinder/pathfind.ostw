@@ -7,7 +7,7 @@ struct PfMap {
 }
 
 # The currently loaded map
-globalvar PfMap pfLoadedmap;
+globalvar PfMap pfLoadedMap;
 # The final pathfinding target.
 playervar Vector pfDestination;
 # Determines if the player is pathfinding.
@@ -36,13 +36,13 @@ if (EventPlayer().DistanceTo(pfWalkingToPosition) <= 0.4) {
     } else {
         # Update the current pathfind attributes.
         # Any rules watching these with the matching condition will activate.
-        pfAttributes = pfLoadedmap.neighbors[pfCurrentNodeIndex].FilteredArray(segment => segment[0] == pfPath.Last).First.Last;
+        pfAttributes = pfLoadedMap.neighbors[pfCurrentNodeIndex].FilteredArray(segment => segment[0] == pfPath.Last).First.Last;
         # Go to the next node in the path.
         pfCurrentNodeIndex = pfPath.Last;
         # Pop the current path.
         pfPath.ModRemoveByIndex(pfPath.Length - 1);
         # Set the position that the player is currently walking towards.
-        pfWalkingToPosition = pfCurrentNodeIndex == -1 ? pfDestination : pfLoadedmap.nodes[pfCurrentNodeIndex];
+        pfWalkingToPosition = pfCurrentNodeIndex == -1 ? pfDestination : pfLoadedMap.nodes[pfCurrentNodeIndex];
     }
     Wait(0.2);
     LoopIfConditionIsTrue();
@@ -50,7 +50,7 @@ if (EventPlayer().DistanceTo(pfWalkingToPosition) <= 0.4) {
 
 # Selects a node index from a position.
 Number chooseNodeFromPosition(in Vector vector) {
-    return pfLoadedmap.nodes.IndexOf(pfLoadedmap.nodes
+    return pfLoadedMap.nodes.IndexOf(pfLoadedMap.nodes
         .SortedArray(n => n.DistanceTo(vector))
         .Slice(0, 5)
         .SortedArray(n => !IsInLineOfSight(n + Up() * 2, vector + Up() * 2))
@@ -60,11 +60,11 @@ Number chooseNodeFromPosition(in Vector vector) {
 void pathfindPlayer(Player player, Vector destination, Number[] attributes) globalvar 'Subroutine: Pathfind Player' {
     Number start = chooseNodeFromPosition(player.Position());
     Number goal = chooseNodeFromPosition(destination);
-    aStar(pfLoadedmap, start, goal, attributes, player.pfPath);
+    aStar(pfLoadedMap, start, goal, attributes, player.pfPath);
     player.pfDestination = destination;
     player.pfIsPathfinding = true;
     player.pfCurrentNodeIndex = player.pfPath.Last;
-    player.pfWalkingToPosition = pfLoadedmap.nodes[pfCurrentNodeIndex];
+    player.pfWalkingToPosition = pfLoadedMap.nodes[pfCurrentNodeIndex];
     StartThrottleInDirection(EventPlayer(), PositionOf().DirectionTowards(player.pfWalkingToPosition), 1, Relative.ToWorld, ThrottleBehavior.ReplaceExistingThrottle, ThrottleRev.DirectionAndMagnitude);
 }
 

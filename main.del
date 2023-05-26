@@ -47,7 +47,7 @@ rule: 'Setup: Inspector, Performance HUD, and Settings'
     CreateHudText(AllPlayers(),
         Text: <"cap: <0> <1> <2>\nposition: <3>\n<4>",
         ServerLoad(), ServerLoadAverage(), ServerLoadPeak(),
-        PositionOf(host), SelectedNodeIndex == -1 ? '' : <'Selected node: <0>', SelectedNodeIndex>>);
+        PositionOf(host), SelectedNodeIndex == -1 ? '' : <'Selected node index: <0>', SelectedNodeIndex>>);
     SetObjectiveDescription(AllPlayers(), '', HudTextRev.VisibleTo);
     // Settings
     maxHistoryLength = WorkshopSettingInteger("Pathmap Editor", "Undo history length", 20, 0, 100);
@@ -230,6 +230,7 @@ if (savedPlayerLocation)
 
 rule: 'Main: Selection loop'
 if (HasSpawned(host))
+if (!host.cm_isInMenu)
 if (savedPlayerLocation != host.Position() || savedPlayerDirection != host.FacingDirection())
 if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
 {

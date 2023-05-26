@@ -72,7 +72,7 @@ if (isHost)
 {
     for (define b = 0; b < 2; b++)
     {
-        String s = '';
+        String s! = '';
         for (define c = 0; c < 13; c++)
         {
             s = <'<0><1>', s, '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒\n'>;
@@ -100,8 +100,11 @@ if (isHost)
         defaultColor: Color.Red);
     createButton('▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒', defaultColor: Color.Black, posX: 0, posY: 1.375, interactable: false);
     createButton('♡              ♡', defaultColor: Color.Red, posX: 0, posY: 1.375, interactable: false);
-    createButton('ｈｔ ｓ／ｋ  -ｉ  ｏ ／ｅｔｎ\n               ', posX: .15, posY: 1.375 - .17, interactable: false);
-    createButton('ｔｐ ：／ｏｆ.ｃ ｍｄｌｉ\n               ', posX: .23, posY: 1.375 - .17, interactable: false);
+    createButton('ｈ  ｐ  ／  ｏ  ｉ  ｏ   ｄ  ｔ\n               ', posX: .15, posY: 1.375 - .17, interactable: false);
+    createButton('ｔ  ｓ  ／  －  ．   ｍ  ｅ  ｉ\n               ', posX: .23, posY: 1.375 - .17, interactable: false);
+    createButton('ｔ  ：  ｋ  ｆ ｃ    ／  ｌ  ｎ\n               ', posX: .31, posY: 1.375 - .17, interactable: false);
+    // createButton('ｈｔ ｓ／ｋ  - ｉ  ｏ ／ｅｔｎ\n               ', posX: .15, posY: 1.375 - .17, interactable: false);
+    // createButton('ｔｐ ：／ｏ ｆ.ｃ ｍｄｌｉ\n               ', posX: .23, posY: 1.375 - .17, interactable: false);
 }
 
 void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
@@ -125,6 +128,17 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
     // Setup
     if (newState == MenuState.Main)
     {
+        createHelpButton(1.85, 1, null, [
+            MessageLine.Separator(<'<0> Rule Editor <0>', AbilityIconString(Hero.Torbjorn, Button.Ability2)>, Color.Rose),
+            MessageLine.Text('Create workshop rules that will execute upon reaching a path tagged with an attribute.'),
+            MessageLine.Separator(<'<0> Export <0>', AbilityIconString(Hero.Bastion, Button.Ability1)>, Color.LimeGreen),
+            MessageLine.Text('Generates the pathfinding code that you can add to your workshop gamemode.'),
+            MessageLine.Separator(<'<0> Add Dummy Bot <0>', AbilityIconString(Hero.Echo, Button.Ultimate)>, Color.Violet),
+            MessageLine.Text('Spawn dummy bots that you can use to test your map.'),
+            MessageLine.Separator(<'<0> Pathfinder Settings <0>', AbilityIconString(Hero.Kiriko, Button.Ability1)>, Color.Yellow),
+            MessageLine.Text('Set which attributes the dummy bots will use when testing your map.')
+        ]);
+
         buttonCollectionMain += createButton(
             <'            add dummy bot <0>', AbilityIconString(Hero.Echo, Button.Ultimate)>,
             primaryAction: MenuAction.AddDummy,

@@ -358,7 +358,7 @@ if (!host.cm_isInMenu)
 rule: 'Editor: tutorial' 1000
 {
     CreateHudText(
-        HostPlayer(),
+        host.cm_isInMenu ? null : host,
         Location: Location.Right,
         Text: ' \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n ',
         SortOrder: 0,

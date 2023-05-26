@@ -240,9 +240,9 @@ void ExportRules() playervar 'EXPORT: Export'
     for(define i = 0; Rules.Length; 1) {
         # Rule syntax
         ExportStatement(lang,
-            '*/ rule(\"Custom Pathfinding Rule #{0}\") { /*'.Format([i + 1]),
-            '*/ rule: \"Custom Pathfinding Rule #{0}\" /*'.Format([i + 1]),
-            '*/\nrule \"Custom Pathfinding Rule #{0}\": @Event eachPlayer /*'.Format([i + 1])
+            '*/ rule(\"【Generated】Custom pathfinding rule #{0}\") { /*'.Format([i + 1]),
+            '*/ rule: \"【Generated】Custom pathfinding rule #{0}\" /*'.Format([i + 1]),
+            '*/\nrule \"【Generated】Custom pathfinding rule #{0}\": @Event eachPlayer /*'.Format([i + 1])
         );
 
         Number numberOfEnabledHeroes! = Rules[i].EnabledHeroes.FilteredArray(x => x).Length;
@@ -402,9 +402,9 @@ void ExportRules() playervar 'EXPORT: Export'
             # Look at destination
             else if (actionID == 12) {
                 ExportAction(lang,
-                    'Start Facing(Event Player, Direction Towards(Eye Position(Event Player), ' + 'Event Player.pfWalkingToPosition + Up() * 1.5), 100, To World, Direction And Turn Rate);',
-                    'StartFacing(EventPlayer(), DirectionTowards(EyePosition(), pfWalkingToPosition + Up() * 1.5), ' + '100, Relative.ToWorld, FacingRev.DirectionAndTurnRate);',
-                    'eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition(), ' + 'eventPlayer.pfWalkingToPosition + Vector.UP * 1.5), 100, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)');
+                    'Start Facing(Event Player, Direction Towards(Eye Position(Event Player), ' + 'Event Player.pfWalkingToPosition + Up() * 1.5), 300, To World, Direction And Turn Rate);',
+                    'StartFacing(EventPlayer(), DirectionTowards(EyePosition(), pfWalkingToPosition + Up() * 1.5), ' + '300, Relative.ToWorld, FacingRev.DirectionAndTurnRate);',
+                    'eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition(), ' + 'eventPlayer.pfWalkingToPosition + Vector.UP * 1.5), 300, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)');
             }
             # Wait for ability 1
             else if (actionID == 13) {
@@ -441,52 +441,52 @@ void ExportRules() playervar 'EXPORT: Export'
     }
 }
 
-void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to workshop" 
-{
-    // This function assumes MakeBake() was already executed.
+// void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to workshop" 
+// {
+//     // This function assumes MakeBake() was already executed.
 
-    EnableInspector();
-    // String variableCompatibleMapName = '{0}'.Format([CurrentMap()])
-    //     .Replace(' ', '')
-    //     .Replace('(', '')
-    //     .Replace(')', '')
-    //     .Replace(':', '');
+//     EnableInspector();
+//     // String variableCompatibleMapName = '{0}'.Format([CurrentMap()])
+//     //     .Replace(' ', '')
+//     //     .Replace('(', '')
+//     //     .Replace(')', '')
+//     //     .Replace(':', '');
 
-    # Add rule and event
-    LogToInspector('*/ rule(\"GENERATED: {0} compressed map data\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
-    # Conditions
-    LogToInspector('*/ conditions { /*');
-    # Make sure this is the correct map
-    LogToInspector(mapCondition);
-    # Start actions
-    LogToInspector('*/ } actions { /*');
-    # Set compressed data
-    LogToInspector('*/     global.pathfinder_compressed = Array(Array(Custom String( /*');
+//     # Add rule and event
+//     LogToInspector('*/ rule(\"GENERATED: {0} compressed map data\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
+//     # Conditions
+//     LogToInspector('*/ conditions { /*');
+//     # Make sure this is the correct map
+//     LogToInspector(mapCondition);
+//     # Start actions
+//     LogToInspector('*/ } actions { /*');
+//     # Set compressed data
+//     LogToInspector('*/     global.pathfinder_compressed = Array(Array(Custom String( /*');
 
-    # For each node
-    for (define a = 0; bakeResult.Length; 1) {
-        # Add each stub
-        for (define b = 0; bakeResult[a].Length; 1) {
-            # String value
-            LogToInspector('*/\"{0}\"/*'.Format([bakeResult[a][b]]));
-            # End string
-            LogToInspector('*/         ){0} /*'.Format([
-                b < bakeResult[a].Length - 1 ? ', Custom String(' :
-                a < bakeResult.Length - 1 ? '), Array(Custom String(' : '));'
-            ]));
-            MinWait();
-        }
-        MinWait();
-    }
-    # End action & rule block
-    LogToInspector('*/ } } /*');
+//     # For each node
+//     for (define a = 0; bakeResult.Length; 1) {
+//         # Add each stub
+//         for (define b = 0; bakeResult[a].Length; 1) {
+//             # String value
+//             LogToInspector('*/\"{0}\"/*'.Format([bakeResult[a][b]]));
+//             # End string
+//             LogToInspector('*/         ){0} /*'.Format([
+//                 b < bakeResult[a].Length - 1 ? ', Custom String(' :
+//                 a < bakeResult.Length - 1 ? '), Array(Custom String(' : '));'
+//             ]));
+//             MinWait();
+//         }
+//         MinWait();
+//     }
+//     # End action & rule block
+//     LogToInspector('*/ } } /*');
 
-    ExportNodes();
-    ExportAttributes();
-    ExportSegments();
+//     ExportNodes();
+//     ExportAttributes();
+//     ExportSegments();
     
-    DisableInspector();
-}
+//     DisableInspector();
+// }
 
 void ExportMapToWorkshop()
 {
@@ -585,7 +585,7 @@ void ExportMapToOverpy()
     
     # Javascript -> overpy rules
     LogToInspector('*/ function load(name, array) { return ( /*');
-    LogToInspector(<'*/ `rule "GENERATED <0> ${name}":\n` + /*', CurrentMap()>);
+    LogToInspector(<'*/ `rule "【Map】<0> (${name})":\n` + /*', CurrentMap()>);
     LogToInspector(<'*/ `    @Condition getCurrentMap() == Map.<0>\n` + /*', mapNameToOverpyName(CurrentMap())>);
     LogToInspector(<'*/ `    pfLoadedMap_${name} = [${array.join(\',\')}]\n`); } /*'>);
     LogToInspector('*/ load("nodes", nodes) + load("neighbors", neighbors)');
@@ -604,17 +604,17 @@ void ExportNeighborsPattern(String beginArray, String endArray) playervar 'Subro
             .Map((s, i) => i)
             .FilteredArray(i => Segments[i].Node1 == Nodes[n].Node.UniqueID || Segments[i].Node2 == Nodes[n].Node.UniqueID);
         # Export segments.
-        LogToInspector(<'*/ <0><1><2><3> /*', beginArray, StringJoin(connected, ',', i =>
+        LogToInspector(<'*/ <0><1><2><3> /*', beginArray, StringJoin(connected, ',', si =>
         {
             Number[] attributes = Attributes
-                .FilteredArray(attr => Nodes[n].Node.UniqueID == attr.Node1 && (attr.Node2 == Segments[i].Node1 || attr.Node2 == Segments[i].Node2))
+                .FilteredArray(attr => Nodes[n].Node.UniqueID == attr.Node1 && (attr.Node2 == Segments[si].Node1 || attr.Node2 == Segments[si].Node2))
                 .Map(attr => attr.Value);
             
             String attrString = StringJoin(attributes, ',', v => v);
 
             return <'<0><1>, <0><2><3><3>',
                 beginArray,
-                NodeIndexFromID(Segments[i].Node1 == Nodes[n].Node.UniqueID ? Segments[i].Node2 : Segments[i].Node1),
+                NodeIndexFromID(Segments[si].Node1 == Nodes[n].Node.UniqueID ? Segments[si].Node2 : Segments[si].Node1),
                 attrString,
                 endArray>;
         }), endArray, n == Nodes.Length - 1 ? '' : ','>);
@@ -651,7 +651,7 @@ String StringJoin<T>(in T[] array, in String joinValue, const T => Any tToString
 void ExportMapBlock(in String blockName, const () => void exportActions)
 {
     # Attributes rule
-    LogToInspector('*/ rule(\"GENERATED: {0} {1}\") { event { Ongoing - Global; } /*'.Format([CurrentMap(), blockName]));
+    LogToInspector('*/ rule(\"【Map】{0} ({1})\") { event { Ongoing - Global; } /*'.Format([CurrentMap(), blockName]));
     # Conditions
     LogToInspector('*/ conditions { /*');
     # Make sure this is the correct map
@@ -671,7 +671,7 @@ String ExportJsonVector(in Vector vector, in Boolean isLast)
 
 String ExportOstwDataSet(in String setName)
 {
-    return <'\nrule: "GENERATED <0> <1>"\n', CurrentMap(), setName> +
+    return <'\nrule: "【Map】<0> (<1>)"\n', CurrentMap(), setName> +
         <'if (CurrentMap() == Map.<0>) {\n', mapNameToOstwName(CurrentMap())> +
         <'    pfLoadedMap.<1> = import("<0>.jsonc").<1>;\n}', CurrentMap(), setName>;
 }

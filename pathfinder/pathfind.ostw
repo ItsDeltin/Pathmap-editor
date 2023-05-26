@@ -8,8 +8,17 @@ struct PfMap {
 
 # The currently loaded map
 globalvar PfMap pfLoadedMap;
+
 # The final pathfinding target.
 playervar Vector pfDestination;
+# The attributes assigned to the player.
+playervar Number[] pfPlayerAttributes;
+# The attributes of a player's current pathfinding edge.
+playervar Number[] pfAttributes;
+
+# The saved target. If the distance between this and pfDestination becomes
+# too large, the pathfinding path will be updated.
+playervar Vector pfSavedTarget;
 # Determines if the player is pathfinding.
 playervar Boolean pfIsPathfinding;
 # The current node that the player is walking to.
@@ -18,34 +27,87 @@ playervar Boolean pfIsPathfinding;
 playervar Number pfCurrentNodeIndex;
 # The position that the player is actively walking towards.
 playervar Vector pfWalkingToPosition;
-# The attributes of a player's current pathfinding edge.
-playervar Number[] pfAttributes;
 # The nextNode array for pathfinding.
 playervar Number[] pfPath;
+playervar Number pfStartTime;
+playervar Number pfDistanceToNextNode;
+playervar Vector pfLastNodeStartingPosition;
+playervar Vector pfNextPosition;
+playervar Boolean pfIsPartialPath;
 
-rule: 'Pathfinder: Node reached'
+rule: '【PF Core】Update & Execute'
+Event.OngoingPlayer
+if (pfDestination)
+if (EventPlayer().DistanceTo(pfDestination) > 4)
+if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5 || (pfIsPartialPath && pfCurrentNodeIndex == -1))
+{
+    SmallMessage(AllPlayers(), <'Updated pathfinder for <0>', EventPlayer()>);
+    pfSavedTarget = pfDestination;
+    pathfindPlayer(pfDestination, pfPlayerAttributes);
+    Wait(2);
+    LoopIfConditionIsTrue();
+}
+
+disabled rule: '【PF Core】Skip node'
+Event.OngoingPlayer
+if (pfIsPathfinding)
+if (pfCurrentNodeIndex != -1)
+if (IsInLineOfSight(PositionOf() + Up() * 0.25, pfNextPosition + Up() * 0.25))
+if ((PositionOf().Y - pfNextPosition.Y).Abs() < 1)
+{
+    SmallMessage(AllPlayers(), 'Compatible node skip found');
+    Wait(0.1);
+    ProgressEventPlayer();
+    Wait(0.1);
+    LoopIfConditionIsTrue();
+}
+
+disabled rule: '【PF Core】Stuck'
+Event.OngoingPlayer
+if (pfIsPathfinding)
+if (pfDistanceToNextNode - 5.5 * 0.5 * (TotalTimeElapsed() - pfStartTime) < 0)
+{
+    SmallMessage(AllPlayers(), <'Player <0> got stuck, teleporting them.', EventPlayer()>);
+    Teleport(EventPlayer(), pfWalkingToPosition);
+    Wait(3);
+    LoopIfConditionIsTrue();
+}
+
+rule: '【PF Core】Node reached'
 Event.OngoingPlayer
 if (pfIsPathfinding)
 if (EventPlayer().DistanceTo(pfWalkingToPosition) <= 0.4) {
     # The player reached the next node in the path to the destination.
-    # If pfCurrentNodeIndex is -1 then pfWalkingToPosition is the destination.
     if (pfCurrentNodeIndex == -1) {
         # The destination was reached, stop pathfinding.
         StopThrottleInDirection(EventPlayer());
         pfIsPathfinding = false;
     } else {
-        # Update the current pathfind attributes.
-        # Any rules watching these with the matching condition will activate.
-        pfAttributes = pfLoadedMap.neighbors[pfCurrentNodeIndex].FilteredArray(segment => segment[0] == pfPath.Last).First.Last;
-        # Go to the next node in the path.
-        pfCurrentNodeIndex = pfPath.Last;
-        # Pop the current path.
-        pfPath.ModRemoveByIndex(pfPath.Length - 1);
-        # Set the position that the player is currently walking towards.
-        pfWalkingToPosition = pfCurrentNodeIndex == -1 ? pfDestination : pfLoadedMap.nodes[pfCurrentNodeIndex];
+        ProgressEventPlayer();
     }
     Wait(0.2);
     LoopIfConditionIsTrue();
+}
+
+void ProgressEventPlayer() playervar '【PF Core Subroutine】☞ Progress event player' {
+    # Update the current pathfind attributes.
+    # Any rules watching these with the matching condition will activate.
+    pfAttributes = pfLoadedMap.neighbors[pfCurrentNodeIndex].FilteredArray(segment => segment[0] == pfPath.Last).First.Last;
+    # Go to the next node in the path.
+    pfCurrentNodeIndex = pfPath.Last;
+    # Pop the current path.
+    pfPath.ModRemoveByIndex(pfPath.Length - 1);
+    # Set the position that the player is currently walking towards.
+    pfWalkingToPosition = pfCurrentNodeIndex == -1 ? pfDestination : pfLoadedMap.nodes[pfCurrentNodeIndex];
+    UpdateNodeMeta();
+}
+
+void UpdateNodeMeta() playervar '【PF Core Subroutine】☞ Update node meta' {
+    # Update the pathfinding start time.
+    pfStartTime = TotalTimeElapsed();
+    pfDistanceToNextNode = EventPlayer().DistanceTo(pfWalkingToPosition);
+    pfLastNodeStartingPosition = EventPlayer().Position();
+    pfNextPosition = pfPath.Length >= 2 ? pfDestination : pfLoadedMap.nodes[pfPath[pfPath.Length - 2]];
 }
 
 # Selects a node index from a position.
@@ -53,19 +115,20 @@ Number chooseNodeFromPosition(in Vector vector) {
     return pfLoadedMap.nodes.IndexOf(pfLoadedMap.nodes
         .SortedArray(n => n.DistanceTo(vector))
         .Slice(0, 5)
-        .SortedArray(n => !IsInLineOfSight(n + Up() * 2, vector + Up() * 2))
+        .SortedArray(n => !(IsInLineOfSight(n + Up() * 2, vector + Up() * 2) && (vector.Y - n.Y).Abs() < vector.DistanceTo(n) / 2))
         .First);
 }
 
-void pathfindPlayer(Player player, Vector destination, Number[] attributes) globalvar 'Subroutine: Pathfind Player' {
-    Number start = chooseNodeFromPosition(player.Position());
+void pathfindPlayer(Vector destination, Number[] attributes) playervar '【PF Core Subroutine】☞ Pathfind Player' {
+    Number start = chooseNodeFromPosition(PositionOf());
     Number goal = chooseNodeFromPosition(destination);
-    aStar(pfLoadedMap, start, goal, attributes, player.pfPath);
-    player.pfDestination = destination;
-    player.pfIsPathfinding = true;
-    player.pfCurrentNodeIndex = player.pfPath.Last;
-    player.pfWalkingToPosition = pfLoadedMap.nodes[pfCurrentNodeIndex];
-    StartThrottleInDirection(EventPlayer(), PositionOf().DirectionTowards(player.pfWalkingToPosition), 1, Relative.ToWorld, ThrottleBehavior.ReplaceExistingThrottle, ThrottleRev.DirectionAndMagnitude);
+    aStar(pfLoadedMap, start, goal, attributes, pfPath);
+    pfDestination = destination;
+    pfIsPathfinding = true;
+    pfCurrentNodeIndex = pfPath.Last;
+    pfWalkingToPosition = pfLoadedMap.nodes[pfCurrentNodeIndex];
+    UpdateNodeMeta();
+    StartThrottleInDirection(EventPlayer(), PositionOf().DirectionTowards(pfWalkingToPosition), 1, Relative.ToWorld, ThrottleBehavior.ReplaceExistingThrottle, ThrottleRev.DirectionAndMagnitude);
 }
 
 # Gets the shortest path from start to goal.
@@ -81,32 +144,57 @@ void aStar(in PfMap map, in Number start, in Number goal, in Number[] attributes
     Number[] cameFrom = map.nodes.Map(n => -1);
     Number[] gScore = map.nodes.Map(n => 9999);
     gScore[start] = 0;
-    Number iter = 0;
 
     while (open.Length) {
+        // Debug
+        Any[] icons = [];
+        foreach (Number o in open) {
+            // icons += CreateIcon(AllPlayers(), pfLoadedMap.nodes[o], Icon.QuestionMark, IconRev.VisibleTo, Color.White, true);
+            icons += CreateInWorldText(AllPlayers(), o, pfLoadedMap.nodes[o], 2, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.White);
+        }
+        WaitForClick();
+        foreach (Any icon in icons) {
+            DestroyInWorldText(icon);
+        }
+
         Number current = open.SortedArray((o, i) => gScore[o] + h(o)).First;
         # If the goal was found, reconstruct the path.
         if (current == goal) {
-            SmallMessage(AllPlayers(), <'Completed in <0> iterations', iter>);
             reconstructPath(cameFrom, current, pathArray);
             return;
         }
+
+        // Any currentIcon = CreateIcon(AllPlayers(), pfLoadedMap.nodes[current], Icon.ArrowDown, IconRev.VisibleTo, Color.Rose, true);
+        Any[] neighborIcons = [CreateInWorldText(AllPlayers(), current, pfLoadedMap.nodes[current], 2, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.Rose)];
         
         open.ModRemoveByValue(current);
 
+        # Check each neighbor to the current node.
         foreach (Any[] neighbor in map.neighbors[current]) {
+            Color neighborColor = Color.Red;
+            # Ensure that the path to the neighbor is enabled.
             if ((<Number[]>neighbor[1]).IsTrueForAll(a => attributes.Contains(a))) {
                 Number neighborI = neighbor[0];
                 Number score = gScore[current] + map.nodes[current].DistanceTo(map.nodes[neighborI]);
+
+                neighborColor = Color.Blue;
                 if (score < gScore[neighborI]) {
                     cameFrom[neighborI] = current;
                     gScore[neighborI] = score;
                     if (!open.Contains(neighborI))
                         open += neighborI;
+                    neighborColor = Color.Green;
                 }
+
             }
+            // neighborIcons += CreateIcon(AllPlayers(), pfLoadedMap.nodes[neighbor[0]], Icon.ExclamationMark, IconRev.VisibleTo, neighborColor, true);
+            neighborIcons += CreateInWorldText(AllPlayers(), neighbor[0], pfLoadedMap.nodes[neighbor[0]], 2, Clipping.DoNotClip, InworldTextRev.VisibleTo, neighborColor);
         }
-        iter++;
+
+        WaitForClick();
+        foreach (Any icon in neighborIcons) {
+            DestroyInWorldText(icon);
+        }
     }
 }
 
@@ -115,5 +203,19 @@ void reconstructPath(in Number[] cameFrom, ref Number current, ref Number[] path
     while (current != -1) {
         pathArray += current;
         current = cameFrom[current];
+
+        if (current != -1)
+        {
+            CreateBeamEffect(AllPlayers(), BeamType.GoodBeam, pfLoadedMap.nodes[pathArray.Last], pfLoadedMap.nodes[current], Color.Rose, EffectRev.VisibleTo);
+        }
     }
+
+    WaitForClick();
+    DestroyAllEffects();
+}
+
+void WaitForClick()
+{
+    WaitUntil(!IsButtonHeld(HostPlayer(), Button.PrimaryFire), 0.2);
+    WaitUntil(IsButtonHeld(HostPlayer(), Button.PrimaryFire), 9999);
 }

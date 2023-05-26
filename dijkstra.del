@@ -71,6 +71,7 @@ struct DijkstraResult
     public Number[] Parents;
 }
 
+/*
 void MakeBake() playervar 'Subroutine: Make Bake'
 {
     bakeResult = [];
@@ -142,8 +143,9 @@ rule: 'Initialize Bake Matcher'
 Event.OngoingPlayer
 if (eventPlayer == host)
 {
-    bakeMatcher = BakemapStruct.GenerateMatchArray(500);
+    // bakeMatcher = BakemapStruct.GenerateMatchArray(500);
 }
 
 playervar String[][] bakeResult;
 playervar String[] bakeMatcher;
+*/

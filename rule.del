@@ -133,8 +133,8 @@ void initiatePager() 'CM: Initiate pager'
     deleteActionText = createButton(
         'delete action',
         primaryAction: MenuAction.DeleteAction,
-        posY: -0.6,
-        posX: -0.725,
+        posY: -0.5,
+        posX: 0,
         clickWidth: 1.3,
         scale: 2,
         defaultColor: deleteActionDisabledColor,
@@ -144,12 +144,12 @@ void initiatePager() 'CM: Initiate pager'
     moveActionsUpText = createButton(
         '↑',
         onClick: left => MoveSelectedActions(true),
-        posX: -0.825, posY: -0.8, clickWidth: .2, clickHeight: .2,
+        posX: -.1, posY: -0.7, clickWidth: .2, clickHeight: .2,
     );
     moveActionsDownText = createButton(
         '↓',
         onClick: left => MoveSelectedActions(false),
-        posX: -0.625, posY: -0.8, clickWidth: .2, clickHeight: .2,
+        posX: .1, posY: -0.7, clickWidth: .2, clickHeight: .2,
     );
     rulePageText = createButton(
         ' rule 1',

@@ -225,6 +225,7 @@ void updateHeroIcon(in Number index)
 
 rule: 'CM: Enable delete action button' 1000
 Event.OngoingPlayer
+if (isHost)
 if (menuState == MenuState.Rules)
 if (pagerInitialized)
 if (actionsSelected.IsTrueForAny(action => action))
@@ -235,6 +236,7 @@ if (actionsSelected.IsTrueForAny(action => action))
 
 rule: 'CM: Disable delete action button' 1000
 Event.OngoingPlayer
+if (isHost)
 if (menuState == MenuState.Rules)
 if (pagerInitialized)
 if (actionsSelected.IsTrueForAll(action => !action))
@@ -245,6 +247,7 @@ if (actionsSelected.IsTrueForAll(action => !action))
 
 rule: 'CM: Enable Move Actions Up' 1000
 Event.OngoingPlayer
+if (isHost)
 if (menuState == MenuState.Rules)
 if (pagerInitialized)
 if (actionsSelected.IsTrueForAny(action => action))
@@ -256,6 +259,7 @@ if (!actionsSelected[0])
 
 rule: 'CM: Disable Move Actions Up' 1000
 Event.OngoingPlayer
+if (isHost)
 if (menuState == MenuState.Rules)
 if (pagerInitialized)
 if (actionsSelected[0] || actionsSelected.IsTrueForAll(action => !action))
@@ -266,6 +270,7 @@ if (actionsSelected[0] || actionsSelected.IsTrueForAll(action => !action))
 
 rule: 'CM: Enable Move Actions Down' 1000
 Event.OngoingPlayer
+if (isHost)
 if (menuState == MenuState.Rules)
 if (pagerInitialized)
 if (actionsSelected.IsTrueForAny(action => action))
@@ -277,6 +282,7 @@ if (!actionsSelected[Rules[rulePage].Actions.Length - 1])
 
 rule: 'CM: Disable Move Actions Down' 1000
 Event.OngoingPlayer
+if (isHost)
 if (menuState == MenuState.Rules)
 if (pagerInitialized)
 if (actionsSelected[Rules[rulePage].Actions.Length - 1] || actionsSelected.IsTrueForAll(action => !action))

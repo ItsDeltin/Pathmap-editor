@@ -43,6 +43,8 @@ rule: 'Setup: Inspector, Performance HUD, and Settings'
     // Inspector
     if (!WorkshopSettingToggle('Pathmap Editor', 'Enable inspector recording', false, 1))
         DisableInspectorRecording();
+    else
+        EnableInspector();
     // HUD
     CreateHudText(AllPlayers(),
         Text: <"cap: <0> <1> <2>\nposition: <3>\n<4>",

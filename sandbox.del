@@ -70,10 +70,10 @@ rule: 'CM: Make buttons: Main'
 Event.OngoingPlayer
 if (isHost)
 {
-    for (define b = 0; b < 2; b++)
+    for (define b = 0; 2; 1)
     {
         String s! = '';
-        for (define c = 0; c < 13; c++)
+        for (define c = 0; 13; 1)
         {
             s = <'<0><1>', s, '▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒\n'>;
             MinWait();

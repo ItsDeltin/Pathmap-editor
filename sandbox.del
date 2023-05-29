@@ -124,6 +124,40 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
         DestroyPager();
         
     menuState = newState;
+
+    // Undo/redo
+    if (newState == MenuState.Main || newState == MenuState.Rules)
+    {
+        if (undoText == -1)
+        {
+            undoText = createButton(
+                '← undo',
+                primaryAction: MenuAction.Undo,
+                scale: 2,
+                posX: -2.1,
+                posY: -1,
+                clickWidth: 0.4,
+                clickHeight: 0.3,
+                defaultColor: Color.Yellow);
+            redoText = createButton(
+                'redo →',
+                primaryAction: MenuAction.Redo,
+                scale: 2,
+                posX: -1.5,
+                posY: -1,
+                clickWidth: 0.4,
+                clickHeight: 0.3,
+                defaultColor: Color.Aqua);
+            UpdateUndoInteractability();
+        }
+    }
+    else if (undoText != -1)
+    {
+        DestroyButton(undoText);
+        DestroyButton(redoText);
+        undoText = -1;
+        redoText = -1;
+    }
     
     // Setup
     if (newState == MenuState.Main)
@@ -376,42 +410,6 @@ if (CanRedo)
     Redo();
 }
 
-rule: 'CM: Enable undo menu'
-Event.OngoingPlayer
-if (menuState == MenuState.Main || menuState == MenuState.Rules)
-{
-    undoText = createButton(
-        '← undo',
-        primaryAction: MenuAction.Undo,
-        scale: 2,
-        posX: -2.1,
-        posY: -1,
-        clickWidth: 0.4,
-        clickHeight: 0.3,
-        defaultColor: Color.Yellow);
-    redoText = createButton(
-        'redo →',
-        primaryAction: MenuAction.Redo,
-        scale: 2,
-        posX: -1.5,
-        posY: -1,
-        clickWidth: 0.4,
-        clickHeight: 0.3,
-        defaultColor: Color.Aqua);
-    UpdateUndoInteractability();
-}
-
-rule: 'CM: Disable undo menu'
-Event.OngoingPlayer
-if (menuState != MenuState.Main && menuState != MenuState.Rules)
-if (undoText != -1)
-{
-    DestroyButton(undoText);
-    DestroyButton(redoText);
-    undoText = -1;
-    redoText = -1;
-}
-
 void UpdateUndoInteractability() globalvar 'CM: Update undo interactability'
 {
     if (undoText != -1)
@@ -490,7 +488,6 @@ Event.OngoingPlayer
 if (cm_currActionID[0] == MenuAction.ChooseHero)
 if (chooseHeroCallback)
 {
-    destroyButtonCollection(buttonCollectionMain);
     chooseHeroCallback(cm_currActionID[1]);
     SetMenuState(MenuState.Main);
     chooseHeroCallback = null;

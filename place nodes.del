@@ -336,6 +336,7 @@ if (!host.releasePrimary)
 if (SelectedPlayer == null)
 if (SelectedNodeID == -1)
 {
+    DestroyAllDummyBots();
     CreateDummyBot(placingDummyHero, Team.Team1, -1, watchPoint, facing);
 }
 

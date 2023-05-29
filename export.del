@@ -173,6 +173,8 @@ if (cm_currActionID == MenuAction.Export)
 
 void Export() playervar 'Subroutine: Generate map code.'
 {
+    StartLongRunningTask('Exporting, please wait...');
+
     # Enable inspector so we can log the exported code to it.
     EnableInspector();
 
@@ -202,6 +204,8 @@ void Export() playervar 'Subroutine: Generate map code.'
 
     # Disable inspector.
     DisableInspector();
+
+    EndLongRunningTask();
 
     # Show code generation completed message.
     showMessage('Pathfinding code generated!', [

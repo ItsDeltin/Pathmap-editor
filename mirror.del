@@ -68,7 +68,9 @@ void mirrorMap() playervar 'Subroutine: Mirror map'
 
     Document({
         Set: () => {
+            StartLongRunningTask('Mirroring, please wait...');
             executeMapMirror(nodeLength, segmentLength, attributeLength);
+            EndLongRunningTask();
         },
         Revert: () => {
             Nodes = Nodes.Slice(0, nodeLength);
@@ -118,6 +120,10 @@ void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeL
 
     // Mirror nodes
     for (iterI = 0; nodeLength; 1) {
+        if (!(iterI % 10)) {
+            MinWait();
+        }
+
         Vector pos;
         if (justFlipXAxis)
             pos = Nodes[iterI].Node.Position * Vector(-1, 1, 1) + Vector(a, 0, 0);
@@ -127,7 +133,6 @@ void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeL
         // Do not mirror if the mirrored node is too close.
         if (pos.DistanceTo(Nodes[iterI].Node.Position) < mergeRadius) {
             nodeMirrors[iterI] = iterI;
-            MinWait();
             continue;
         }
 
@@ -137,7 +142,6 @@ void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeL
         if (inRadius.Length)
         {
             nodeMirrors[iterI] = Nodes.Map(n => n.Node.Position).IndexOf(inRadius.First);
-            MinWait();
             continue;
         }
 
@@ -145,7 +149,6 @@ void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeL
 
         NodeUniqueID++;
         Nodes += { Node: {Position: pos, UniqueID: NodeUniqueID}, Selected: true };
-        MinWait();
     }
     step++;
     # Mirror segments
@@ -187,6 +190,10 @@ void mirrorNodeConnectedArray<T>(
     # Elements are added to the input array each iteration,
     # this ensures that we do not iterate past the initial length.
     for (i = 0; arrayLength; 1) {
+        if (!(i % 10)) {
+            MinWait();
+        }
+
         Number node1Index = NodeIndexFromID(getNode1(array[i]));
         Number node2Index = NodeIndexFromID(getNode2(array[i]));
 
@@ -196,7 +203,6 @@ void mirrorNodeConnectedArray<T>(
         // The mirrored segment would be the same as the current segment.
         // This will occur if 2 nodes on the center line of the map are connected to each other.
         if ((mirrorNode1Index == node1Index && mirrorNode2Index == node2Index)) {
-            MinWait();
             continue;
         }
 
@@ -206,7 +212,6 @@ void mirrorNodeConnectedArray<T>(
             (getNode1(v) == mirrorNode1Id && getNode2(v) == mirrorNode2Id) ||
             (getNode1(v) == mirrorNode2Id && getNode2(v) == mirrorNode1Id)))
         {
-            MinWait();
             continue;
         }
 
@@ -217,8 +222,6 @@ void mirrorNodeConnectedArray<T>(
             mirrorNode1Id,
             mirrorNode2Id
         );
-
-        MinWait();
     }
 }
 

@@ -8,6 +8,9 @@ playervar NumberSelector attributeSelector!;
 playervar Number mainText!;
 globalvar Number undoText! = -1;
 globalvar Number redoText! = -1;
+# If this is not zero, then a long running task is being executed. This means that modifications to the map should be disabled.
+globalvar Number longRunningTask!;
+Boolean canModifyMap: !longRunningTask;
 
 # Contains a list of buttons that are destroyed when the menu state changes.
 playervar Number[] buttonCollectionMain = [];
@@ -63,7 +66,8 @@ enum MenuState
     PathfinderSettings,
     Guide,
     Export,
-    ConfirmMirror
+    ConfirmMirror,
+    LongRunningTask
 }
 
 rule: 'CM: Make buttons: Main'
@@ -493,4 +497,18 @@ if (chooseHeroCallback)
     chooseHeroCallback = null;
     cm_isInMenu = false;
     releasePrimary = true;
+}
+
+void StartLongRunningTask(String message) 'Subroutine: Start Long Running Task'
+{
+    longRunningTask++;
+    cm_isInMenu = true;
+    SetMenuState(MenuState.LongRunningTask);
+    buttonCollectionMain += createButton(message, interactable: false);
+}
+
+void EndLongRunningTask()
+{
+    longRunningTask--;
+    SetMenuState(MenuState.Main);
 }

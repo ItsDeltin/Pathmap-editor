@@ -126,6 +126,7 @@ void MakeVisualBeams(BeamType beamType, in Boolean visualCondition)
 rule: 'Editor: Place node'
 Event.OngoingPlayer
 if (isHost)
+if (canModifyMap)
 if (button(Button.PrimaryFire))
 if (editorState == EditorState.Node)
 if (SelectedNodeID == -1)
@@ -152,6 +153,7 @@ if (!host.cm_isInMenu)
 rule: 'Editor: Delete node'
 Event.OngoingPlayer
 if (isHost)
+if (canModifyMap)
 if (button(Button.Ultimate))
 if (editorState == EditorState.Node)
 if (SelectedNodeID != -1)
@@ -199,6 +201,7 @@ if (!host.cm_isInMenu)
 }
 
 rule: 'Editor: Select node'
+if (canModifyMap)
 if (button(Button.SecondaryFire))
 if (editorState == EditorState.Node)
 if (SelectedNodeID != -1)
@@ -210,6 +213,7 @@ if (!host.cm_isInMenu)
 rule: 'Editor: Connect node'
 Event.OngoingPlayer
 if (isHost)
+if (canModifyMap)
 if (button(Button.PrimaryFire))
 if (editorState == EditorState.Node)
 if (SelectedNodeID != -1)

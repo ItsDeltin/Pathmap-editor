@@ -180,6 +180,7 @@ rule: 'Preload nodes'
 rule: 'Update rendering nodes'
 Event.OngoingPlayer
 if (host == eventPlayer)
+if (canModifyMap)
 if (HasSpawned())
 if (!lastUpdatePosition || lastUpdatePosition.DistanceTo(host) > 10)
 {
@@ -208,6 +209,7 @@ void updateRenderingSegments() 'Subroutine: Update rendering segments'
 
 rule: 'Snapshot'
 if (!inspector)
+if (canModifyMap)
 {
     EnableInspectorRecording();
     # 【◈ How to save & load ◈】
@@ -233,6 +235,8 @@ if (savedPlayerLocation)
 rule: 'Main: Selection loop'
 if (HasSpawned(host))
 if (!host.cm_isInMenu)
+if (!host.popupWindowVisible)
+if (canModifyMap)
 if (savedPlayerLocation != host.Position() || savedPlayerDirection != host.FacingDirection())
 if (Nodes.Length || AllPlayers().IsTrueForAny(player => player.IsDummy()))
 {

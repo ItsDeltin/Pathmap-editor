@@ -216,6 +216,7 @@ if (IsButtonHeld(EventPlayer(), Button.Interact))
 if (!IsCommunicatingAnyEmote(EventPlayer()))
 if (!popupWindowVisible)
 if (!releaseInteract)
+if (canModifyMap)
 {
     cm_isInMenu = !cm_isInMenu;
 }
@@ -280,7 +281,7 @@ Any MakeVerticalLine(in String str, in Number multiplier) {
 
 void createExitButton() "Create exit button"
 {
-    CreateIcon(EventPlayer(), <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_exitButtonProperties[1] * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_exitButtonProperties[2] - 0.25) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), Icon.X, IconRev.PositionAndColor, AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[1]) <= cm_exitButtonProperties[3] / 2 && AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[2]) <= cm_exitButtonProperties[3] / 2 ? Color.Yellow : Color.Red, false);
+    CreateIcon(canModifyMap ? EventPlayer() : null, <Vector>UpdateEveryFrame(EyePosition(EventPlayer()) + 100 * (cm_exitButtonProperties[1] * CrossProduct(FacingDirectionOf(EventPlayer()), DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90)) + (cm_exitButtonProperties[2] - 0.25) * DirectionFromAngles(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())) - 90) + 3 * FacingDirectionOf(EventPlayer()))), Icon.X, IconRev.VisibleToPositionAndColor, AbsoluteValue(AngleDifference(HorizontalAngleFromDirection(FacingDirectionOf(EventPlayer())), HorizontalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[1]) <= cm_exitButtonProperties[3] / 2 && AbsoluteValue(AngleDifference(VerticalAngleFromDirection(FacingDirectionOf(EventPlayer())), VerticalAngleFromDirection(cm_menuOriginalFacing)) - cm_exitButtonProperties[2]) <= cm_exitButtonProperties[3] / 2 ? Color.Yellow : Color.Red, false);
     cm_exitIconEntity = LastCreatedEntity();
 }
 
@@ -362,6 +363,7 @@ if (IsButtonHeld(EventPlayer(), Button.PrimaryFire) || IsButtonHeld(EventPlayer(
 
 rule: "Action ID: Exit menu"
 Event.OngoingPlayer
+if (canModifyMap)
 if (cm_currActionID == "exit menu")
 {
     cm_isInMenu = false;

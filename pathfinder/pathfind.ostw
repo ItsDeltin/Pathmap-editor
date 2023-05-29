@@ -10,6 +10,7 @@ struct PfNode {
     public Number gScore;
     public Number fScore;
     public Number parent;
+    public Number nodeIndex;
 }
 
 # The currently loaded map
@@ -41,19 +42,8 @@ playervar Number pfStartTime;
 playervar Number pfDistanceToNextNode;
 playervar Vector pfLastNodeStartingPosition;
 playervar Vector pfNextPosition;
-playervar Boolean pfIsPartialPath;
 
 playervar Number pfStartingNode;
-playervar Number[] pfOpen;
-playervar Number[] pfCameFrom;
-playervar Number[] pfGScore;
-playervar Number[] pfFScore;
-
-rule: '【PF Core】what'
-if (IsJumping(HostPlayer()))
-{
-    SmallMessage(AllPlayers(), 'Amazing hop, my liege!');
-}
 
 rule: '【PF Core】Init loaded map'
 if (pfLoadedMap.nodes)
@@ -65,27 +55,23 @@ rule: '【PF Core】Setup Event Player'
 Event.OngoingPlayer
 {
     pfStartingNode = -1;
-    pfOpen = [];
-    pfCameFrom = [];
-    pfGScore = [];
-    pfFScore = [];
 }
 
 rule: '【PF Core】Next Tick'
-if (pfIterationsThisTick)
+if (pfIterationsThisTick <= 0)
 {
-    pfIterationsThisTick = Max(0, pfIterationsThisTick - 10);
-    MinWait();
+    pfIterationsThisTick = Max(Min(RoundToInteger(63 - ServerLoad() / 4, Rounding.Nearest), 15), 5);
+    Wait(ServerLoadAverage() < 250 ? 0.016 : 0.2);
     LoopIfConditionIsTrue();
 }
 
 void pfTick() '【PF Core Subroutine】☞ Tick'
 {        
-    while (pfIterationsThisTick >= 10) {
-        MinWait();
-        WaitUntil(pfIterationsThisTick < 10, 9999);
+    while (pfIterationsThisTick <= 0) {
+        WaitUntil(pfIterationsThisTick > 0, 9999);
     }
-    pfIterationsThisTick++;
+    pfIterationsThisTick--;
+    // SmallMessage(AllPlayers(), 'the gate has opened');
 }
 
 rule: '【PF Core】Update & Execute'
@@ -95,31 +81,17 @@ if (EventPlayer().DistanceTo(pfDestination) > 4)
 if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5)
 {
     # Debug Message
-    SmallMessage(AllPlayers(), <'Updated pathfinder for <0>', EventPlayer()>);
+    // SmallMessage(AllPlayers(), <'Updated pathfinder for <0>', EventPlayer()>);
     # Stop throttle while loading next paths
     StopThrottleInDirection(EventPlayer());
     # Update saved destination
     pfSavedTarget = pfDestination;
-    # If the bot's starting node was not set, update it.
-    // if (pfStartingNode == -1) {
     pfTick();
     pfStartingNode = chooseNodeFromPosition(PositionOf());
-    # Reset cameFrom, gScore, and open values.
-    pfCameFrom = pfTableTemplate[0];
-    pfGScore = pfTableTemplate[1];
-    pfFScore = pfTableTemplate[1];
-    pfGScore[pfStartingNode] = 0;
-    pfFScore[pfStartingNode] = 0;
-    pfOpen = [pfStartingNode];
-    // } else {
-    //     # Update the bot's starting node.
-    //     pfGScore[pfStartingNode] = 0;
-    //     pfFScore[pfStartingNode] = 0;
-    //     pfCameFrom[pfStartingNode] = -1;
-    //     pfOpen += pfStartingNode;
-    // }
-    # Update goal position
+    pfTick();
     Number goal = chooseNodeFromPosition(pfDestination);
+    pfTick();
+
     aStar(goal, pfPlayerAttributes, pfPath);
     pfIsPathfinding = true;
     pfCurrentNodeIndex = pfPath.Last;
@@ -153,7 +125,7 @@ if (pfCurrentNodeIndex != -1)
 if (IsInLineOfSight(PositionOf() + Up() * 0.25, pfNextPosition + Up() * 0.25))
 if ((PositionOf().Y - pfNextPosition.Y).Abs() < 1)
 {
-    SmallMessage(AllPlayers(), 'Compatible node skip found');
+    // SmallMessage(AllPlayers(), 'Compatible node skip found');
     Wait(0.1);
     ProgressEventPlayer();
     Wait(0.1);
@@ -165,10 +137,18 @@ Event.OngoingPlayer
 if (pfIsPathfinding)
 if (pfDistanceToNextNode - 5.5 * 0.5 * (TotalTimeElapsed() - pfStartTime) < 0)
 {
-    SmallMessage(AllPlayers(), <'Player <0> got stuck, teleporting them.', EventPlayer()>);
+    // SmallMessage(AllPlayers(), <'Player <0> got stuck, teleporting them.', EventPlayer()>);
     Teleport(EventPlayer(), pfWalkingToPosition);
     Wait(3);
     LoopIfConditionIsTrue();
+}
+
+rule: '【PF Core】(optional) Error when pathfinding without map'
+Event.OngoingPlayer
+if (!pfLoadedMap.nodes)
+if (pfDestination)
+{
+    LogToInspector(<'Error: Attempted to pathfind player <0> without a loaded map.', EventPlayer()>);
 }
 
 void ProgressEventPlayer() playervar '【PF Core Subroutine】☞ Progress event player' {
@@ -212,68 +192,79 @@ void aStar(in Number goal, in Number[] attributes, ref Number[] pathArray) {
     Number heuristicWeight: 20;
     const Number => Number h: n => (pfLoadedMap.nodes[n]).DistanceTo(pfLoadedMap.nodes[goal]) * heuristicWeight;
 
-    // PfNode[] scores = [{ parent: -1, gScore: 0, fScore: 0 }];
-    // Number[] map = [pfStartingNode];
+    PfNode[] scores = [{ parent: -1, gScore: 0, fScore: 0, nodeIndex: pfStartingNode }];
+    Number[] open = [0];
 
     Number iter = 0;
-    while (pfOpen.Length) {
+    while (open.Length) {
         // Debug
         // Any[] icons = [];
-        // foreach (Number o in pfOpen) {
-        //     icons += CreateInWorldText(AllPlayers(), o, pfLoadedMap.nodes[o], 2, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.White);
+        // foreach (Number o in open) {
+        //     icons += CreateInWorldText(AllPlayers(), scores[o].nodeIndex, pfLoadedMap.nodes[scores[o].nodeIndex], 2, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.White);
         // }
         // WaitForClick();
         // foreach (Any icon in icons) {
         //     DestroyInWorldText(icon);
         // }
 
-        Number current = pfOpen.SortedArray((o, i) => pfFScore[o]).First;
+        Number current = open.SortedArray((o, i) => scores[o].fScore).First;
+        Number currentNodeIndex: scores[current].nodeIndex;
         # If the goal was found, reconstruct the path.
-        if (current == goal) {
+        if (currentNodeIndex == goal) {
             // pfIsPartialPath = iter == 20;
-            reconstructPath(pfCameFrom, current, pathArray);
+            reconstructPath(scores, current, pathArray);
             return;
         }
 
-        // Any[] neighborIcons = [CreateInWorldText(AllPlayers(), current, pfLoadedMap.nodes[current], 2, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.Rose)];
-        pfOpen.ModRemoveByValue(current);
+        // Any[] neighborIcons = [CreateInWorldText(AllPlayers(), currentNodeIndex, pfLoadedMap.nodes[currentNodeIndex], 2, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.Rose)];
+        open.ModRemoveByValue(current);
 
         # Check each neighbor to the current node.
-        foreach (Any[] neighbor in pfLoadedMap.neighbors[current]) {
+        foreach (Any[] neighbor in pfLoadedMap.neighbors[currentNodeIndex]) {
+            # The neighbor index to be used like `pfLoadedMap.nodes[neighborI]`.
+            Number neighborI = neighbor[0];
+            Number scoreIndex = scores.Map(s => s.nodeIndex).IndexOf(neighborI);
+
             // Color neighborColor = Color.Red;
             # Ensure that the path to the neighbor is enabled.
             if ((<Number[]>neighbor[1]).IsTrueForAll(a => attributes.Contains(a))) {
-                Number neighborI = neighbor[0];
-                Number score = pfGScore[current] + pfLoadedMap.nodes[current].DistanceTo(pfLoadedMap.nodes[neighborI]);
+                // neighborColor = Color.Green;
+                Number score = scores[current].gScore + pfLoadedMap.nodes[currentNodeIndex].DistanceTo(pfLoadedMap.nodes[neighborI]);
 
-                // neighborColor = Color.Blue;
-                if (score < pfGScore[neighborI]) {
-                    pfCameFrom[neighborI] = current;
-                    pfGScore[neighborI] = score;
-                    pfFScore[neighborI] = score + h(neighborI);
-                    if (!pfOpen.Contains(neighborI))
-                        pfOpen += neighborI;
-                    // neighborColor = Color.Green;
+                # Get neighbor index in scores.
+                # If -1, the neighbor was not added to the score list yet.
+                if (scoreIndex == -1) {
+                    # Note: not required after debugging.
+                    // scoreIndex = scores.Length;
+                    open += scores.Length;
+                    scores += { parent: current, gScore: score, fScore: score + h(neighborI), nodeIndex: neighborI };
+                } else if (score < scores[scoreIndex].gScore) {
+                    scores[scoreIndex] = { parent: current, gScore: score, fScore: score + h(neighborI), nodeIndex: neighborI };
+                    if (!open.Contains(scoreIndex))
+                        open += scoreIndex;
                 }
+                // else {
+                //     neighborColor = Color.Blue;
+                // }
 
             }
             pfTick();
-            // neighborIcons += CreateInWorldText(AllPlayers(), neighbor[0], pfLoadedMap.nodes[neighbor[0]], 2, Clipping.DoNotClip, InworldTextRev.VisibleTo, neighborColor);
+            // neighborIcons += CreateInWorldText(AllPlayers(), scores[scoreIndex].nodeIndex, pfLoadedMap.nodes[scores[scoreIndex].nodeIndex], 2, Clipping.DoNotClip, InworldTextRev.VisibleTo, neighborColor);
         }
 
         // WaitForClick();
         // foreach (Any icon in neighborIcons) {
-            // DestroyInWorldText(icon);
+        //     DestroyInWorldText(icon);
         // }
         iter++;
     }
 }
 
-void reconstructPath(in Number[] cameFrom, ref Number current, ref Number[] pathArray) {
+void reconstructPath(in PfNode[] scores, ref Number current, ref Number[] pathArray) {
     pathArray = [-1];
     while (current != -1) {
-        pathArray += current;
-        current = cameFrom[current];
+        pathArray += scores[current].nodeIndex;
+        current = scores[current].parent;
         pfTick();
 
         // if (current != -1)

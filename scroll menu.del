@@ -87,7 +87,7 @@ class Scrollbar
     {
         scrollItems = insert(scrollItems, index, label);
         itemColors = insert(itemColors, index, color);
-        scrollItemButtons = insert(scrollItemButtons, index, <Any>(-1)); // todo ostw: Number should be accepted as Any by default for type inferrence
+        scrollItemButtons = insert(scrollItemButtons, index, -1);
         Update();
     }
 

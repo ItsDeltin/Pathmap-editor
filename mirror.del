@@ -137,9 +137,12 @@ void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeL
         }
 
         // Find existing nodes in the mirrored position.
-        Vector[] inRadius = Nodes.Map(n => n.Node.Position).FilteredArray(n => n.DistanceTo(pos) < mergeRadius);
+        // The slice is so that only the original nodes are considered, not the mirrored nodes.
+        // The Sort ensures that the correct already-mirrored node is linked to the current iter node.
+        // Without the sort, an incorrect link may occur if multiple nodes are within the merge radius.
+        Vector[] inRadius = Nodes.Map(n => n.Node.Position).Slice(0, nodeLength).SortedArray(n => n.DistanceTo(pos));
         // Do not mirror if a node already exists.
-        if (inRadius.Length)
+        if (inRadius.Length && inRadius.First.DistanceTo(pos) < mergeRadius)
         {
             nodeMirrors[iterI] = Nodes.Map(n => n.Node.Position).IndexOf(inRadius.First);
             continue;

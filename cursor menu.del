@@ -168,7 +168,7 @@ if (EventPlayer() == HostPlayer())
     createCursor();
     MinWait();
     createBorderCorners();
-    createBorderEdges();    
+    createBorderEdges();
 }
 
 void DestroyButton(Number buttonID) "CM: Destroy button"

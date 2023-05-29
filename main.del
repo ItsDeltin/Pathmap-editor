@@ -156,14 +156,14 @@ playervar Vector lastUpdatePosition;
 rule: 'Preload nodes'
 {
     Number preload! = 0;
-    for (preload = 0; 25; 1)
+    for (preload = 0; 20; 1)
     {
         define node: Nodes[host.renderingNodes[EvaluateOnce(preload)]];
         CreateEffect(
             EvaluateOnce(preload) < host.renderingNodes.Length ? host : null,
             Effect.Sphere, node.Color(), node.ShownPosition(), NodeSize, EffectRev.VisibleToPositionRadiusAndColor);
     }
-    for (preload = 0; 55; 1)
+    for (preload = 0; 40; 1)
     {
         define seg: Segments[host.renderingSegments[EvaluateOnce(preload)]];
         CreateBeamEffect(

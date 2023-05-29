@@ -155,15 +155,15 @@ void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeL
     mirrorNodeConnectedArray(nodeMirrors, Segments, iterI, segmentLength, SegmentUniqueID,
         seg => seg.Node1,
         seg => seg.Node2,
-        (o, id, n1, n2) => { Node1: n1, Node2: n2, ID: id }
-    );
+        (o, id, n1, n2) => { Node1: n1, Node2: n2, ID: id },
+        true);
     step++;
     # Mirror attributes
     mirrorNodeConnectedArray(nodeMirrors, Attributes, iterI, attributeLength, AttributeUniqueID,
         attr => attr.Node1,
         attr => attr.Node2,
-        (o, id, n1, n2) => { Value: o.Value, ID: id, Node1: n1, Node2: n2 }
-    );
+        (o, id, n1, n2) => { Value: o.Value, ID: id, Node1: n1, Node2: n2 },
+        false);
 
     # Destroy progess hud
     DestroyProgressBarHudText(progressHud);
@@ -185,7 +185,8 @@ void mirrorNodeConnectedArray<T>(
     ref Number uniqueId,
     const T => Number getNode1,
     const T => Number getNode2,
-    const (T, Number, Number, Number) => T mirroredValue)
+    const (T, Number, Number, Number) => T mirroredValue,
+    in Boolean isBidirectional)
 {
     # Elements are added to the input array each iteration,
     # this ensures that we do not iterate past the initial length.
@@ -210,7 +211,7 @@ void mirrorNodeConnectedArray<T>(
         Number mirrorNode2Id = Nodes[mirrorNode2Index].Node.UniqueID;
         if (anyWithWait(array, arrayLength, v =>
             (getNode1(v) == mirrorNode1Id && getNode2(v) == mirrorNode2Id) ||
-            (getNode1(v) == mirrorNode2Id && getNode2(v) == mirrorNode1Id)))
+            (isBidirectional && getNode1(v) == mirrorNode2Id && getNode2(v) == mirrorNode1Id)))
         {
             continue;
         }

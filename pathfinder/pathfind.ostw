@@ -40,21 +40,14 @@ playervar Vector pfWalkingToPosition;
 playervar Number[] pfPath;
 playervar Number pfStartTime;
 playervar Number pfDistanceToNextNode;
-playervar Vector pfLastNodeStartingPosition;
 playervar Vector pfNextPosition;
-
-playervar Number pfStartingNode;
+# The node closest to the player.
+playervar Number pfActiveNode;
 
 rule: '【PF Core】Init loaded map'
 if (pfLoadedMap.nodes)
 {
     pfTableTemplate = [pfLoadedMap.nodes.Map(n => -1), pfLoadedMap.nodes.Map(n => 9999)];
-}
-
-rule: '【PF Core】Setup Event Player'
-Event.OngoingPlayer
-{
-    pfStartingNode = -1;
 }
 
 rule: '【PF Core】Next Tick'
@@ -71,7 +64,6 @@ void pfTick() '【PF Core Subroutine】☞ Tick'
         WaitUntil(pfIterationsThisTick > 0, 9999);
     }
     pfIterationsThisTick--;
-    // SmallMessage(AllPlayers(), 'the gate has opened');
 }
 
 rule: '【PF Core】Update & Execute'
@@ -81,20 +73,12 @@ if (EventPlayer().DistanceTo(pfDestination) > 4)
 if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5)
 {
     # Debug Message
-    // SmallMessage(AllPlayers(), <'Updated pathfinder for <0>', EventPlayer()>);
-    # Stop throttle while loading next paths
-    StopThrottleInDirection(EventPlayer());
+    SmallMessage(AllPlayers(), <'Updated pathfinder for <0>', EventPlayer()>);
     # Update saved destination
     pfSavedTarget = pfDestination;
-    pfTick();
-    pfStartingNode = chooseNodeFromPosition(PositionOf());
-    pfTick();
-    Number goal = chooseNodeFromPosition(pfDestination);
-    pfTick();
-
-    aStar(goal, pfPlayerAttributes, pfPath);
+    aStar();
     pfIsPathfinding = true;
-    pfCurrentNodeIndex = pfPath.Last;
+    pfCurrentNodeIndex = pfPath.First;
     pfWalkingToPosition = pfLoadedMap.nodes[pfCurrentNodeIndex];
     UpdateNodeMeta();
     StartThrottleInDirection(EventPlayer(), PositionOf().DirectionTowards(pfWalkingToPosition), 1, Relative.ToWorld, ThrottleBehavior.ReplaceExistingThrottle, ThrottleRev.DirectionAndMagnitude);
@@ -154,24 +138,23 @@ if (pfDestination)
 void ProgressEventPlayer() playervar '【PF Core Subroutine】☞ Progress event player' {
     # Update the current pathfind attributes.
     # Any rules watching these with the matching condition will activate.
-    pfAttributes = pfLoadedMap.neighbors[pfCurrentNodeIndex].FilteredArray(segment => segment[0] == pfPath.Last).First.Last;
-    # The next aStart's current node will start on the node that was just reached.
-    pfStartingNode = pfCurrentNodeIndex;
+    pfAttributes = pfLoadedMap.neighbors[pfCurrentNodeIndex].FilteredArray(segment => segment[0] == pfPath.First).First.Last;
     # Go to the next node in the path.
-    pfCurrentNodeIndex = pfPath.Last;
+    pfCurrentNodeIndex = pfPath.First;
     # Pop the current path.
-    pfPath.ModRemoveByIndex(pfPath.Length - 1);
+    pfPath.ModRemoveByIndex(0);
     # Set the position that the player is currently walking towards.
     pfWalkingToPosition = pfCurrentNodeIndex == -1 ? pfDestination : pfLoadedMap.nodes[pfCurrentNodeIndex];
     UpdateNodeMeta();
 }
 
 void UpdateNodeMeta() playervar '【PF Core Subroutine】☞ Update node meta' {
+    pfActiveNode = pfCurrentNodeIndex;
     # Update the pathfinding start time.
     pfStartTime = TotalTimeElapsed();
     pfDistanceToNextNode = EventPlayer().DistanceTo(pfWalkingToPosition);
-    pfLastNodeStartingPosition = EventPlayer().Position();
-    pfNextPosition = pfPath.Length >= 2 ? pfDestination : pfLoadedMap.nodes[pfPath[pfPath.Length - 2]];
+    // note: this doesn't seem right?
+    pfNextPosition = pfPath.Length >= 2 ? pfDestination : pfLoadedMap.nodes[pfPath[1]];
 }
 
 # Selects a node index from a position.
@@ -184,15 +167,20 @@ Number chooseNodeFromPosition(in Vector vector) {
 }
 
 # Gets the shortest path from start to goal.
-# - `map`: The input map.
-# - `start`: Index of the starting node.
-# - `goal`: Index of the goal node.
-# - `pathArray`: The results are appended to this map.
-void aStar(in Number goal, in Number[] attributes, ref Number[] pathArray) {
-    Number heuristicWeight: 20;
-    const Number => Number h: n => (pfLoadedMap.nodes[n]).DistanceTo(pfLoadedMap.nodes[goal]) * heuristicWeight;
+void aStar() {
+    Number goal = chooseNodeFromPosition(pfDestination);
+    pfTick();
+    if (pfIsPathfinding && pfCurrentNodeIndex != -1) {
+        pfActiveNode = pfCurrentNodeIndex;
+    } else {
+        pfActiveNode = chooseNodeFromPosition(PositionOf());
+        pfTick();
+    }
 
-    PfNode[] scores = [{ parent: -1, gScore: 0, fScore: 0, nodeIndex: pfStartingNode }];
+    Number heuristicWeight: 20;
+    const Number => Number h: n => (pfLoadedMap.nodes[n]).DistanceTo(pfLoadedMap.nodes[pfActiveNode]) * heuristicWeight;
+
+    PfNode[] scores = [{ parent: -1, gScore: 0, fScore: 0, nodeIndex: goal }];
     Number[] open = [0];
 
     Number iter = 0;
@@ -210,9 +198,9 @@ void aStar(in Number goal, in Number[] attributes, ref Number[] pathArray) {
         Number current = open.SortedArray((o, i) => scores[o].fScore).First;
         Number currentNodeIndex: scores[current].nodeIndex;
         # If the goal was found, reconstruct the path.
-        if (currentNodeIndex == goal) {
+        if (currentNodeIndex == pfActiveNode) {
             // pfIsPartialPath = iter == 20;
-            reconstructPath(scores, current, pathArray);
+            reconstructPath(scores, current);
             return;
         }
 
@@ -227,7 +215,7 @@ void aStar(in Number goal, in Number[] attributes, ref Number[] pathArray) {
 
             // Color neighborColor = Color.Red;
             # Ensure that the path to the neighbor is enabled.
-            if ((<Number[]>neighbor[1]).IsTrueForAll(a => attributes.Contains(a))) {
+            if ((<Number[]>neighbor[1]).IsTrueForAll(a => pfPlayerAttributes.Contains(a))) {
                 // neighborColor = Color.Green;
                 Number score = scores[current].gScore + pfLoadedMap.nodes[currentNodeIndex].DistanceTo(pfLoadedMap.nodes[neighborI]);
 
@@ -260,16 +248,17 @@ void aStar(in Number goal, in Number[] attributes, ref Number[] pathArray) {
     }
 }
 
-void reconstructPath(in PfNode[] scores, ref Number current, ref Number[] pathArray) {
-    pathArray = [-1];
+void reconstructPath(in PfNode[] scores, ref Number current) {
+    pfPath = [];
     while (current != -1) {
-        pathArray += scores[current].nodeIndex;
+        pfPath += scores[current].nodeIndex;
         current = scores[current].parent;
         pfTick();
 
         // if (current != -1)
         //     CreateBeamEffect(AllPlayers(), BeamType.GoodBeam, pfLoadedMap.nodes[pathArray.Last], pfLoadedMap.nodes[current], Color.Rose, EffectRev.VisibleTo);
     }
+    pfPath += [-1];
 
     // WaitForClick();
     // DestroyAllEffects();

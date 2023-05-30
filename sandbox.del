@@ -105,7 +105,7 @@ if (isHost)
     createButton('▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒', defaultColor: Color.Black, posX: 0, posY: 1.375, interactable: false);
     createButton('♡              ♡', defaultColor: Color.Red, posX: 0, posY: 1.375, interactable: false);
     createButton('ｈ  ｐ  ／  ｏ  ｉ  ｏ   ｄ  ｔ\n               ', posX: .15, posY: 1.375 - .17, interactable: false);
-    createButton('ｔ  ｓ  ／  －  ．   ｍ  ｅ  ｉ\n               ', posX: .23, posY: 1.375 - .17, interactable: false);
+    createButton('ｔ  ｓ  ／  －   ．  ｍ  ｅ  ｉ\n               ', posX: .23, posY: 1.375 - .17, interactable: false);
     createButton('ｔ  ：  ｋ  ｆ ｃ    ／  ｌ  ｎ\n               ', posX: .31, posY: 1.375 - .17, interactable: false);
     // createButton('ｈｔ ｓ／ｋ  - ｉ  ｏ ／ｅｔｎ\n               ', posX: .15, posY: 1.375 - .17, interactable: false);
     // createButton('ｔｐ ：／ｏ ｆ.ｃ ｍｄｌｉ\n               ', posX: .23, posY: 1.375 - .17, interactable: false);

@@ -271,7 +271,8 @@ void ExportRules() playervar 'EXPORT: Export'
 
         Number[] enabledHeroIndexes! = Rules[i].EnabledHeroes.Map((b, hi) => hi).FilteredArray(hi => Rules[i].EnabledHeroes[hi]);
         String heroListString! = null;
-        if (numberOfEnabledHeroes > 1)
+        Boolean doExportHeroArray! = numberOfEnabledHeroes > 1 && numberOfEnabledHeroes < AllHeroes().Length;
+        if (doExportHeroArray)
         {
             heroListString = StringJoin(enabledHeroIndexes, ', ', v =>
             {
@@ -289,7 +290,7 @@ void ExportRules() playervar 'EXPORT: Export'
             LogToInspector('*/ conditions { /*');
             LogToInspector('*/     Array Contains(Event Player.pfAttributes, {0}) == True; /*'.Format([Rules[i].ExecutesOnAttribute]));
             # Multiple heroes
-            if (numberOfEnabledHeroes > 1) {
+            if (doExportHeroArray) {
                 LogToInspector(<'*/     Array Contains(Array(<0>), Hero Of(Event Player)) == True; /*', heroListString>);
             }
             LogToInspector('*/ } actions { /*');
@@ -298,7 +299,7 @@ void ExportRules() playervar 'EXPORT: Export'
         else if (lang == OutputLanguage.OSTW) {
             LogToInspector('*/ if (pfAttributes.Contains({0})) /*'.Format([Rules[i].ExecutesOnAttribute]));
             # Multiple heroes
-            if (numberOfEnabledHeroes > 1) {
+            if (doExportHeroArray) {
                 LogToInspector(<'*/ if ([<0>].Contains(HeroOf())) /*', heroListString>);
             }
             # Start rule block
@@ -308,7 +309,7 @@ void ExportRules() playervar 'EXPORT: Export'
         else if (lang == OutputLanguage.OverPy) {
             LogToInspector('*/\n    @Condition {0} in eventPlayer.pfAttributes /*'.Format([Rules[i].ExecutesOnAttribute]));
             # Multiple heroes
-            if (numberOfEnabledHeroes > 1) {
+            if (doExportHeroArray) {
                 LogToInspector(<'*/\n    @Condition eventPlayer.getCurrentHero() in [<0>] /*', heroListString>);
             }
         }            

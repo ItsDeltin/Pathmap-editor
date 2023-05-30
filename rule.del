@@ -387,9 +387,9 @@ if (cm_currActionID == MenuAction.WaitTimeDown || cm_currActionID == MenuAction.
     else if (cm_currActionID == MenuAction.WaitTimeUp)
         waitTime += 0.02;
     else if (cm_currActionID == MenuAction.WaitTimeDownBig)
-        waitTime -= 0.5;
+        waitTime -= 0.1;
     else if (cm_currActionID == MenuAction.WaitTimeUpBig)
-        waitTime += 0.5;
+        waitTime += 0.1;
     
     ModifyVariable(waitTime, Operation.Max, 0.02);
     SetLabel(waitTimeText, 'wait time: ' + waitTime + ' seconds');

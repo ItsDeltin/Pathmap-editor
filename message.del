@@ -1,6 +1,10 @@
 import 'main.del';
 
 playervar Boolean popupWindowVisible;
+playervar Any[] msgHudTexts = [];
+playervar Any[] msgProgressTexts = [];
+playervar (() => MessageLine[])[] msgPages;
+playervar Number msgCurrentPage;
 
 void createHelpButton(in Number posX, in Number posY, in String header, in MessageLine[] lines)
 {
@@ -22,14 +26,15 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
         SetObjectiveDescription(HostPlayer(), objectiveDescription);
         EnableGameModeHud(HostPlayer());
     }
+    destroyMessageTexts();
 
-    Any[] hudTexts = [];
-    Any[] progressTexts = [];
     # Centers the black background to the center of the screen.
-    MakeBox(hudTexts, Location.Left, '                       Press   to close', CustomColor(255, 0, 255, 255));
-    MakeBox(hudTexts, Location.Right, '                      〔     F        〕', Color.White);
+    MakeBox(msgHudTexts, Location.Left, '                       Press   to close', '', CustomColor(255, 0, 255, 255));
+    MakeBox(msgHudTexts, Location.Right, '                      〔     F        〕',
+        msgPages.Length ? <'                         ← <0> 〔<1>/<2>〕 <3> →', InputBindingString(Button.Ultimate), msgCurrentPage + 1, msgPages.Length, InputBindingString(Button.Ability2)> : '',
+        Color.White);
     # Aligns the messages into the box.
-    hudTexts += CreateHudText(
+    msgHudTexts += CreateHudText(
         HostPlayer(),
         Text: '\n ',
         Location: Location.Top,
@@ -40,7 +45,7 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
     for (i = 0; lines.Length; 1) {
         # Text
         if (lines[i].Type == 0) {
-            hudTexts += CreateHudText(
+            msgHudTexts += CreateHudText(
                 HostPlayer(),
                 Text: lines[i].Content,
                 Location: Location.Top,
@@ -51,7 +56,7 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
         }
         # Header
         else if (lines[i].Type == 2) {
-            hudTexts += CreateHudText(
+            msgHudTexts += CreateHudText(
                 HostPlayer(),
                 Header: lines[i].Content,
                 Location: Location.Top,
@@ -62,7 +67,7 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
         }
         # Separator
         else if (lines[i].Type == 1) {
-            progressTexts += CreateProgressBarHudText(
+            msgProgressTexts += CreateProgressBarHudText(
                 HostPlayer(),
                 Value: 100,
                 Text: lines[i].Content,
@@ -74,35 +79,28 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
             );
         }
     }
+}
 
-    // # Close menu spacing
-    // hudTexts += CreateHudText(HostPlayer(), Text: '\n ', Location: Location.Top, SortOrder: i + 2, Reevaluation: HudTextRev.VisibleTo);
+void showPagedMessage((() => MessageLine[])[] pages) 'Subroutine: show multi page message'
+{
+    msgPages = pages;
+    msgCurrentPage = 0;
+    showMessage(null, pages[0].Invoke());
+}
 
-    // # Close menu hud
-    // hudTexts += CreateHudText(
-    //     HostPlayer(),
-    //     Header: <'Press <0> to close', InputBindingString(Button.Interact)>,
-    //     Location: Location.Top,
-    //     HeaderColor: Color.Violet,
-    //     SortOrder: i + 3,
-    //     Reevaluation: HudTextRev.VisibleToAndString
-    // );
-
-    # Wait for the user to click interact to close the menu.
-    WaitUntil(!button(Button.Interact), 9999);
-    WaitUntil(button(Button.Interact), 9999);
-    HostPlayer().releaseInteract = true;
-    HostPlayer().popupWindowVisible = false;
-    DisableGameModeHud(HostPlayer());
-    HostPlayer().cm_isInMenu = true;
-
+void destroyMessageTexts()
+{
     # Destroy hud texts.
-    foreach (Any hudText in hudTexts) {
-        DestroyHudText(hudText);
+    while (msgHudTexts.Length)
+    {
+        DestroyHudText(msgHudTexts.First);
+        msgHudTexts.ModRemoveByIndex(0);
     }
     # Destroy progress texts.
-    foreach (Any progressText in progressTexts) {
-        DestroyProgressBarHudText(progressText);
+    while (msgProgressTexts.Length)
+    {
+        DestroyProgressBarHudText(msgProgressTexts.First);
+        msgProgressTexts.ModRemoveByIndex(0);
     }
 }
 
@@ -137,7 +135,7 @@ struct MessageLine
     public Color Color;
 }
 
-void MakeBox(ref Any[] hudArray, Location location, in String extra, in Color color)
+void MakeBox(ref Any[] hudArray, Location location, in String extra, in String extra2, in Color color)
 {
     # Centers the black background to the center of the screen.
     hudArray += CreateHudText(
@@ -152,9 +150,43 @@ void MakeBox(ref Any[] hudArray, Location location, in String extra, in Color co
     # The black background.
     hudArray += CreateHudText(
         HostPlayer(),
-        Header: <'\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0>\n\n                           ', extra> + '                           ',
+        Header: <'\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0>\n<1>\n                           ', extra, extra2> + '                           ',
         Location: location,
         SortOrder: -1,
         HeaderColor: color
     );
+}
+
+rule: 'Close Popup Window'
+Event.OngoingPlayer
+if (popupWindowVisible)
+if (eventPlayer.IsButtonHeld(Button.Interact))
+{
+    releaseInteract = true;
+    popupWindowVisible = false;
+    DisableGameModeHud();
+    cm_isInMenu = true;
+    msgPages = [];
+    msgCurrentPage = 0;
+    destroyMessageTexts();
+}
+
+rule: 'Message Box: Next page'
+Event.OngoingPlayer
+if (popupWindowVisible)
+if (eventPlayer.IsButtonHeld(Button.Ability2))
+if (msgCurrentPage < msgPages.Length - 1)
+{
+    msgCurrentPage++;
+    showMessage(null, msgPages[msgCurrentPage].Invoke());
+}
+
+rule: 'Message Box: Previous page'
+Event.OngoingPlayer
+if (popupWindowVisible)
+if (eventPlayer.IsButtonHeld(Button.Ultimate))
+if (msgCurrentPage > 0)
+{
+    msgCurrentPage--;
+    showMessage(null, msgPages[msgCurrentPage].Invoke());
 }

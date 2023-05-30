@@ -240,80 +240,67 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             defaultColor: Color.White);
 
         buttonCollectionMain += createButton(
-            'How to save & load',
-            onClick: l => {
-                showMessage(null, [
-                    MessageLine.Separator('Saving and Loading', Color.Orange),
-                    MessageLine.Text('Make sure the "Enable Workshop Inspector" & "Enable Workshop Inspector Log File"\n'
-                        + 'settings are enabled in Options > Gameplay > General'),
-                    MessageLine.Separator('How To Save', Color.SkyBlue),
-                    MessageLine.Text('1. Press Escape.\n2. Click "Open Workshop Inspector".\n'
-                        + '3. Click the (X) button below the timeline.\n'
-                        + '4. Save the copied contents into a text file.'),
-                    MessageLine.Separator('How to load', Color.Yellow),
-                    MessageLine.Text('1. Import the pathmap editor workshop code "GZWF9"\n2. Open the workshop editor.\n'
-                        + '3. scroll to the top of the page to the rule that says:'),
-                    MessageLine.Header('【◈ Paste the actions to load a previous save here!! ◈】', CustomColor(179, 179, 179, 255)),
-                    MessageLine.Text('4. Paste the saved text into the rule.\n'),
-                    MessageLine.Text('Always remember that the workshop won\'t auto-save your map.', Color.Rose),
-                    MessageLine.Text('If the game restarts or is closed you will lose your progress.')
-                ]);
-            },
-            clickWidth: 1.5,
-            posX: 1.6,
-            posY: -.4,
-            defaultColor: Color.White);
-        
-        buttonCollectionMain += createButton(
             'Getting started',
             onClick: l => {
-                showMessage('Pathfinding is made up of 3 components: Nodes, paths, and attributes.\n' +
-                    'Once you complete your map, use the export menu to generate your pathfinding code.', [
-                    MessageLine.Separator(<'<0> Nodes', AbilityIconString(Hero.Sombra, Button.SecondaryFire)>, Color.Turquoise),
-                    MessageLine.Text('When pathfinding, bots will walk between the nodes placed in the world.'),
-                    MessageLine.Separator(<'<0> Paths', AbilityIconString(Hero.Pharah, Button.Ability2)>, Color.Orange),
-                    MessageLine.Text('Paths determine which nodes are connected.' +
-                                   '\nWhen the connect mode is "Connect: Paths", Select two nodes in the world to create a path between them.',),
-                    MessageLine.Separator(<'<0> Attributes', AbilityIconString(Hero.Genji, Button.Jump)>, Color.Yellow),
-                    MessageLine.Text('Paths can be tagged with values in order to create gates and paths that require hero abilities to cross.' +
-                                   '\nWhen the connect mode is "Connect: Attributes", Select two nodes to tag the path between them.'),
-                    MessageLine.Text('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'),
-                    MessageLine.Text('These workshop codes contain the editor loaded with a completed waypoint graph.\n' +
-                        'You can use these to see how your map should look.\n'),
-                    MessageLine.Text('Esperança', Color.SkyBlue),
-                    MessageLine.Text('HP2DG', Color.Green)
-                ]);
-            },
-            clickWidth: 1.5,
-            posX: 1.6,
-            posY: -.2,
-            defaultColor: Color.White);
-
-        buttonCollectionMain += createButton(
-            'How to load old maps',
-            onClick: l => {
-                showMessage(null, [
-                    MessageLine.Text('When loading your save (see Getting Started) from old editor versions, there is a chance you will get' +
-                                   '\nan error such as "Expected variable after \'Global\'". You can fix this by editing your save so that the' +
-                                   '\nworkshop accepts it.'),
-                    MessageLine.Text('Step #1: Open your save in a text editor and delete the "variables" section.\n', Color.LimeGreen),
-                    MessageLine.Text('Step #2: delete the unnecessary variable assignment actions. The variables below\n' +
-                        'are part of the save, remove anything else.\n', Color.LimeGreen),
-                    MessageLine.Text(
-'- VERSION                        '+'            - SAVEDPLAYERLOCATION
-- MAP                             '+'               - SAVEDPLAYERDIRECTION
-- UNIQUENODEID                    '+'  - IsNoclipping
-- SEGMENTUNIQUEID              '+'- Rules_Actions_Data
-- ATTRIBUTEUNIQUEID           '+'- Rules_ExecutesOnAttribute
-- NODES_NODE_UNIQUEID    '+'- Rules_EnabledHeroes
-- NODES_NODE_POSITION    '+'
-- SEGMENTS_ID                '+'
-- SEGMENTS_NODE1'+'
-- SEGMENTS_NODE2
-- ATTRIBUTES_VALUE
-- ATTRIBUTES_ID
-- ATTRIBUTES_NODE1
-- ATTRIBUTES_NODE2')
+                showPagedMessage([
+                    () => [
+                        MessageLine.Separator('Getting started\n'),
+                        MessageLine.Text('The pathmap editor creates nav meshes, which are used to pathfind dummy bots.\n'),
+                        MessageLine.Text('The editor generates workshop code into the log which can be copied into your gamemode, you do\n' +
+                            'not need the overhead of the entire editor in order to pathfind your bots.\n'),
+                        MessageLine.Text('Make sure the "Enable Workshop Inspector" & "Enable Workshop Inspector Log File"\n'
+                        + 'settings are enabled in Options > Gameplay > General. This will allow you to save and export your map.\n\n', Color.Yellow),
+                        MessageLine.Text('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'),
+                        MessageLine.Text('These workshop codes contain the editor loaded with a completed waypoint graph.\n' +
+                            'You can use these to see how your map should look.\n'),
+                        MessageLine.Text('Esperança', Color.SkyBlue),
+                        MessageLine.Text('HP2DG', Color.Green)
+                    ],
+                    () => [
+                        MessageLine.Text('Pathfinding is made up of 3 components: Nodes, paths, and attributes.'),
+                        MessageLine.Separator(<'<0> Nodes', AbilityIconString(Hero.Sombra, Button.SecondaryFire)>, Color.Turquoise),
+                        MessageLine.Text('When pathfinding, bots will walk between the nodes placed in the world.\n'),
+                        MessageLine.Separator(<'<0> Paths', AbilityIconString(Hero.Pharah, Button.Ability2)>, Color.Orange),
+                        MessageLine.Text('Paths determine which nodes are connected.' +
+                                    '\nWhen the connect mode is "Connect: Paths", Select two nodes in the world to create a path between them.\n',),
+                        MessageLine.Separator(<'<0> Attributes', AbilityIconString(Hero.Genji, Button.Jump)>, Color.Yellow),
+                        MessageLine.Text('Paths can be tagged with values in order to create gates and paths that require hero abilities to cross.' +
+                                    '\nWhen the connect mode is "Connect: Attributes", Select two nodes to tag the path between them.')
+                    ],
+                    () => [
+                        MessageLine.Text('Note that there is a difference between "saving" and "exporting". Saving will allow you to edit the pathmap\n'
+                            + 'again in the editor. Exporting is generating the actual code that is copied into your gamemode.\n', Color.Yellow),
+                        MessageLine.Separator('How To Save', Color.SkyBlue),
+                        MessageLine.Text('1. Press Escape.\n2. Click "Open Workshop Inspector".\n'
+                            + '3. Click the (X) button below the timeline.\n'
+                            + '4. Save the copied contents into a text file.'),
+                        MessageLine.Separator('How to load', Color.Yellow),
+                        MessageLine.Text('1. Import the pathmap editor workshop code "GZWF9"\n2. Open the workshop editor.\n'
+                            + '3. scroll to the top of the page to the rule that says:'),
+                        MessageLine.Header('【◈ Paste the actions to load a previous save here!! ◈】', CustomColor(179, 179, 179, 255)),
+                        MessageLine.Text('4. Paste the saved text into the rule.\n'),
+                        MessageLine.Text('Always remember that the workshop won\'t auto-save your map.', Color.Rose),
+                        MessageLine.Text('If the game restarts or is closed you will lose your progress.')
+                    ],
+                    () => [
+                        MessageLine.Separator('How to load old maps', Color.SkyBlue),
+                        MessageLine.Text('When loading your save from old editor versions, there is a chance you will get an error such as ' +
+                                    '\n"Expected variable after \'Global\'". You can fix this by editing your save so that the workshop accepts it.\n'),
+                        MessageLine.Text('Step #1: Open your save in a text editor and delete the "variables" section.\n', Color.LimeGreen),
+                        MessageLine.Text('Step #2: delete the unnecessary variable assignment actions. The variables below\n' +
+                            'are part of the save, remove anything else.\n', Color.LimeGreen),
+                        MessageLine.Text(
+'- VERSION                  ' + '                    - ATTRIBUTES_VALUE
+- MAP                       ' + '                        - ATTRIBUTES_ID
+- UNIQUENODEID              ' + '           - ATTRIBUTES_NODE1
+- SEGMENTUNIQUEID           ' + '      - ATTRIBUTES_NODE2
+- ATTRIBUTEUNIQUEID         ' + '     - SAVEDPLAYERLOCATION
+- NODES_NODE_UNIQUEID       ' + '- SAVEDPLAYERDIRECTION
+- NODES_NODE_POSITION       ' + '- IsNoclipping
+- SEGMENTS_ID               ' + '             - Rules_Actions_Data
+- SEGMENTS_NODE1            ' + '      - Rules_ExecutesOnAttribute
+- SEGMENTS_NODE2            ' + '      - Rules_EnabledHeroes')
+                    ]
                 ]);
             },
             clickWidth: 1.5,

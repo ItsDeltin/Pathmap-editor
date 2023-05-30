@@ -1,7 +1,7 @@
 import 'main.del';
 
-String mapNameToOstwName(in Map map): langMaps[langMaps.Map(m => m.map).IndexOf(map)].ostwName;
-String mapNameToOverpyName(in Map map): langMaps[langMaps.Map(m => m.map).IndexOf(map)].overpyName;
+String mapNameToOstwName(in Map map): host.langMaps[host.langMaps.Map(m => m.map).IndexOf(map)].ostwName;
+String mapNameToOverpyName(in Map map): host.langMaps[host.langMaps.Map(m => m.map).IndexOf(map)].overpyName;
 
 LangMap langmap(Map map, String ostwName, String overpyName): { map: map, ostwName: ostwName, overpyName: overpyName };
 
@@ -12,11 +12,13 @@ struct LangMap
     public String overpyName;
 }
 
-globalvar LangMap[] langMaps!;
+# This is only set for the host player. The value can be obtained via `host.langMaps`.
+playervar LangMap[] langMaps!;
 
 rule: 'Setup language maps'
+if (HasSpawned(host))
 {
-    langMaps = [
+    host.langMaps = [
         langmap(Map.Ayutthaya, "Ayutthaya", "AYUTTHAYA"),
         langmap(Map.Antarctic_Peninsula, "Antarctic_Peninsula", "ANTARCTIC_PENINSULA"),
         langmap(Map.Black_Forest, "Black_Forest", "BLACK_FOREST"),

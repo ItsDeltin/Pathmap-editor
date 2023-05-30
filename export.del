@@ -601,6 +601,7 @@ void ExportMapToOverpy()
 # - `endArray`: The term used to end an array in the intended output language.
 void ExportNeighborsPattern(String beginArray, String endArray) playervar 'Subroutine: Export Neighbors Pattern'
 {
+    DisableInspectorRecording();
     # For each attribute
     for (Number n = 0; Nodes.Length; 1)
     {
@@ -608,8 +609,7 @@ void ExportNeighborsPattern(String beginArray, String endArray) playervar 'Subro
         Number[] connected = Segments
             .Map((s, i) => i)
             .FilteredArray(i => Segments[i].Node1 == Nodes[n].Node.UniqueID || Segments[i].Node2 == Nodes[n].Node.UniqueID);
-        # Export segments.
-        LogToInspector(<'*/ <0><1><2><3> /*', beginArray, StringJoin(connected, ',', si =>
+        String neighborString: StringJoin(connected, ',', si =>
         {
             Number[] attributes = Attributes
                 .FilteredArray(attr => Nodes[n].Node.UniqueID == attr.Node1 && (attr.Node2 == Segments[si].Node1 || attr.Node2 == Segments[si].Node2))
@@ -622,9 +622,13 @@ void ExportNeighborsPattern(String beginArray, String endArray) playervar 'Subro
                 NodeIndexFromID(Segments[si].Node1 == Nodes[n].Node.UniqueID ? Segments[si].Node2 : Segments[si].Node1),
                 attrString,
                 endArray>;
-        }), endArray, n == Nodes.Length - 1 ? '' : ','>);
+        });
+        EnableInspectorRecording();
+        LogToInspector(<'*/ <0><1><2><3> /*', beginArray, neighborString, endArray, n == Nodes.Length - 1 ? '' : ','>);
+        DisableInspectorRecording();
         MinWait();
     }
+    EnableInspectorRecording();
 }
 
 playervar String exportArrayStub;

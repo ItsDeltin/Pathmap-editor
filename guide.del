@@ -1,9 +1,0 @@
-import 'main.del';
-
-rule: 'CM: Guide'
-Event.OngoingPlayer
-if (cm_currActionID == MenuAction.Guide)
-{
-    SetMenuState(MenuState.Guide);
-    createButton(label: 'todo! :D');
-}

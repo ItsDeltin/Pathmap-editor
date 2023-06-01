@@ -240,7 +240,7 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             defaultColor: Color.White);
 
         buttonCollectionMain += createButton(
-            'Getting started',
+            'Guide',
             onClick: l => {
                 showPagedMessage([
                     () => [
@@ -300,6 +300,15 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
 - SEGMENTS_ID               ' + '             - Rules_Actions_Data
 - SEGMENTS_NODE1            ' + '      - Rules_ExecutesOnAttribute
 - SEGMENTS_NODE2            ' + '      - Rules_EnabledHeroes')
+                    ],
+                    () => [
+                        MessageLine.Separator('How to use exported code\n'),
+                        MessageLine.Text('Make sure to generate your Workshop, ostw, or overpy code in the export menu and add it to your game.\n' +
+                            'Afterwards, you can pathfind bots by setting their "pfDestination" player variable to the target destination.\n'),
+                        MessageLine.Text(<'Set Player Variable(pfDestination, Objective Position(0));\n<0>', '                               '>, subheader: 'Workshop code', subheaderColor: Color.Green),
+                        MessageLine.Text(<'pfDestination = ObjectivePosition(0);\n<0>', '                               '>, subheader: 'ostw code', subheaderColor: Color.SkyBlue),
+                        MessageLine.Text(<'eventPlayer().pfDestination = getObjectivePosition(0)\n<0>\n', '                               '>, subheader: 'overpy code', subheaderColor: Color.Yellow),
+                        MessageLine.Text('You can even chase the pfDestination variable to another player\'s position to make the bot follow them.')
                     ]
                 ]);
             },

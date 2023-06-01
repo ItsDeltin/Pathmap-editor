@@ -47,9 +47,22 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
         if (lines[i].Type == 0) {
             msgHudTexts += CreateHudText(
                 HostPlayer(),
-                Text: lines[i].Content,
+                Text: lines[i].Content[0],
+                TextColor: lines[i].Content[1],
                 Location: Location.Top,
-                TextColor: lines[i].Color,
+                SortOrder: i + 1,
+                Reevaluation: HudTextRev.VisibleTo
+            );
+        }
+        # Text with subheader
+        else if (lines[i].Type == 3) {
+            msgHudTexts += CreateHudText(
+                HostPlayer(),
+                Text: lines[i].Content[0],
+                TextColor: lines[i].Content[1],
+                Subheader: lines[i].Content[2],
+                SubheaderColor: lines[i].Content[3],
+                Location: Location.Top,
                 SortOrder: i + 1,
                 Reevaluation: HudTextRev.VisibleTo
             );
@@ -58,9 +71,9 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
         else if (lines[i].Type == 2) {
             msgHudTexts += CreateHudText(
                 HostPlayer(),
-                Header: lines[i].Content,
+                Header: lines[i].Content[0],
+                HeaderColor: lines[i].Content[1],
                 Location: Location.Top,
-                HeaderColor: lines[i].Color,
                 SortOrder: i + 1,
                 Reevaluation: HudTextRev.VisibleTo
             );
@@ -70,9 +83,9 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
             msgProgressTexts += CreateProgressBarHudText(
                 HostPlayer(),
                 Value: 100,
-                Text: lines[i].Content,
+                Text: lines[i].Content[0],
+                TextColor: lines[i].Content[1],
                 Location: Location.Top,
-                TextColor: lines[i].Color,
                 ProgressBarColor: CustomColor(195, 14, 150, 100),
                 SortOrder: i + 1,
                 Reevaluation: ProgressBarHudEvaluation.VisibleTo
@@ -109,30 +122,33 @@ struct MessageLine
     public static MessageLine Text(in String content, in Color color = Color.White) {
         return {
             Type: 0,
-            Content: content,
-            Color: color
+            Content: [content, color]
+        };
+    }
+
+    public static MessageLine Text(in String content, in String subheader, in Color color = Color.White, in Color subheaderColor = Color.White) {
+        return {
+            Type: 3,
+            Content: [content, color, subheader, subheaderColor]
         };
     }
 
     public static MessageLine Header(in String content, in Color color = Color.White) {
         return {
             Type: 2,
-            Content: content,
-            Color: color
+            Content: [content, color],
         };
     }
 
     public static MessageLine Separator(in String content, in Color color = Color.White) {
         return {
             Type: 1,
-            Content: content,
-            Color: color
+            Content: [content, color],
         };
     }
 
     public Number Type;
-    public String Content;
-    public Color Color;
+    public Any[] Content;
 }
 
 void MakeBox(ref Any[] hudArray, Location location, in String extra, in String extra2, in Color color)

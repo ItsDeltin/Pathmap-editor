@@ -393,9 +393,9 @@ void ExportRules() playervar 'EXPORT: Export'
             # Walk to destination
             else if (actionID == 10) {
                 ExportAction(lang,
-                    'Start Throttle In Direction(Event Player, Direction Towards(Position Of(Event Player), Global.player.pfWalkingToPosition),' + ' 1, To World, Replace Existing Throttle, Direction And Magnitude);',
-                    'StartThrottleInDirection(EventPlayer(), PositionOf().DirectionTowards(player.pfWalkingToPosition),' + ' 1, Relative.ToWorld, ThrottleBehavior.ReplaceExistingThrottle, ThrottleRev.DirectionAndMagnitude);',
-                    'eventPlayer.startThrottleInDirection(directionTowards(eventPlayer.getPosition(), player.pfWalkingToPosition), 1,' + ' Relativity.TO_WORLD, Throttle.REPLACE_EXISTING, ThrottleReeval.DIRECTION_AND_MAGNITUDE)');
+                    'Call Subroutine(pfWalkToDestination);',
+                    'pfWalkToDestination();',
+                    'pfWalkToDestination()');
             }
             # Look at floor
             else if (actionID == 11) {
@@ -407,9 +407,9 @@ void ExportRules() playervar 'EXPORT: Export'
             # Look at destination
             else if (actionID == 12) {
                 ExportAction(lang,
-                    'Start Facing(Event Player, Direction Towards(Eye Position(Event Player), ' + 'Event Player.pfWalkingToPosition + Up() * 1.5), 1000, To World, Direction And Turn Rate);',
-                    'StartFacing(EventPlayer(), DirectionTowards(EyePosition(), pfWalkingToPosition + Up() * 1.5), ' + '1000, Relative.ToWorld, FacingRev.DirectionAndTurnRate);',
-                    'eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition(), ' + 'eventPlayer.pfWalkingToPosition + Vector.UP * 1.5), 1000, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)');
+                    'Call Subroutine(pfLookAtDestination);',
+                    'pfLookAtDestination();',
+                    'pfLookAtDestination()');
             }
             # Wait for ability 1
             else if (actionID == 13) {

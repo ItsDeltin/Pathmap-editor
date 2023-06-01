@@ -2,6 +2,9 @@
 import '../pathfind.ostw';
 import 'settings.lobby';
 
+playervar DbgEvent[] dbgEvents = [];
+struct DbgEvent { public String name; public Number timeStamp; }
+
 Vector ray: RayCastHitPosition(EyePosition(HostPlayer()), EyePosition(HostPlayer()) + FacingDirectionOf(HostPlayer()) * 100, null, HostPlayer(), false);
 
 rule: 'Debug▶ Game setup'
@@ -49,6 +52,8 @@ if (HasSpawned(HostPlayer()))
 {
     SetPrimaryFireEnabled(HostPlayer(), false);
     SetMeleeEnabled(HostPlayer(), false);
+    SetAbility1Enabled(HostPlayer(), false);
+    SetAbility2Enabled(HostPlayer(), false);
     CreateHudText(AllPlayers(), Text: <'CAP: <0>, <1>, <2>\nTime: <3>', ServerLoad(), ServerLoadAverage(), ServerLoadPeak(), TotalTimeElapsed()>, Location: Location.Top);
 }
 

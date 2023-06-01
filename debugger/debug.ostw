@@ -1,5 +1,5 @@
 
-import '../pathfind.ostw';
+import '../pathfinder/core.ostw';
 import 'settings.lobby';
 
 playervar DbgEvent[] dbgEvents = [];

@@ -1,0 +1,25 @@
+{
+    "Lobby": {
+        "Max Team 1 Players": 1,
+        "Max Team 2 Players": 0
+    },
+    "Heroes": {
+        "General": {
+            "General": {
+                "Ability Cooldown Time": 0,
+                "Movement Speed": 130
+            }
+        }
+    },
+    "Modes": {
+        "Skirmish": {
+            "Enabled": true,
+            "Enabled Maps": [
+                "Esperança"
+            ]
+        }
+    },
+    "Extensions": {
+        "Spawn More Dummy Bots": true
+    }
+}

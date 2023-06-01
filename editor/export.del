@@ -224,13 +224,13 @@ void ExportCore() 'Subroutine: Export: Core'
 {
     # Export core code to workshop.
     if (outputLanguage == 0)
-        PrintFileToWorkshopLog('pathfinder/pathfind.ow', []);
+        PrintFileToWorkshopLog('../pathfinder/core.ow', []);
     # Export core code to ostw.
     else if (outputLanguage == 1)
-        PrintFileToWorkshopLog('pathfinder/pathfind.ostw', []);
+        PrintFileToWorkshopLog('../pathfinder/core.ostw', []);
     # Export core code to overpy.
     else if (outputLanguage == 2)
-        PrintFileToWorkshopLog('pathfinder/pathfind.opy', []);
+        PrintFileToWorkshopLog('../pathfinder/core.opy', []);
 }
 
 void ExportRules() playervar 'EXPORT: Export'

@@ -1,0 +1,139 @@
+
+import '../pathfind.ostw';
+import 'settings.lobby';
+
+Vector ray: RayCastHitPosition(EyePosition(HostPlayer()), EyePosition(HostPlayer()) + FacingDirectionOf(HostPlayer()) * 100, null, HostPlayer(), false);
+
+rule: 'Debug▶ Game setup'
+{
+    DisableInspectorRecording();
+}
+
+rule: 'Debug▶ Host Control: [Interact] to create a dummy bot'
+if (IsButtonHeld(HostPlayer(), Button.Interact))
+{
+    CreateDummyBot(Hero.Ashe, Team.Team1, -1, ray);
+    StartForcingDummyBotName(LastCreatedEntity(), <'vivi #<0>', NumberOfPlayers(Team.Team1)>);
+}
+
+rule: 'Debug▶ Host Control: [Crouch] to teleport dummies to self'
+if (IsButtonHeld(HostPlayer(), Button.Crouch))
+{
+    Teleport(AllPlayers().FilteredArray(p => p.IsDummy()), HostPlayer());
+}
+
+rule: 'Debug▶ Dummy: Set pathfinding attributes'
+Event.OngoingPlayer
+{
+    pfPlayerAttributes = [0,1,2,3];
+    DisableMovementCollisionWithPlayers(EventPlayer());
+}
+
+rule: 'Debug▶ Dummy: Follow the host'
+Event.OngoingPlayer
+if (IsDummyBot())
+{
+    ChaseVariableAtRate(pfDestination, PositionOf(HostPlayer()), 100, RateChaseReevaluation.DestinationAndRate);
+}
+
+disabled rule: 'Debug▶ Dummy: Follow the host on [Melee]'
+Event.OngoingPlayer
+if (IsDummyBot())
+if (IsButtonHeld(HostPlayer(), Button.Melee))
+{
+    pfDestination = PositionOf(HostPlayer());
+}
+
+rule: 'Debug▶ Host hud & control setup'
+if (HasSpawned(HostPlayer()))
+{
+    SetPrimaryFireEnabled(HostPlayer(), false);
+    SetMeleeEnabled(HostPlayer(), false);
+    CreateHudText(AllPlayers(), Text: <'CAP: <0>, <1>, <2>\nTime: <3>', ServerLoad(), ServerLoadAverage(), ServerLoadPeak(), TotalTimeElapsed()>, Location: Location.Top);
+}
+
+playervar Player selectedPlayer;
+playervar Any[] selectedIcons = [];
+playervar Any[] selectedHudTexts = [];
+
+rule: 'Debug▶ Host Control: [Primary Fire] to inspect bot'
+Event.OngoingPlayer
+if (HostPlayer() == EventPlayer())
+if (IsButtonHeld(EventPlayer(), Button.PrimaryFire))
+{
+    # Get selected entity
+    Player[] selected = AllPlayers().FilteredArray(p => p.IsDummy() &&
+        p.Position().DistanceTo(EyePosition() + FacingDirectionOf() * EyePosition().DistanceTo(p.Position()))
+            < 2
+    ).SortedArray(p => 0 - p.DistanceTo(EyePosition()));
+
+    if (selected.Length) {
+        if (selectedPlayer) {
+            StopForcingPlayerOutlines(selectedPlayer, EventPlayer());
+        }
+        SetSlowMotion(1);
+        selectedPlayer = selected.First;
+        StartForcingPlayerOutlines(selectedPlayer, EventPlayer(), true, Color.Green, OutlineType.Always);
+
+        # Show player path
+        selectedIcons += CreateIcon(EventPlayer(), selectedPlayer.pfWalkingToPosition, Icon.Halo, IconRev.None, Color.Green, true);
+        # Show current path
+        for (Number i = 0; selectedPlayer.pfPath.Length; 1) {
+            selectedIcons += CreateIcon(
+                EventPlayer(),
+                selectedPlayer.pfPath[i] == -1 ? selectedPlayer.pfDestination : pfLoadedMap.nodes[selectedPlayer.pfPath[i]],
+                Icon.ArrowDown,
+                IconRev.None,
+                selectedPlayer.pfPath[i] == -1 ? Color.Red : i == 0 ? Color.Orange : Color.Yellow,
+                false);
+            selectedHudTexts += CreateHudText(
+                EventPlayer(),
+                Text: selectedPlayer.pfPath[i],
+                SortOrder: i + 1,
+                Reevaluation: HudTextRev.None,
+                Location: Location.Right
+            );
+        }
+        # Name and common variables
+        selectedHudTexts += CreateHudText(
+            EventPlayer(),
+            Header: EvaluateOnce(selectedPlayer),
+            Text: <'Is Pathfinding: <0>\nCurrent node index: <1>', selectedPlayer.pfIsPathfinding, selectedPlayer.pfCurrentNodeIndex>,
+            SortOrder: 1,
+            Reevaluation: HudTextRev.String,
+            Location: Location.Top);
+        # Print latest events
+        for (Number i = 0; selectedPlayer.dbgEvents.Length; 1) {
+            selectedHudTexts += CreateHudText(EventPlayer(),
+                Text: selectedPlayer.dbgEvents[i].name,
+                Subheader: selectedPlayer.dbgEvents[i].timeStamp,
+                SubheaderColor: Color.Yellow,
+                Reevaluation: HudTextRev.None,
+                Location: Location.Left,
+                SortOrder: i);
+        }
+
+        WaitUntil(!IsButtonHeld(EventPlayer(), Button.PrimaryFire), 9999);
+        WaitUntil(IsButtonHeld(EventPlayer(), Button.PrimaryFire), 9999);
+
+        while (selectedIcons.Length > 0) {
+            DestroyIcon(selectedIcons.First);
+            selectedIcons.ModRemoveByIndex(0);
+        }
+        while (selectedHudTexts.Length > 0) {
+            DestroyHudText(selectedHudTexts.First);
+            selectedHudTexts.ModRemoveByIndex(0);
+        }
+
+        SetSlowMotion(100);
+    }
+}
+
+rule: 'Debug▶ Host Control: [Ultimate] to clear pf logs'
+Event.OngoingPlayer
+if (HostPlayer() == EventPlayer())
+if (IsButtonHeld(EventPlayer(), Button.Ultimate))
+{
+    SmallMessage(AllPlayers(), 'PF logs cleared');
+    AllPlayers().dbgEvents = [];
+}

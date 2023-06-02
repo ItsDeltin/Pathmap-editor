@@ -170,13 +170,13 @@ if (!host.cm_isInMenu)
             SelectedNodeIndex = -1;
             SelectedNodeID = -1;
 
-            // Delete segments
-            for (waitlessI = 0; deleteSegments.Length; 1) {
+            # Delete segments
+            for (waitlessI = deleteSegments.Length - 1; -1; -1) {
                 RemoveSegmentByIndex(deleteSegments[waitlessI][0]);
             }
-            // Delete node
+            # Delete node
             RemoveNodeByIndex(index);
-            // Refresh all nodes with indices above the current node.
+            # Refresh rending nodes
             updateRenderingNodes();
         },
         Revert: () => {

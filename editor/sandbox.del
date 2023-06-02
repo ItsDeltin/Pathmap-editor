@@ -299,7 +299,8 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
 - NODES_NODE_POSITION       ' + '- IsNoclipping
 - SEGMENTS_ID               ' + '             - Rules_Actions_Data
 - SEGMENTS_NODE1            ' + '      - Rules_ExecutesOnAttribute
-- SEGMENTS_NODE2            ' + '      - Rules_EnabledHeroes')
+- SEGMENTS_NODE2            ' + '      - Rules_EnabledHeroes
+- __LOADPERSIST')
                     ],
                     () => [
                         MessageLine.Separator('How to use exported code\n'),

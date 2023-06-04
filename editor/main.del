@@ -33,10 +33,8 @@ globalvar persist Map map = CurrentMap();
 
 globalvar Number maxHistoryLength!;
 
-rule: '┏━【◈ Paste the actions to load a previous save here!! ◈】━┓' -3
-{
-    
-}
+rule: '┏━【◈ Paste the actions to load a previous save here! (1/2) ◈】━┓' -3 {}
+rule: '┗━【◈ Paste the actions to load a previous save here! (2/2) ◈】━┛' -2 {}
 
 rule: 'Setup: Inspector, Performance HUD, and Settings'
 {
@@ -109,11 +107,11 @@ Boolean AnyNodesSelected: Nodes.IsTrueForAny(node => node.Selected);
 
 # The index of the selected node.
 # `-1` if none are selected.
-globalvar Number SelectedNodeIndex! = -1;
-globalvar Number SelectedNodeID! = -1;
+globalvar Number SelectedNodeIndex = -1;
+globalvar Number SelectedNodeID = -1;
 # The index of the selected segment.
-globalvar Number SelectedSegment! = -1;
-globalvar Player SelectedPlayer!;
+globalvar Number SelectedSegment = -1;
+globalvar Player SelectedPlayer;
 globalvar Any[] AttributeTexts = [];
 
 Number NodeIndexFromID(in Number id): Nodes.Map(node => node.Node.UniqueID).IndexOf(id);

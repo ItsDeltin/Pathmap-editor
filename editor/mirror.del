@@ -79,7 +79,7 @@ void mirrorMap() playervar 'Subroutine: Mirror map'
         }
     });
 }
-void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeLength) playervar 'Subroutine: Execute map mirror'
+void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeLength!) playervar 'Subroutine: Execute map mirror'
 {
     Number iterI = 0;
     # 0 = nodes, 1 = segments, 2 = attributes
@@ -198,11 +198,11 @@ void mirrorNodeConnectedArray<T>(
             MinWait();
         }
 
-        Number node1Index = NodeIndexFromID(getNode1(array[i]));
-        Number node2Index = NodeIndexFromID(getNode2(array[i]));
+        Number node1Index! = NodeIndexFromID(getNode1(array[i]));
+        Number node2Index! = NodeIndexFromID(getNode2(array[i]));
 
-        Number mirrorNode1Index = nodeMirrors[node1Index];
-        Number mirrorNode2Index = nodeMirrors[node2Index];
+        Number mirrorNode1Index! = nodeMirrors[node1Index];
+        Number mirrorNode2Index! = nodeMirrors[node2Index];
 
         // The mirrored segment would be the same as the current segment.
         // This will occur if 2 nodes on the center line of the map are connected to each other.

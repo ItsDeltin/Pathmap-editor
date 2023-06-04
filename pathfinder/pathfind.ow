@@ -168,24 +168,17 @@ rule("【PF Core】Update & Execute")
                 Event Player.checkedNode = Index Of Array Value(Event Player.scores_nodeIndex, Event Player.pfActiveNode);
                 If(Event Player.checkedNode != -1);
                     Event Player.current = Event Player.checkedNode;
-                    Event Player.pfPath = Empty Array;
-                    While(Event Player.current != -1);
-                        Modify Player Variable(Event Player, pfPath, Append To Array, Event Player.scores_nodeIndex[Event Player.current]);
-                        Event Player.current = Event Player.scores_parent[Event Player.current];
-                        Call Subroutine(pfTick);
-                    End;
-                    Modify Player Variable(Event Player, pfPath, Append To Array, Array(-1));
-                    Skip(39);
+                    Event Player.checkedNode = -2;
+                Else;
+                    Event Player.checkedNode = Event Player.pfActiveNode;
                 End;
-                Event Player.checkedNode = Event Player.pfActiveNode;
             End;
             "If the goal was found, reconstruct the path."
-            If(Event Player.scores_nodeIndex[Event Player.current] == Event Player.pfActiveNode);
+            If(Event Player.scores_nodeIndex[Event Player.current] == Event Player.pfActiveNode || Event Player.checkedNode == -2);
                 Event Player.pfPath = Empty Array;
                 While(Event Player.current != -1);
                     Modify Player Variable(Event Player, pfPath, Append To Array, Event Player.scores_nodeIndex[Event Player.current]);
                     Event Player.current = Event Player.scores_parent[Event Player.current];
-                    Call Subroutine(pfTick);
                 End;
                 Modify Player Variable(Event Player, pfPath, Append To Array, Array(-1));
                 Skip(27);
@@ -197,7 +190,7 @@ rule("【PF Core】Update & Execute")
                 Event Player.neighborI = First Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor]);
                 Event Player.scoreIndex = Index Of Array Value(Event Player.scores_nodeIndex, Event Player.neighborI);
                 "Ensure that the path to the neighbor is enabled."
-                If(Is True For All(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor][1], Array Contains(Event Player.pfPlayerAttributes, Current Array Element)));
+                If(Count Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor][1]) == 0 || Is True For Any(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor][1], Array Contains(Event Player.pfPlayerAttributes, Current Array Element)));
                     Event Player.score = Event Player.scores_gScore[Event Player.current] + Distance Between(Global.pfLoadedMap_nodes[Event Player.scores_nodeIndex[Event Player.current]], Global.pfLoadedMap_nodes[Event Player.neighborI]);
                     "Get neighbor index in scores.
 If -1, the neighbor was not added to the score list yet."
@@ -403,8 +396,8 @@ rule("【PF Core】(optional) Recover when stuck or time to next node takes long
 
     actions
     {
-        "Ensure condition is true for at least 3 seconds."
-        Wait(3, Abort When False);
+        "Ensure condition is true for at least 2 seconds."
+        Wait(2, Abort When False);
         "When the bot gets stuck while pathfinding,"
         If(Event Player.pfStuckOnNode - 2 == Event Player.pfCurrentNodeIndex);
             If(Event Player.pfCurrentNodeIndex != -1);

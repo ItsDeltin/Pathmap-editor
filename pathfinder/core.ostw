@@ -186,8 +186,12 @@ void pfProgressEventPlayer() playervar '【PF Core Subroutine】☞ Progress eve
     }
 
     # Update the current pathfind attributes.
-    # Any rules watching these with the matching condition will activate.
-    pfAttributes = pfLoadedMap.neighbors[pfCurrentNodeIndex].FilteredArray(segment => segment[0] == pfPath.First).First.Last;
+    if (pfPath.First != -1) {
+        # Any rules watching these with the matching condition will activate.
+        pfAttributes = pfLoadedMap.neighbors[pfPath.First].FilteredArray(segment => segment[0] == pfCurrentNodeIndex).First.Last;
+    } else {
+        pfAttributes = [];
+    }
     # Go to the next node in the path.
     pfCurrentNodeIndex = pfPath.First;
     # Pop the current path.
@@ -262,22 +266,27 @@ void aStar() {
 
     Number iter = 0;
     while (open.Length) {
+        # The index of the current node in `scores`.
         Number current = open.SortedArray((o, i) => scores[o].fScore).First;
+        # The index of the current node in `pfLoadedMap.nodes`.
         Number currentNodeIndex: scores[current].nodeIndex;
 
         if (checkedNode != pfActiveNode) {
             checkedNode = scores.Map(s => s.nodeIndex).IndexOf(pfActiveNode);
             if (checkedNode != -1) {
                 current = checkedNode;
-                reconstructPath(scores, current);
-                return;
+                checkedNode = -2;
             }
-            checkedNode = pfActiveNode;
+            else {
+                checkedNode = pfActiveNode;
+            }
         }
 
+        Number currentInExistingPath = pfPath.IndexOf(currentNodeIndex);
+
         # If the goal was found, reconstruct the path.
-        if (currentNodeIndex == pfActiveNode) {
-            reconstructPath(scores, current);
+        if (currentNodeIndex == pfActiveNode || checkedNode == -2 || currentInExistingPath != -1) {
+            reconstructPath(scores, current, currentInExistingPath, iter);
             return;
         }
 
@@ -289,9 +298,9 @@ void aStar() {
             # The neighbor index to be used like `pfLoadedMap.nodes[neighborI]`.
             Number neighborI = neighbor[0];
             Number scoreIndex = scores.Map(s => s.nodeIndex).IndexOf(neighborI);
-
+            Number[] neighborAttributes: <Number[]>neighbor[1];
             # Ensure that the path to the neighbor is enabled.
-            if ((<Number[]>neighbor[1]).IsTrueForAll(a => pfPlayerAttributes.Contains(a))) {
+            if (neighborAttributes.Length == 0 || neighborAttributes.IsTrueForAny(a => pfPlayerAttributes.Contains(a))) {
                 Number score = scores[current].gScore + pfLoadedMap.nodes[currentNodeIndex].DistanceTo(pfLoadedMap.nodes[neighborI]);
 
                 # Get neighbor index in scores.
@@ -312,12 +321,17 @@ void aStar() {
     }
 }
 
-void reconstructPath(in PfNode[] scores, ref Number current) {
-    pfPath = [];
+void reconstructPath(in PfNode[] scores, ref Number current, in Number currentInExistingPath, in Number iter) {
+    if (currentInExistingPath == -1) {
+        pfPath = [];
+        pfEvent(<'Pathfind completed in <0> iterations', iter>);
+    } else {
+        pfPath = pfPath.Slice(0, currentInExistingPath);
+        pfEvent(<'Intercepted existing path in <0> iterations', iter>);
+    }
     while (current != -1) {
         pfPath += scores[current].nodeIndex;
         current = scores[current].parent;
-        pfTick();
     }
     pfPath += [-1];
 }

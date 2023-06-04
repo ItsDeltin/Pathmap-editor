@@ -9,7 +9,7 @@ DijkstraResult Dijkstra(
     Number source,
     Number[] targets,
     Number[] attributes
-) 'Subroutine: Dijkstra'
+) playervar 'Subroutine: Dijkstra'
 {
     if (pathfinderActive)
     {
@@ -40,15 +40,15 @@ DijkstraResult Dijkstra(
             // Only use the unvisited neighbors
             .FilteredArray(node => unvisited.Contains(node));
         
-        for (Number i = 0; neighbors.Length; 1)
+        for (Number i! = 0; neighbors.Length; 1)
         {
-            Number neighborIndex = neighbors[i];
-            Number neighborID = Nodes[neighborIndex].Node.UniqueID;
-            Number[] neighborAttributes = Attributes.FilteredArray(
+            Number neighborIndex! = neighbors[i];
+            Number neighborID! = Nodes[neighborIndex].Node.UniqueID;
+            Number[] neighborAttributes! = Attributes.FilteredArray(
                 attribute => attribute.Node1 == neighborID && attribute.Node2 == currentID
             ).Map(a => a.Value);
 
-            Number newDistance = distances[current] + Nodes[current].Node.Position.DistanceTo(Nodes[neighborIndex].Node.Position);
+            Number newDistance! = distances[current] + Nodes[current].Node.Position.DistanceTo(Nodes[neighborIndex].Node.Position);
             if (newDistance < distances[neighborIndex] &&
                 (neighborAttributes.Length == 0 || neighborAttributes.IsTrueForAny(attribute => attributes.Contains(attribute)))
             )

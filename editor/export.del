@@ -446,53 +446,6 @@ void ExportRules() playervar 'EXPORT: Export'
     }
 }
 
-// void ExportCompressedDataToWorkshop() playervar "EXPORT: compressed data to workshop" 
-// {
-//     // This function assumes MakeBake() was already executed.
-
-//     EnableInspector();
-//     // String variableCompatibleMapName = '{0}'.Format([CurrentMap()])
-//     //     .Replace(' ', '')
-//     //     .Replace('(', '')
-//     //     .Replace(')', '')
-//     //     .Replace(':', '');
-
-//     # Add rule and event
-//     LogToInspector('*/ rule(\"GENERATED: {0} compressed map data\") { event { Ongoing - Global; } /*'.Format([CurrentMap()]));
-//     # Conditions
-//     LogToInspector('*/ conditions { /*');
-//     # Make sure this is the correct map
-//     LogToInspector(mapCondition);
-//     # Start actions
-//     LogToInspector('*/ } actions { /*');
-//     # Set compressed data
-//     LogToInspector('*/     global.pathfinder_compressed = Array(Array(Custom String( /*');
-
-//     # For each node
-//     for (define a = 0; bakeResult.Length; 1) {
-//         # Add each stub
-//         for (define b = 0; bakeResult[a].Length; 1) {
-//             # String value
-//             LogToInspector('*/\"{0}\"/*'.Format([bakeResult[a][b]]));
-//             # End string
-//             LogToInspector('*/         ){0} /*'.Format([
-//                 b < bakeResult[a].Length - 1 ? ', Custom String(' :
-//                 a < bakeResult.Length - 1 ? '), Array(Custom String(' : '));'
-//             ]));
-//             MinWait();
-//         }
-//         MinWait();
-//     }
-//     # End action & rule block
-//     LogToInspector('*/ } } /*');
-
-//     ExportNodes();
-//     ExportAttributes();
-//     ExportSegments();
-    
-//     DisableInspector();
-// }
-
 void ExportMapToWorkshop()
 {
     ExportNodes();
@@ -516,36 +469,8 @@ void ExportNeighbors()
     ExportMapBlock('neighbors', () => {
         # Set loadedMap_neighors
         LogToInspector('*/     global.pfLoadedMap_neighbors = Array( /*');
-        ExportNeighborsPattern('Array(', ')');
+        ExportNeighborsPattern('Array(', ')', 'Empty Array');
         # End array
-        LogToInspector('*/ ); /*');
-    });
-}
-
-void ExportAttributes()
-{
-    ExportMapBlock('attributes', () => {
-        # Set loadedMap_segments
-        LogToInspector('*/     global.pfLoadedMap_attributes = Array( /*');
-        # For each attribute
-        ExportArray(Attributes, 10, (attr, isLast) => <'Vector(<0>, <1>, <2>)<3>',
-            NodeIndexFromID(attr.Node1), NodeIndexFromID(attr.Node2), 0,
-            isLast ? '' : ', '>);
-        # End pathfinder segments
-        LogToInspector('*/ ); /*');
-    });
-}
-
-void ExportSegments()
-{
-    ExportMapBlock('paths', () => {
-        # Set loadedMap_segments
-        LogToInspector('*/     global.pfLoadedMap_paths = Array( /*');
-        # For each attribute
-        ExportArray(Segments, 10, (segment, isLast) => <'Vector(<0>, <1>, <2>)<3>',
-            NodeIndexFromID(segment.Node1), NodeIndexFromID(segment.Node2), 0,
-            isLast ? '' : ', '>);
-        # End pathfinder segments
         LogToInspector('*/ ); /*');
     });
 }
@@ -564,7 +489,7 @@ void ExportMapToOstw()
     ExportArray(Nodes, 10, (wn, isLast) => ExportJsonVector(wn.Node.Position, isLast));
     # Export Ostw segments
     LogToInspector('*/ ], "neighbors": [ /*');
-    ExportNeighborsPattern('[', ']');
+    ExportNeighborsPattern('[', ']', '[]');
     # Conclude JSON
     LogToInspector('*/ ] }' + sep);
 }
@@ -585,7 +510,7 @@ void ExportMapToOverpy()
 
     # Export Overpy neighors
     LogToInspector('*/ const neighbors = [ /*');
-    ExportNeighborsPattern('[', ']');
+    ExportNeighborsPattern('[', ']', '[]');
     LogToInspector('*/ ]; /*');
     
     # Javascript -> overpy rules
@@ -599,7 +524,8 @@ void ExportMapToOverpy()
 # Exports the segments and attributes in a nicely optimized way.
 # - `beginArray`: The term used to begin an array in the intended output language.
 # - `endArray`: The term used to end an array in the intended output language.
-void ExportNeighborsPattern(String beginArray, String endArray) playervar 'Subroutine: Export Neighbors Pattern'
+# - `emptyArray`: The term used to create an empty array in the intended output language.
+void ExportNeighborsPattern(String beginArray, String endArray, String emptyArray) playervar 'Subroutine: Export Neighbors Pattern'
 {
     DisableInspectorRecording();
     # For each attribute
@@ -611,13 +537,20 @@ void ExportNeighborsPattern(String beginArray, String endArray) playervar 'Subro
             .FilteredArray(i => Segments[i].Node1 == Nodes[n].Node.UniqueID || Segments[i].Node2 == Nodes[n].Node.UniqueID);
         String neighborString: StringJoin(connected, ',', si =>
         {
+            # Find the attributes from node A to node B.
+            # The core pathfinding code travels from the goal to the player's position,
+            # so attr.Node1 and attr.Node2 are flipped here.
             Number[] attributes = Attributes
-                .FilteredArray(attr => Nodes[n].Node.UniqueID == attr.Node1 && (attr.Node2 == Segments[si].Node1 || attr.Node2 == Segments[si].Node2))
+                .FilteredArray(attr => Nodes[n].Node.UniqueID == attr.Node2 && (attr.Node1 == Segments[si].Node1 || attr.Node1 == Segments[si].Node2))
                 .Map(attr => attr.Value);
             
-            String attrString = StringJoin(attributes, ',', v => v);
+            # If there are no attributes, use the empty array term.
+            String attrString = emptyArray;
+            if (attributes.Length != 0) {
+                attrString = <'<0><1><2>', beginArray, StringJoin(attributes, ',', v => v), endArray>;
+            }
 
-            return <'<0><1>, <0><2><3><3>',
+            return <'<0><1>, <2><3>',
                 beginArray,
                 NodeIndexFromID(Segments[si].Node1 == Nodes[n].Node.UniqueID ? Segments[si].Node2 : Segments[si].Node1),
                 attrString,
@@ -626,7 +559,7 @@ void ExportNeighborsPattern(String beginArray, String endArray) playervar 'Subro
         EnableInspectorRecording();
         LogToInspector(<'*/ <0><1><2><3> /*', beginArray, neighborString, endArray, n == Nodes.Length - 1 ? '' : ','>);
         DisableInspectorRecording();
-        MinWait();
+        Wait(0.03);
     }
     EnableInspectorRecording();
 }

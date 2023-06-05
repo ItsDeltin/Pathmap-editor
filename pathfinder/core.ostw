@@ -158,9 +158,9 @@ if (pfDestination == null)
 rule: '【PF Core】(optional) Recalibrate when off the path'
 Event.OngoingPlayer
 if (pfIsPathfinding)
-if (((pfWalkingFromPosition + pfWalkingToPosition) / 2).DistanceTo(EventPlayer()) > pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) * 2)
+if (((pfWalkingFromPosition + pfWalkingToPosition) / 2).DistanceTo(EventPlayer()) > pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) * 1.5)
 {
-    Wait(2, WaitBehavior.AbortWhenFalse);
+    Wait(1, WaitBehavior.AbortWhenFalse);
     pfEvent('Not on path; recalibrating.');
     pfRecalibrate();
 }

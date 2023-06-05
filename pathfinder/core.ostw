@@ -188,8 +188,8 @@ if (!HasStatus(EventPlayer(), Status.Asleep))
 if (!HasStatus(EventPlayer(), Status.KnockedDown))
 if (!HasStatus(EventPlayer(), Status.Stunned))
 {
-    # Ensure condition is true for at least 3 seconds.
-    Wait(3, WaitBehavior.AbortWhenFalse);
+    # Ensure condition is true for at least 2 seconds.
+    Wait(2, WaitBehavior.AbortWhenFalse);
     # When the bot gets stuck while pathfinding,
     if (pfStuckOnNode - 2 == pfCurrentNodeIndex) {
         pfEvent('Stuck, teleporting');

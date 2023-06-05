@@ -7,7 +7,7 @@ struct DbgEvent { public String name; public Number timeStamp; }
 
 Vector ray: RayCastHitPosition(EyePosition(HostPlayer()), EyePosition(HostPlayer()) + FacingDirectionOf(HostPlayer()) * 100, null, HostPlayer(), false);
 
-rule: 'Debug▶ Game setup'
+disabled rule: 'Debug▶ Disable Inspector'
 {
     DisableInspectorRecording();
 }
@@ -28,7 +28,7 @@ if (IsButtonHeld(HostPlayer(), Button.Crouch))
 rule: 'Debug▶ Dummy: Set pathfinding attributes'
 Event.OngoingPlayer
 {
-    pfPlayerAttributes = [0,1,2,3];
+    pfPlayerAttributes = [1];
     DisableMovementCollisionWithPlayers(EventPlayer());
 }
 
@@ -54,18 +54,82 @@ if (HasSpawned(HostPlayer()))
     SetMeleeEnabled(HostPlayer(), false);
     SetAbility1Enabled(HostPlayer(), false);
     SetAbility2Enabled(HostPlayer(), false);
-    CreateHudText(AllPlayers(), Text: <'CAP: <0>, <1>, <2>\nTime: <3>', ServerLoad(), ServerLoadAverage(), ServerLoadPeak(), TotalTimeElapsed()>, Location: Location.Top);
+    CreateHudText(AllPlayers(), Text: <'CAP: <0>, <1>, <2>\nPos: <5>\nTime: <3>\nOwner: <4>', ServerLoad(), ServerLoadAverage(), ServerLoadPeak(), TotalTimeElapsed(), pfExecOwner, PositionOf(HostPlayer())>, Location: Location.Top);
 }
 
 playervar Player selectedPlayer;
-playervar Any[] selectedIcons = [];
-playervar Any[] selectedHudTexts = [];
+playervar Boolean isSlow;
+
+rule: 'Debug▶ Create debugging entities'
+Event.OngoingPlayer
+if (HostPlayer() == EventPlayer())
+{
+    # Name and common variables
+    CreateHudText(
+        selectedPlayer != null ? EventPlayer() : null,
+        Header: selectedPlayer,
+        Text: <'Is Pathfinding: <0>\nCurrent node index: <1>', selectedPlayer.pfIsPathfinding, selectedPlayer.pfCurrentNodeIndex>,
+        SortOrder: 1,
+        Reevaluation: HudTextRev.VisibleToAndString,
+        Location: Location.Top);
+    # Events
+    for (Number i = 0; 10; 1) {
+        CreateHudText(
+            selectedPlayer != null && selectedPlayer.dbgEvents.Length > EvaluateOnce(i) ? EventPlayer() : null,
+            Text: selectedPlayer.dbgEvents[EvaluateOnce(i)].name,
+            Subheader: selectedPlayer.dbgEvents[EvaluateOnce(i)].timeStamp,
+            SubheaderColor: Color.Yellow,
+            Reevaluation: HudTextRev.VisibleToAndString,
+            Location: Location.Left,
+            SortOrder: 10 - i);
+    }
+    # Path visual
+    for (Number i = 0; 20; 1) {
+        CreateIcon(
+            selectedPlayer != null && selectedPlayer.pfPath.Length > EvaluateOnce(i) ? EventPlayer() : null,
+            selectedPlayer.pfPath[EvaluateOnce(i)] == -1 ? selectedPlayer.pfDestination : pfLoadedMap.nodes[selectedPlayer.pfPath[EvaluateOnce(i)]],
+            Icon.ArrowDown,
+            IconRev.VisibleToPositionAndColor,
+            selectedPlayer.pfPath[EvaluateOnce(i)] == -1 ? Color.Red : EvaluateOnce(i) == 0 ? Color.Orange : Color.Yellow,
+            false);
+        CreateHudText(
+            selectedPlayer != null && selectedPlayer.pfPath.Length > EvaluateOnce(i) ? EventPlayer() : null,
+            Text: selectedPlayer.pfPath[EvaluateOnce(i)],
+            SortOrder: i + 1,
+            Reevaluation: HudTextRev.VisibleToAndString,
+            Location: Location.Right
+        );
+    }
+    # Attributes
+    CreateHudText(
+            selectedPlayer != null ? EventPlayer() : null,
+            Header: 'Attributes',
+            HeaderColor: Color.SkyBlue,
+            SortOrder: 100,
+            Location: Location.Right,
+            Reevaluation: HudTextRev.VisibleToAndString);
+    for (Number i = 0; 5; 1) {
+        CreateHudText(
+            selectedPlayer != null && selectedPlayer.pfAttributes.Length > EvaluateOnce(i) ? EventPlayer() : null,
+            Text: selectedPlayer.pfAttributes[EvaluateOnce(i)],
+            SortOrder: 101 + i,
+            Location: Location.Right,
+            Reevaluation: HudTextRev.VisibleToAndString);
+    }
+    # pfWalkingToPosition
+    CreateIcon(selectedPlayer != null ? EventPlayer() : null, selectedPlayer.pfWalkingToPosition, Icon.Halo, IconRev.VisibleToAndPosition, Color.Green, true);
+}
 
 rule: 'Debug▶ Host Control: [Primary Fire] to inspect bot'
 Event.OngoingPlayer
 if (HostPlayer() == EventPlayer())
 if (IsButtonHeld(EventPlayer(), Button.PrimaryFire))
 {
+    if (selectedPlayer) {
+        StopForcingPlayerOutlines(selectedPlayer, EventPlayer());
+        selectedPlayer = null;
+    }
+
     # Get selected entity
     Player[] selected = AllPlayers().FilteredArray(p => p.IsDummy() &&
         p.Position().DistanceTo(EyePosition() + FacingDirectionOf() * EyePosition().DistanceTo(p.Position()))
@@ -73,64 +137,8 @@ if (IsButtonHeld(EventPlayer(), Button.PrimaryFire))
     ).SortedArray(p => 0 - p.DistanceTo(EyePosition()));
 
     if (selected.Length) {
-        if (selectedPlayer) {
-            StopForcingPlayerOutlines(selectedPlayer, EventPlayer());
-        }
-        SetSlowMotion(1);
         selectedPlayer = selected.First;
         StartForcingPlayerOutlines(selectedPlayer, EventPlayer(), true, Color.Green, OutlineType.Always);
-
-        # Show player path
-        selectedIcons += CreateIcon(EventPlayer(), selectedPlayer.pfWalkingToPosition, Icon.Halo, IconRev.None, Color.Green, true);
-        # Show current path
-        for (Number i = 0; selectedPlayer.pfPath.Length; 1) {
-            selectedIcons += CreateIcon(
-                EventPlayer(),
-                selectedPlayer.pfPath[i] == -1 ? selectedPlayer.pfDestination : pfLoadedMap.nodes[selectedPlayer.pfPath[i]],
-                Icon.ArrowDown,
-                IconRev.None,
-                selectedPlayer.pfPath[i] == -1 ? Color.Red : i == 0 ? Color.Orange : Color.Yellow,
-                false);
-            selectedHudTexts += CreateHudText(
-                EventPlayer(),
-                Text: selectedPlayer.pfPath[i],
-                SortOrder: i + 1,
-                Reevaluation: HudTextRev.None,
-                Location: Location.Right
-            );
-        }
-        # Name and common variables
-        selectedHudTexts += CreateHudText(
-            EventPlayer(),
-            Header: EvaluateOnce(selectedPlayer),
-            Text: <'Is Pathfinding: <0>\nCurrent node index: <1>', selectedPlayer.pfIsPathfinding, selectedPlayer.pfCurrentNodeIndex>,
-            SortOrder: 1,
-            Reevaluation: HudTextRev.String,
-            Location: Location.Top);
-        # Print latest events
-        for (Number i = 0; selectedPlayer.dbgEvents.Length; 1) {
-            selectedHudTexts += CreateHudText(EventPlayer(),
-                Text: selectedPlayer.dbgEvents[i].name,
-                Subheader: selectedPlayer.dbgEvents[i].timeStamp,
-                SubheaderColor: Color.Yellow,
-                Reevaluation: HudTextRev.None,
-                Location: Location.Left,
-                SortOrder: i);
-        }
-
-        WaitUntil(!IsButtonHeld(EventPlayer(), Button.PrimaryFire), 9999);
-        WaitUntil(IsButtonHeld(EventPlayer(), Button.PrimaryFire), 9999);
-
-        while (selectedIcons.Length > 0) {
-            DestroyIcon(selectedIcons.First);
-            selectedIcons.ModRemoveByIndex(0);
-        }
-        while (selectedHudTexts.Length > 0) {
-            DestroyHudText(selectedHudTexts.First);
-            selectedHudTexts.ModRemoveByIndex(0);
-        }
-
-        SetSlowMotion(100);
     }
 }
 
@@ -141,4 +149,34 @@ if (IsButtonHeld(EventPlayer(), Button.Ultimate))
 {
     SmallMessage(AllPlayers(), 'PF logs cleared');
     AllPlayers().dbgEvents = [];
+}
+
+rule: 'Debug▶ Host Control: [Ability 1] to slow down'
+Event.OngoingPlayer
+if (HostPlayer() == EventPlayer())
+if (IsButtonHeld(EventPlayer(), Button.Ability1))
+{
+    if (!isSlow) {
+        SetSlowMotion(0);
+        isSlow = true;
+    } else {
+        SetSlowMotion(100);
+        isSlow = false;
+    }
+}
+
+rule: 'Debug▶ Host Control: [Secondary Fire] to view node info'
+Event.OngoingPlayer
+if (HostPlayer() == EventPlayer())
+if (IsButtonHeld(EventPlayer(), Button.SecondaryFire))
+{
+    Vector r = ray;
+    Number n = pfLoadedMap.nodes.Map((n, i) => i).SortedArray(n => pfLoadedMap.nodes[n].DistanceTo(r)).First;
+
+    Any text = CreateInWorldText(EventPlayer(), <'Node: <0>', n>, pfLoadedMap.nodes[n], 1, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.Yellow, Spectators.VisibleNever);
+
+    WaitUntil(!IsButtonHeld(EventPlayer(), Button.SecondaryFire), 9999);
+    WaitUntil(IsButtonHeld(EventPlayer(), Button.SecondaryFire), 9999);
+
+    DestroyInWorldText(text);
 }

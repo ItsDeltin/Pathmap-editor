@@ -16,7 +16,11 @@ struct PfNode {
 # The currently loaded map
 globalvar PfMap pfLoadedMap;
 globalvar Number pfIterationsThisTick;
+# Current pathfinder execution owner.
+globalvar Player pfExecOwner;
 
+# The timestamp where a player requests a pathfind.
+playervar Number pfWait;
 # The final pathfinding target.
 playervar Vector pfDestination;
 # The attributes assigned to the player.
@@ -70,21 +74,23 @@ void pfEvent(in String text) {
     // }
 }
 
-rule: '【PF Core】Next Tick'
-if (pfIterationsThisTick <= 0)
-if (ServerLoadAverage() < 255)
+void pfTick() '【PF Core Subroutine】☞ Tick'
 {
-    pfIterationsThisTick = Max(Min(RoundToInteger(63 - ServerLoadAverage() / 4, Rounding.Nearest), 15), 2);
-    Wait(ServerLoadAverage() < 255 ? 0.016 : 0.3);
-    LoopIfConditionIsTrue();
+    pfIterationsThisTick++;
+    if (pfIterationsThisTick >= WorkshopSettingInteger('Pathfinder', 'Iterations per tick', 10, 1, 100)) {
+        pfIterationsThisTick = 0;
+        MinWait();
+        WaitUntil(ServerLoadAverage() < 255, 9999);
+    }
 }
 
-void pfTick() '【PF Core Subroutine】☞ Tick'
-{        
-    while (pfIterationsThisTick <= 0) {
-        WaitUntil(pfIterationsThisTick > 0, 9999);
-    }
-    pfIterationsThisTick--;
+rule: '【PF Core】Select next pathfinder'
+if (!EntityExists(pfExecOwner) || pfExecOwner == null)
+if (AllPlayers().IsTrueForAny(p => p.pfWait))
+{
+    pfExecOwner = AllPlayers().FilteredArray(p => p.pfWait).SortedArray(p => p.pfWait).First;
+    MinWait();
+    LoopIfConditionIsTrue();
 }
 
 rule: '【PF Core】Update & Execute'
@@ -99,6 +105,9 @@ if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5)
         LogToInspector(<'Error: Attempted to pathfind player <0> without a loaded map.', EventPlayer()>);
         return;
     }
+
+    pfWait = TotalTimeElapsed();
+    WaitUntil(pfExecOwner == EventPlayer(), 9999);
     pfEvent('PF Execute');
     
     # Update saved destination
@@ -109,6 +118,8 @@ if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5)
     pfWalkingToPosition = pfLoadedMap.nodes[pfCurrentNodeIndex];
     pfUpdateNodeMeta();
     pfWalkToDestination();
+    pfExecOwner = null;
+    pfWait = null;
     Wait(2);
     LoopIfConditionIsTrue();
 }

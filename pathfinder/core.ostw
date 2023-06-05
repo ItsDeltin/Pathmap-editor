@@ -49,6 +49,17 @@ playervar Number pfActiveNode;
 # This variable is set when a player fails to reaches a node.
 playervar Number pfStuckOnNode;
 
+rule: '【PF Core】Prepare loaded map' {
+    WaitUntil(<Boolean>pfLoadedMap.nodes, 9999);
+    for (Number i = 0; pfLoadedMap.nodes.Length; 1) {
+        pfLoadedMap.nodes[i] = Vector(
+            pfLoadedMap.nodes[i].X,
+            pfLoadedMap.nodes[i].Y.Floor() + (i / 1000) * (pfLoadedMap.nodes[i].Y < 0 ? -1 : 1),
+            pfLoadedMap.nodes[i].Z
+        );
+    }
+}
+
 void pfEvent(in String text) {
     // dbgEvents += {
     //     name: text,
@@ -105,7 +116,11 @@ if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5)
 rule: '【PF Core】Node reached'
 Event.OngoingPlayer
 if (pfIsPathfinding)
-if (EventPlayer().DistanceTo(pfWalkingToPosition) <= 0.4) {
+# Horizontal distance to current position is less than 0.4.
+if ((PositionOf() * Vector(1, 0, 1)).DistanceTo(pfWalkingToPosition * Vector(1, 0, 1)) <= 0.4)
+# Vertical distance to current position is less than 1.5.
+if (PositionOf().Y - pfWalkingToPosition.Y~Abs() <= 1.5)
+if (pfPath.Length > 0) {
     # The player reached the next node in the path to the destination.
     if (pfCurrentNodeIndex == -1) {
         pfEvent('Reached destination');
@@ -239,11 +254,11 @@ void pfLookAtDestination() playervar '☆【PF Core Subroutine】☞ Look at des
 
 # Selects a node index from a position.
 Number chooseNodeFromPosition(in Vector vector) {
-    return pfLoadedMap.nodes.IndexOf(pfLoadedMap.nodes
+    return pfLoadedMap.nodes
         .SortedArray(n => n.DistanceTo(vector))
         .Slice(0, 5)
         .SortedArray(n => !(IsInLineOfSight(n + Up() * 2, vector + Up() * 2) && (vector.Y - n.Y).Abs() < vector.DistanceTo(n) / 2))
-        .First);
+        .First.Y.Abs() * 1000 % 1000;
 }
 
 # Gets the shortest path from start to goal.

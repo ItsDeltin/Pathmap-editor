@@ -141,6 +141,7 @@ if (pfDestination == null)
 {
     StopThrottleInDirection();
     pfIsPathfinding = false;
+    pfSavedTarget = null;
 }
 
 rule: '【PF Core】(optional) Recalibrate when off the path'

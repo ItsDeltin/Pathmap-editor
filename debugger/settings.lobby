@@ -15,8 +15,11 @@
         "Skirmish": {
             "Enabled": true,
             "Enabled Maps": [
-                "Esperança"
+                "Hanamura"
             ]
+        },
+        "All": {
+            "Respawn Time Scalar": 0
         }
     },
     "Extensions": {

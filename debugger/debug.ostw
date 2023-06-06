@@ -32,14 +32,7 @@ Event.OngoingPlayer
     DisableMovementCollisionWithPlayers(EventPlayer());
 }
 
-rule: 'Debug▶ Dummy: Follow the host'
-Event.OngoingPlayer
-if (IsDummyBot())
-{
-    ChaseVariableAtRate(pfDestination, PositionOf(HostPlayer()), 100, RateChaseReevaluation.DestinationAndRate);
-}
-
-disabled rule: 'Debug▶ Dummy: Follow the host on [Melee]'
+rule: 'Debug▶ Dummy: Follow the host on [Melee]'
 Event.OngoingPlayer
 if (IsDummyBot())
 if (IsButtonHeld(HostPlayer(), Button.Melee))
@@ -54,11 +47,12 @@ if (HasSpawned(HostPlayer()))
     SetMeleeEnabled(HostPlayer(), false);
     SetAbility1Enabled(HostPlayer(), false);
     SetAbility2Enabled(HostPlayer(), false);
-    CreateHudText(AllPlayers(), Text: <'CAP: <0>, <1>, <2>\nPos: <5>\nTime: <3>\nOwner: <4>', ServerLoad(), ServerLoadAverage(), ServerLoadPeak(), TotalTimeElapsed(), pfExecOwner, PositionOf(HostPlayer())>, Location: Location.Top);
+    CreateHudText(AllPlayers(), Text: <'CAP: <0>, <1>, <2>\nPos: <5>\nTime: <3>\nOwner: <4>\nIterations: <6>', ServerLoad(), ServerLoadAverage(), ServerLoadPeak(), TotalTimeElapsed(), pfExecOwner, PositionOf(HostPlayer()), 15 - ((Max(Min(ServerLoadAverage(), 245), 210) - 210) / 35 * 15)>, Location: Location.Top);
 }
 
 playervar Player selectedPlayer;
 playervar Boolean isSlow;
+globalvar Boolean pathfinderEnabled;
 
 rule: 'Debug▶ Create debugging entities'
 Event.OngoingPlayer
@@ -179,4 +173,18 @@ if (IsButtonHeld(EventPlayer(), Button.SecondaryFire))
     WaitUntil(IsButtonHeld(EventPlayer(), Button.SecondaryFire), 9999);
 
     DestroyInWorldText(text);
+}
+
+rule: 'Debug▶ Host Control: [Ability 2] to toggle pathfinding'
+Event.OngoingPlayer
+if (HostPlayer() == EventPlayer())
+if (IsButtonHeld(EventPlayer(), Button.Ability2))
+{
+    pathfinderEnabled = !pathfinderEnabled;
+    if (pathfinderEnabled) {
+        ChaseVariableAtRate(AllPlayers().pfDestination, PositionOf(HostPlayer()), 100, RateChaseReevaluation.DestinationAndRate);
+    } else {
+        StopChasingVariable(AllPlayers().pfDestination);
+        AllPlayers().pfDestination = null;
+    }
 }

@@ -75,7 +75,7 @@ if (HasSpawned(host))
         langmap(Map.Oasis_City_Center, "Oasis_City_Center", "OASIS_CITY_CENTER"),
         langmap(Map.Oasis_Gardens, "Oasis_Gardens", "OASIS_GARDENS"),
         langmap(Map.Oasis_University, "Oasis_University", "OASIS_UNIVERSITY"),
-        langmap(Map.Paraiso, "Paraiso", "PARAISO"),
+        // langmap(Map.Paraiso, "Paraiso", "PARAISO"),
         langmap(Map.Paris, "Paris", "PARIS"),
         langmap(Map.Petra, "Petra", "PETRA"),
         langmap(Map.PracticeRange, "PracticeRange", "PRACTICE_RANGE"),

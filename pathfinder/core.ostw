@@ -112,8 +112,8 @@ if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5)
     pfEvent('PF Execute');
     
     # Update saved destination
-    aStar();
     pfSavedTarget = pfDestination;
+    aStar();
     pfIsPathfinding = true;
     pfCurrentNodeIndex = pfPath.First;
     pfWalkingToPosition = pfLoadedMap.nodes[pfCurrentNodeIndex];
@@ -121,6 +121,19 @@ if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5)
     pfWalkToDestination();
     pfExecOwner = null;
     pfWait = null;
+    Wait(2);
+    LoopIfConditionIsTrue();
+}
+
+rule: '【PF Core】Shift destination'
+Event.OngoingPlayer
+if (pfIsPathfinding)
+if (pfWalkingToPosition != pfDestination)
+if (pfCurrentNodeIndex == -1)
+{
+    if (pfSavedTarget.DistanceTo(pfDestination) < 5 && IsInLineOfSight(pfSavedTarget + Up() * 0.25, pfDestination + Up() * 0.25)) {
+        pfWalkingToPosition = pfDestination;
+    }
     Wait(2);
     LoopIfConditionIsTrue();
 }
@@ -159,7 +172,7 @@ if (pfDestination == null)
 rule: '【PF Core】(optional) Recalibrate when off the path'
 Event.OngoingPlayer
 if (pfIsPathfinding)
-if (((pfWalkingFromPosition + pfWalkingToPosition) / 2).DistanceTo(EventPlayer()) > pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) * 1.5)
+if (((pfWalkingFromPosition + pfWalkingToPosition) / 2).DistanceTo(EventPlayer()) > (pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) + 3) * 1.5)
 {
     Wait(1, WaitBehavior.AbortWhenFalse);
     pfEvent('Not on path; recalibrating.');
@@ -181,7 +194,7 @@ if (IsInLineOfSight(PositionOf() + Up() * 0.25, pfNextPosition + Up() * 0.25))
 rule: '【PF Core】(optional) Recover when stuck or time to next node takes longer than expected'
 Event.OngoingPlayer
 if (pfIsPathfinding)
-if (PositionOf().DistanceTo(pfDestination) > 5)
+if (PositionOf().DistanceTo(pfWalkingToPosition) > 0.4)
 if (VelocityOf().Magnitude < 3 || pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) - 5.5 * 0.9 * (TotalTimeElapsed() - pfStartTime) < 0)
 if (!HasStatus(EventPlayer(), Status.Rooted))
 if (!HasStatus(EventPlayer(), Status.Frozen))
@@ -225,7 +238,7 @@ void pfProgressEventPlayer() playervar '【PF Core Subroutine】☞ Progress eve
     # Pop the current path.
     pfPath.ModRemoveByIndex(0);
     # Set the position that the player is currently walking towards.
-    pfWalkingToPosition = pfCurrentNodeIndex == -1 ? pfSavedTarget : pfLoadedMap.nodes[pfCurrentNodeIndex];
+    pfWalkingToPosition = pfCurrentNodeIndex == -1 ? pfDestination.DistanceTo(pfSavedTarget) <= 4 ? pfDestination : PositionOf() : pfLoadedMap.nodes[pfCurrentNodeIndex];
     pfUpdateNodeMeta();
 }
 
@@ -252,8 +265,8 @@ void pfRecalibrate() playervar '【PF Core Subroutine】☞ Recalibrate' {
 void pfWalkToDestination() playervar '☆【PF Core Subroutine】☞ Walk to destination' {
     StartThrottleInDirection(
         EventPlayer(),
-        PositionOf().DirectionTowards(pfCurrentNodeIndex == -1 && pfDestination.DistanceTo(pfSavedTarget) < 6 ? pfDestination : pfWalkingToPosition),
-        PositionOf().DistanceTo(pfDestination),
+        PositionOf().DirectionTowards(pfWalkingToPosition),
+        PositionOf().DistanceTo(pfWalkingToPosition),
         Relative.ToWorld,
         ThrottleBehavior.ReplaceExistingThrottle,
         ThrottleRev.DirectionAndMagnitude);
@@ -276,7 +289,7 @@ Number chooseNodeFromPosition(in Vector vector) {
 
 # Gets the shortest path from start to goal.
 void aStar() {
-    Number goal = chooseNodeFromPosition(pfDestination);
+    Number goal = chooseNodeFromPosition(pfSavedTarget);
     pfTick();
     if (pfIsPathfinding && pfCurrentNodeIndex != -1) {
         pfActiveNode = pfCurrentNodeIndex;

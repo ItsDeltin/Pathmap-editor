@@ -134,9 +134,14 @@ if (SelectedPlayer == null)
 if (!host.releasePrimary)
 if (!host.cm_isInMenu)
 {
+    Vector pos = watchPoint;
+    # Do not place the node if there are any other close nodes.
+    if (Nodes.IsTrueForAny(n => n.Node.Position.DistanceTo(pos) < 0.75)) {
+        return;
+    }
+
     NodeUniqueID++;
     Number id = NodeUniqueID;
-    Vector pos = watchPoint;
 
     Document({
         Set: () => {

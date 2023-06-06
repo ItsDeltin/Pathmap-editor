@@ -249,41 +249,45 @@ void ExportRules() playervar 'EXPORT: Export'
             '*/\nrule \"【Generated】Custom pathfinding rule #{0}\": @Event eachPlayer /*'.Format([i + 1])
         );
 
-        Number numberOfEnabledHeroes! = Rules[i].EnabledHeroes.FilteredArray(x => x).Length;
-        Number firstEnabledHero! = Rules[i].EnabledHeroes.IndexOf(true);
+        # Get the number of enabled heroes.
+        Number numberOfEnabledHeroes! = (Rules[i].EnabledHeroes[0] ? AllHeroes().Length - (Rules[i].EnabledHeroes.Length - 1) : Rules[i].EnabledHeroes.Length - 1);
+        # Store the first toggled hero. This is effectively the first enabled hero since
+        # anything using this value ensures that the switch is off. This will be null if no heroes are toggled.
+        Hero firstEnabledHero! = Rules[i].EnabledHeroes[1];
 
         # Add event (ow)
         if (is_ow) {
             LogToInspector(<'*/ event { Ongoing - Each Player; All; <0>; } /*',
-                numberOfEnabledHeroes != 1 ? 'All' : AllHeroes()[firstEnabledHero]>);
+                numberOfEnabledHeroes != 1 ? 'All' : firstEnabledHero>);
         }
         # Add event (ostw)
         else if (is_ostw) {
             LogToInspector('*/ Event.OngoingPlayer /*');
             if (numberOfEnabledHeroes == 1) {
-                LogToInspector(<'*/ Player.<0> /*', heroIndexToOstwHero(firstEnabledHero)>); // torb
+                LogToInspector(<'*/ Player.<0> /*', workshopHeroToOstwHero(firstEnabledHero)>); // torb
             }
         }
         # Add event (overpy)
         else if (is_overpy && numberOfEnabledHeroes == 1) {
-            LogToInspector(<'*/\n    @Hero <0> /*', heroIndexToOverpyHero(firstEnabledHero)>);
+            LogToInspector(<'*/\n    @Hero <0> /*', workshopHeroToOverpyHero(firstEnabledHero)>);
         }
 
-        Number[] enabledHeroIndexes! = Rules[i].EnabledHeroes.Map((b, hi) => hi).FilteredArray(hi => Rules[i].EnabledHeroes[hi]);
+        Hero[] toggledHeroes! = Rules[i].GetToggledHeroes();
         String heroListString! = null;
         Boolean doExportHeroArray! = numberOfEnabledHeroes > 1 && numberOfEnabledHeroes < AllHeroes().Length;
         if (doExportHeroArray)
         {
-            heroListString = StringJoin(enabledHeroIndexes, ', ', v =>
+            heroListString = StringJoin(toggledHeroes, ', ', v =>
             {
                 if (is_ow)
-                    return <'Hero(<0>)', AllHeroes()[v]>;
+                    return <'Hero(<0>)', v>;
                 if (is_ostw)
-                    return <'Hero.<0>', heroIndexToOstwHero(v)>;
+                    return <'Hero.<0>', workshopHeroToOstwHero(v)>;
                 if (is_overpy)
-                    return <'Hero.<0>', heroIndexToOverpyHero(v)>;
+                    return <'Hero.<0>', workshopHeroToOverpyHero(v)>;
             });
         }
+        Boolean heroListCondition! = !Rules[i].EnabledHeroes[0];
 
         # Workshop condition
         if (lang == OutputLanguage.Workshop) {
@@ -291,7 +295,7 @@ void ExportRules() playervar 'EXPORT: Export'
             LogToInspector('*/     Array Contains(Event Player.pfAttributes, {0}) == True; /*'.Format([Rules[i].ExecutesOnAttribute]));
             # Multiple heroes
             if (doExportHeroArray) {
-                LogToInspector(<'*/     Array Contains(Array(<0>), Hero Of(Event Player)) == True; /*', heroListString>);
+                LogToInspector(<'*/     Array Contains(Array(<0>), Hero Of(Event Player)) == <1>; /*', heroListString, heroListCondition>);
             }
             LogToInspector('*/ } actions { /*');
         }
@@ -300,7 +304,7 @@ void ExportRules() playervar 'EXPORT: Export'
             LogToInspector('*/ if (pfAttributes.Contains({0})) /*'.Format([Rules[i].ExecutesOnAttribute]));
             # Multiple heroes
             if (doExportHeroArray) {
-                LogToInspector(<'*/ if ([<0>].Contains(HeroOf())) /*', heroListString>);
+                LogToInspector(<'*/ if (<1>[<0>].Contains(HeroOf())) /*', heroListString, heroListCondition ? '' : '!'>);
             }
             # Start rule block
             LogToInspector('*/ { /*');
@@ -310,7 +314,7 @@ void ExportRules() playervar 'EXPORT: Export'
             LogToInspector('*/\n    @Condition {0} in eventPlayer.pfAttributes /*'.Format([Rules[i].ExecutesOnAttribute]));
             # Multiple heroes
             if (doExportHeroArray) {
-                LogToInspector(<'*/\n    @Condition eventPlayer.getCurrentHero() in [<0>] /*', heroListString>);
+                LogToInspector(<'*/\n    @Condition eventPlayer.getCurrentHero() <1> [<0>] /*', heroListString, heroListCondition ? 'in' : 'not in'>);
             }
         }            
         

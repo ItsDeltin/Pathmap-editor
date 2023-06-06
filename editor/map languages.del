@@ -94,15 +94,14 @@ if (HasSpawned(host))
     ];
 }
 
-String heroIndexToOstwHero(Number index): <'<0>',
-    AllHeroes()[index]>
+String workshopHeroToOstwHero(Hero hero): <'<0>', hero>
     .Replace(' ', '') // wrecking ball/junker queen
     .Replace(':', '') // soldier
     .Replace('ú', '') // lucio
     .Replace('.', '') // dva
     .Replace('ö', ''); // torb
 
-String heroIndexToOverpyHero(Number index): [
+String workshopHeroToOverpyHero(Hero hero): [
     "reaper",
     "tracer",
     "mercy",
@@ -140,4 +139,4 @@ String heroIndexToOverpyHero(Number index): [
     "sigma",
     "ramattra",
     "lifeweaver"
-][index];
+][AllHeroes().IndexOf(hero)];

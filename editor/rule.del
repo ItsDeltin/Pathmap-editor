@@ -5,7 +5,31 @@ struct Rule
 {
     public RuleAction[] Actions;
     public Number ExecutesOnAttribute;
-    public Boolean[] EnabledHeroes;
+    # The heroes this rule will execute for. This value has some strange formatting
+    # in order to reduce the size of the map save as much as possible.
+    # 
+    # The `[0]` index in this array will *always* have a boolean value.
+    # 
+    # If `[0]` is `False`, then indexes `[1..]` are the heroes that are enabled.
+    # 
+    # If `[0]` is `True`, then indexes `[1..]` are the heroes that are disabled.
+    # 
+    # This way if all but one hero is enabled or disabled, the array is kept as small as possible.
+    # 
+    # The workshop will match truthy values to heroes, which means that the expression
+    # `[true].Contains(Hero.Ana)` will return `True`. This means that when determining if
+    # a hero is enabled or disabled, the first value will need to be ignored like
+    # `EnabledHeroes.Slice(1, 1000)`.
+    public Any[] EnabledHeroes;
+
+    # Returns `EnabledHeroes` with the switch index removed.
+    public Hero[] GetToggledHeroes(): EnabledHeroes.Slice(1, 1000);
+    # If the hero is toggled to be counter to the switch.
+    public Boolean IsHeroToggled(Hero hero): GetToggledHeroes().Contains(hero);
+    # Determines if the hero is enabled to be executed with the rule.
+    # If only one of `EnabledHeroes[0]` or `IsHeroToggled(hero)` is true, then the hero
+    # is enabled. If both or none, the hero is disabled.
+    public Boolean IsHeroEnabled(Hero hero): EnabledHeroes[0] != IsHeroToggled(hero);
 }
 
 struct RuleAction
@@ -162,10 +186,26 @@ void initiatePager() 'CM: Initiate pager'
     heroScrollBar = new Scrollbar(
         1.75,
         0.5,
-        AllHeroes().Map((hero, i) => '{0} {1}'.Format([HeroIconString(hero), Rules[rulePage].EnabledHeroes[i] ? 'yes' : 'no'])),
+        AllHeroes().Map(hero => null),
         4,
         toggleHero => {
-            Rules[rulePage].EnabledHeroes[toggleHero] = !Rules[rulePage].EnabledHeroes[toggleHero];
+            Hero hero! = AllHeroes()[toggleHero];
+
+            # Is the hero already on the toggle list?
+            if (Rules[rulePage].IsHeroToggled(hero)) {
+                # The hero is already on the toggle list, remove it.
+                Rules[rulePage].EnabledHeroes.ModRemoveByValue(hero);
+            } else {
+                # The hero is not on the toggle list, add it.
+                Rules[rulePage].EnabledHeroes.ModAppend(hero);
+
+                # If the number of toggled heroes exceeds half of the number of heroes,
+                # then we can save space by inverting the toggles.
+                if (Rules[rulePage].EnabledHeroes.Length > AllHeroes().Length / 2) {
+                    # Invert the toggle state then append the inverted hero toggles.
+                    Rules[rulePage].EnabledHeroes = [<Any>(!Rules[rulePage].EnabledHeroes.First)].Append(AllHeroes().Remove(Rules[rulePage].EnabledHeroes));
+                }
+            }
             updateHeroIcon(toggleHero);
         }
     );
@@ -209,16 +249,17 @@ void updateActionSelectColor(in Number actionIndex)
     actionScrollBar.SetButtonColor(actionIndex, actionsSelected[actionIndex] ? Color.Green : Color.White);
 }
 
-void updateHeroIcon(in Number index)
+void updateHeroIcon(Number index!) playervar 'Subroutine: Update hero icon'
 {
-    // Update button color
-    heroScrollBar.SetButtonColor(index, Rules[rulePage].EnabledHeroes[index] ? Color.Green : Color.Red);
-    // Update button label
+    Boolean isHeroEnabled! = Rules[rulePage].IsHeroEnabled(AllHeroes()[index]);
+    # Update button color
+    heroScrollBar.SetButtonColor(index, isHeroEnabled ? Color.Green : Color.Red);
+    # Update button label
     heroScrollBar.SetButtonLabel(
         index,
         '{0} {1}'.Format([
             HeroIconString(AllHeroes()[index]),
-            Rules[rulePage].EnabledHeroes[index] ? 'yes' : 'no'
+            isHeroEnabled ? 'yes' : 'no'
         ])
     );
 }
@@ -367,7 +408,7 @@ if (cm_currActionID == MenuAction.CreateRule)
 
     Document({
         Set: () => {
-            Rules.ModAppend([{ Actions: [], ExecutesOnAttribute: 0, EnabledHeroes: AllHeroes().Map(hero => true) }]);
+            Rules.ModAppend([{ Actions: [], ExecutesOnAttribute: 0, EnabledHeroes: [true] }]);
             OnRuleAdded();
         },
         Revert: () => {
@@ -408,8 +449,11 @@ rule: 'CM: Toggle all'
 Event.OngoingPlayer
 if (cm_currActionID == MenuAction.ToggleAll)
 {
-    Boolean setTo! = Rules[rulePage].EnabledHeroes.IsTrueForAny(hero => !hero);
-    Rules[rulePage].EnabledHeroes = AllHeroes().Map(_ => setTo);
+    # If there are any disabled heroes, then turn the switch on.
+    # Otherwise, turn it off.
+    Rules[rulePage].EnabledHeroes = [
+        !Rules[rulePage].EnabledHeroes[0] || Rules[rulePage].EnabledHeroes.Length > 1
+    ];
     updateAllHeroIcons();
 }
 

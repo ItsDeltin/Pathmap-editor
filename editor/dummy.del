@@ -119,7 +119,7 @@ if (PositionOf().DistanceTo(currentPathfindingNodePosition) < 0.4)
     Number[] executeRules = Rules
         .Map((r, i) => i)
         .FilteredArray(i =>
-            Rules[i].EnabledHeroes[AllHeroes().IndexOf(HeroOf())] &&
+            Rules[i].IsHeroEnabled(HeroOf()) &&
             attributes.Contains(Rules[i].ExecutesOnAttribute));
 
     if (executeRules.Length)

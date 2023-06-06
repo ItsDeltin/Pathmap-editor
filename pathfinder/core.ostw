@@ -159,7 +159,7 @@ if (pfPath.Length > 0) {
     LoopIfConditionIsTrue();
 }
 
-rule: '【PF Core】(optional) Stop throttle when pfDestination is reset'
+rule: '【PF Core】Stop throttle when pfDestination is reset'
 Event.OngoingPlayer
 if (pfIsPathfinding)
 if (pfDestination == null)
@@ -169,7 +169,7 @@ if (pfDestination == null)
     pfSavedTarget = null;
 }
 
-rule: '【PF Core】(optional) Recalibrate when off the path'
+rule: '【PF Core】Recalibrate when off the path'
 Event.OngoingPlayer
 if (pfIsPathfinding)
 if (((pfWalkingFromPosition + pfWalkingToPosition) / 2).DistanceTo(EventPlayer()) > (pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) + 3) * 1.5)
@@ -191,7 +191,7 @@ if (IsInLineOfSight(PositionOf() + Up() * 0.25, pfNextPosition + Up() * 0.25))
     LoopIfConditionIsTrue();
 }
 
-rule: '【PF Core】(optional) Recover when stuck or time to next node takes longer than expected'
+rule: '【PF Core】Recover when stuck or time to next node takes longer than expected'
 Event.OngoingPlayer
 if (pfIsPathfinding)
 if (PositionOf().DistanceTo(pfWalkingToPosition) > 0.4)

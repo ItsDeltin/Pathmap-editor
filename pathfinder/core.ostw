@@ -76,11 +76,12 @@ void pfEvent(in String text) {
 
 void pfTick() '【PF Core Subroutine】☞ Tick'
 {
-    pfIterationsThisTick++;
-    if (pfIterationsThisTick >= WorkshopSettingInteger('Pathfinder', 'Iterations per tick', 10, 1, 100)) {
-        pfIterationsThisTick = 0;
+    pfIterationsThisTick--;
+    if (pfIterationsThisTick <= 0) {
         MinWait();
         WaitUntil(ServerLoadAverage() < 255, 9999);
+        # This determines the pathfinding budget for the current tick.
+        pfIterationsThisTick = (ServerLoadPeak() < 230) + 1;
     }
 }
 

@@ -164,6 +164,8 @@ if (!host.cm_isInMenu)
     Any[][] deleteSegments =
         Segments.Map((segment, i) => [i, segment.ID, segment.Node1, segment.Node2])
             .FilteredArray((v, i) => Segments[i].Node1 == deleteNode.UniqueID || Segments[i].Node2 == deleteNode.UniqueID);
+    Any[][] deleteAttributes =
+        Attributes.Map((a, i) => [i, a.ID, a.Node1, a.Node2, a.Value]).FilteredArray(v => v[2] == deleteNode.UniqueID || v[3] == deleteNode.UniqueID);
 
     Document({
         Set: () => {
@@ -174,26 +176,43 @@ if (!host.cm_isInMenu)
             for (waitlessI = deleteSegments.Length - 1; -1; -1) {
                 RemoveSegmentByIndex(deleteSegments[waitlessI][0]);
             }
+            # Delete attributes
+            for (waitlessI = deleteAttributes.Length - 1; -1; -1) {
+                RemoveAttributeByIndex(deleteAttributes[waitlessI][0]);
+            }
             # Delete node
             RemoveNodeByIndex(index);
             # Refresh rending nodes
             updateRenderingNodes();
+            UpdateAttributeVisibility();
         },
         Revert: () => {
             # Insert deleted node
             Nodes = insert(Nodes, index, { Node: deleteNode, Selected: false });
-            // Add segments
-            for (Number i = 0; deleteSegments.Length; 1)
+            # Insert deleted segments
+            for (waitlessI = 0; deleteSegments.Length; 1)
             {
                 Segments = insert(
                     Segments,
-                    deleteSegments[i][0],
+                    deleteSegments[waitlessI][0],
                     {
-                        ID: deleteSegments[i][1],
-                        Node1: deleteSegments[i][2],
-                        Node2: deleteSegments[i][3]
+                        ID: deleteSegments[waitlessI][1],
+                        Node1: deleteSegments[waitlessI][2],
+                        Node2: deleteSegments[waitlessI][3]
                     });
-                MinWait();
+            }
+            # Insert deleted attributes
+            for (waitlessI = 0; deleteAttributes.Length; 1)
+            {
+                Attributes = insert(
+                    Attributes,
+                    deleteAttributes[waitlessI][0],
+                    {
+                        ID: deleteAttributes[waitlessI][1],
+                        Node1: deleteAttributes[waitlessI][2],
+                        Node2: deleteAttributes[waitlessI][3],
+                        Value: deleteAttributes[waitlessI][4]
+                    });
             }
             updateRenderingNodes();
         }

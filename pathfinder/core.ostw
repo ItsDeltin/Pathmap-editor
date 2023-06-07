@@ -263,13 +263,14 @@ void pfRecalibrate() playervar '【PF Core Subroutine】☞ Recalibrate' {
     pfCurrentNodeIndex = -1;
     pfSavedTarget = null;
     pfIsPathfinding = false;
+    pfWalkingToPosition = PositionOf();
 }
 
 void pfWalkToDestination() playervar '☆【PF Core Subroutine】☞ Walk to destination' {
     StartThrottleInDirection(
         EventPlayer(),
         PositionOf().DirectionTowards(pfWalkingToPosition),
-        pfCurrentNodeIndex != -1 || PositionOf().DistanceTo(pfWalkingToPosition) > .25,
+        pfWalkingToPosition && (pfCurrentNodeIndex != -1 || PositionOf().DistanceTo(pfWalkingToPosition) > .25),
         Relative.ToWorld,
         ThrottleBehavior.ReplaceExistingThrottle,
         ThrottleRev.DirectionAndMagnitude);

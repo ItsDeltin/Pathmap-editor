@@ -13,15 +13,11 @@
   },
   "Modes": {
     "Skirmish": {
-      "Enabled": true,
-      "Enabled Maps": [
-        "Dorado"
-      ]
+      "Enabled": true
     },
     "Team Deathmatch": {
       "Enabled": true,
-      "Game Mode Start": "Manual",
-      "Enabled Maps": []
+      "Game Mode Start": "Manual"
     },
     "All": {
       "Respawn Time Scalar": 0

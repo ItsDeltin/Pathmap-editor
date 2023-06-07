@@ -129,10 +129,11 @@ rule: '【PF Core】Shift destination'
 Event.OngoingPlayer
 if (pfIsPathfinding)
 if (pfWalkingToPosition != pfDestination)
-if (pfCurrentNodeIndex == -1)
+if (pfPath.Length <= 2)
 {
     if (pfSavedTarget.DistanceTo(pfDestination) < 5 && IsInLineOfSight(pfSavedTarget + Up() * 0.25, pfDestination + Up() * 0.25)) {
         pfWalkingToPosition = pfDestination;
+        pfEvent('shifted destination');
     }
     Wait(2);
     LoopIfConditionIsTrue();
@@ -145,9 +146,12 @@ if (pfIsPathfinding)
 if ((PositionOf() * Vector(1, 0, 1)).DistanceTo(pfWalkingToPosition * Vector(1, 0, 1)) <= 0.4)
 # Vertical distance to current position is less than 1.5.
 if (PositionOf().Y - pfWalkingToPosition.Y~Abs() <= 1.5)
-if (pfPath.Length > 0) {
+if (pfPath.Length > 0)
+if (pfCurrentNodeIndex != -1)
+{
     # The player reached the next node in the path to the destination.
     if (pfCurrentNodeIndex == -1) {
+        // todo
         pfEvent('Reached destination');
         # The destination was reached, stop pathfinding.
         pfIsPathfinding = false;
@@ -189,6 +193,16 @@ if (IsInLineOfSight(PositionOf() + Up() * 0.25, pfNextPosition + Up() * 0.25))
     pfEvent('Smooth skip');
     pfProgressEventPlayer();
     LoopIfConditionIsTrue();
+}
+
+rule: '【PF Core】Smooth step'
+Event.OngoingPlayer
+if (pfIsPathfinding)
+if (pfPath.Length == 2)
+if (EventPlayer().DistanceTo(pfSavedTarget) < Max(5, EventPlayer().DistanceTo(pfWalkingToPosition) * 1.3))
+{
+    pfEvent('Smooth step');
+    pfProgressEventPlayer();
 }
 
 rule: '【PF Core】Recover when stuck or time to next node takes longer than expected'
@@ -233,10 +247,10 @@ void pfProgressEventPlayer() playervar '【PF Core Subroutine】☞ Progress eve
     } else {
         pfAttributes = [];
     }
-    # Go to the next node in the path.
-    pfCurrentNodeIndex = pfPath.First;
     # Pop the current path.
     pfPath.ModRemoveByIndex(0);
+    # Go to the next node in the path.
+    pfCurrentNodeIndex = pfPath.First;
     # Set the position that the player is currently walking towards.
     pfWalkingToPosition = pfCurrentNodeIndex == -1 ? pfDestination.DistanceTo(pfSavedTarget) <= 4 ? pfDestination : PositionOf() : pfLoadedMap.nodes[pfCurrentNodeIndex];
     pfUpdateNodeMeta();
@@ -252,7 +266,8 @@ void pfUpdateNodeMeta() playervar '【PF Core Subroutine】☞ Update node meta'
     # Update the pathfinding start time.
     pfStartTime = TotalTimeElapsed();
     pfWalkingFromPosition = PositionOf();
-    pfNextPosition = pfPath.Length == 0 ? 0 : pfLoadedMap.nodes[pfPath.First];
+    // todo: update this
+    // pfNextPosition = pfPath.Length == 0 ? 0 : pfLoadedMap.nodes[pfPath.First];
 }
 
 void pfRecalibrate() playervar '【PF Core Subroutine】☞ Recalibrate' {
@@ -266,7 +281,7 @@ void pfWalkToDestination() playervar '☆【PF Core Subroutine】☞ Walk to des
     StartThrottleInDirection(
         EventPlayer(),
         PositionOf().DirectionTowards(pfWalkingToPosition),
-        PositionOf().DistanceTo(pfWalkingToPosition),
+        pfCurrentNodeIndex != -1 || PositionOf().DistanceTo(pfWalkingToPosition) > .25,
         Relative.ToWorld,
         ThrottleBehavior.ReplaceExistingThrottle,
         ThrottleRev.DirectionAndMagnitude);
@@ -283,7 +298,7 @@ Number chooseNodeFromPosition(in Vector vector) {
     return pfLoadedMap.nodes
         .SortedArray(n => n.DistanceTo(vector))
         .Slice(0, 5)
-        .SortedArray(n => !(IsInLineOfSight(n + Up() * 2, vector + Up() * 2) && (vector.Y - n.Y).Abs() < vector.DistanceTo(n) / 2))
+        .SortedArray(n => !(IsInLineOfSight(n + Up() * 2, vector + Up() * 2, BarrierLOS.NoBarriersBlock)))
         .First.Y.Abs() * 1000 % 1000;
 }
 

@@ -220,7 +220,7 @@ if (canModifyMap)
     # 
     # Save the copied text into a text file. To load it, paste the contents into the first rule in the workshop editor.
     DisableInspectorRecording();
-    Wait(10);
+    Wait(5);
     LoopIfConditionIsTrue();
 }
 

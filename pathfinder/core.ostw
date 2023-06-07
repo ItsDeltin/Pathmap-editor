@@ -182,18 +182,6 @@ if (((pfWalkingFromPosition + pfWalkingToPosition) / 2).DistanceTo(EventPlayer()
     pfRecalibrate();
 }
 
-rule: '【PF Core】(optional) Skip node when shortcut is found'
-Event.OngoingPlayer
-if (pfIsPathfinding)
-if (pfCurrentNodeIndex != -1)
-if (IsInLineOfSight(PositionOf() + Up() * 0.25, pfNextPosition + Up() * 0.25))
-{
-    Wait(0.1);
-    pfEvent('Smooth skip');
-    pfProgressEventPlayer();
-    LoopIfConditionIsTrue();
-}
-
 rule: '【PF Core】Smooth step'
 Event.OngoingPlayer
 if (pfIsPathfinding)

@@ -46,8 +46,6 @@ playervar Number[] pfPath;
 playervar Number pfStartTime;
 # The position the player was at when they started walking to `pfWalkingToPosition`.
 playervar Vector pfWalkingFromPosition;
-# The position the player will walk to after reaching `pfWalkingToPosition`.
-playervar Vector pfNextPosition;
 # The node closest to the player.
 playervar Number pfActiveNode;
 # This variable is set when a player fails to reaches a node.
@@ -254,8 +252,6 @@ void pfUpdateNodeMeta() playervar '【PF Core Subroutine】☞ Update node meta'
     # Update the pathfinding start time.
     pfStartTime = TotalTimeElapsed();
     pfWalkingFromPosition = PositionOf();
-    // todo: update this
-    // pfNextPosition = pfPath.Length == 0 ? 0 : pfLoadedMap.nodes[pfPath.First];
 }
 
 void pfRecalibrate() playervar '【PF Core Subroutine】☞ Recalibrate' {
@@ -335,7 +331,6 @@ void aStar() {
             return;
         }
 
-        // Any[] neighborIcons = [CreateInWorldText(AllPlayers(), currentNodeIndex, pfLoadedMap.nodes[currentNodeIndex], 2, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.Rose)];
         open.ModRemoveByValue(current);
 
         # Check each neighbor to the current node.

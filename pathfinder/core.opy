@@ -20,7 +20,6 @@ playervar pfWalkingToPosition
 playervar pfPath
 playervar pfStartTime
 playervar pfWalkingFromPosition
-playervar pfNextPosition
 playervar pfActiveNode
 playervar pfStuckOnNode
 playervar goal

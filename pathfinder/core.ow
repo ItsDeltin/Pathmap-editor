@@ -18,23 +18,22 @@ variables
         8: pfPath
         9: pfStartTime
         10: pfWalkingFromPosition
-        11: pfNextPosition
-        12: pfActiveNode
-        13: pfStuckOnNode
-        14: goal
-        15: scores_gScore
-        16: scores_fScore
-        17: scores_parent
-        18: scores_nodeIndex
-        19: open
-        20: checkedNode
-        21: iter
-        22: current
-        23: currentInExistingPath
-        24: neighbor
-        25: neighborI
-        26: scoreIndex
-        27: score
+        11: pfActiveNode
+        12: pfStuckOnNode
+        13: goal
+        14: scores_gScore
+        15: scores_fScore
+        16: scores_parent
+        17: scores_nodeIndex
+        18: open
+        19: checkedNode
+        20: iter
+        21: current
+        22: currentInExistingPath
+        23: neighbor
+        24: neighborI
+        25: scoreIndex
+        26: score
 }
 
 subroutines

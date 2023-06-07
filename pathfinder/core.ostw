@@ -156,7 +156,6 @@ if (pfCurrentNodeIndex != -1)
         # The destination was reached, stop pathfinding.
         pfIsPathfinding = false;
     } else {
-        pfEvent('Node progressed');
         pfProgressEventPlayer();
     }
     Wait(0.2);

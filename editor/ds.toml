@@ -1,2 +1,3 @@
 reset_nonpersistent = true
 paste_check_is_extended = false
+out_file = "../latest.ow"

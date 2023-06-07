@@ -3,10 +3,13 @@
 globalvar pfLoadedMap_nodes
 globalvar pfLoadedMap_neighbors
 globalvar pfIterationsThisTick
+globalvar pfExecOwner
+globalvar i
 
 
 #Player variables
 
+playervar pfWait
 playervar pfDestination
 playervar pfPlayerAttributes
 playervar pfAttributes
@@ -29,6 +32,7 @@ playervar open
 playervar checkedNode
 playervar iter
 playervar current
+playervar currentInExistingPath
 playervar neighbor
 playervar neighborI
 playervar scoreIndex
@@ -45,12 +49,18 @@ subroutine pfRecalibrate
 subroutine pfLookAtDestination
 
 
-rule "【PF Core】Next Tick":
-    @Condition pfIterationsThisTick <= 0
-    @Condition getAverageServerLoad() < 255
+rule "【PF Core】Prepare loaded map":
+    waitUntil(pfLoadedMap_nodes, 9999)
+    for i in range(len(pfLoadedMap_nodes)):
+        pfLoadedMap_nodes[i] = vect(pfLoadedMap_nodes[i].x, floor(pfLoadedMap_nodes[i].y) + (i / 1000 * (-1 if pfLoadedMap_nodes[i].y < 0 else 1)), pfLoadedMap_nodes[i].z)
+
+
+rule "【PF Core】Select next pathfinder":
+    @Condition (not entityExists(pfExecOwner) or pfExecOwner == null) == true
+    @Condition any([player.pfWait for player in getAllPlayers()]) == true
     
-    pfIterationsThisTick = max(min(round(63 - getAverageServerLoad() / 4), 15), 2)
-    wait(0.016 if getAverageServerLoad() < 255 else 0.3)
+    pfExecOwner = sorted([player for player in getAllPlayers() if player.pfWait], lambda i_: i_.pfWait)[0]
+    wait()
     if RULE_CONDITION:
         goto RULE_START
 
@@ -58,9 +68,12 @@ rule "【PF Core】Next Tick":
 def pfTick():
     @Name "【PF Core Subroutine】☞ Tick"
     
-    while pfIterationsThisTick <= 0:
-        waitUntil(pfIterationsThisTick > 0, 9999)
     pfIterationsThisTick -= 1
+    if pfIterationsThisTick <= 0:
+        wait()
+        waitUntil(max(getAverageServerLoad(), getServerLoad()) < 255, 9999)
+        #This determines the pathfinding budget for the current tick.
+        pfIterationsThisTick = (max(getAverageServerLoad(), getServerLoad()) < 230) + 1
 
 
 def pfUpdateNodeMeta():
@@ -73,13 +86,12 @@ def pfUpdateNodeMeta():
     #Update the pathfinding start time.
     eventPlayer.pfStartTime = getTotalTimeElapsed()
     eventPlayer.pfWalkingFromPosition = eventPlayer.getPosition()
-    eventPlayer.pfNextPosition = 0 if len(eventPlayer.pfPath) == 0 else pfLoadedMap_nodes[eventPlayer.pfPath[0]]
 
 
 def pfWalkToDestination():
     @Name "☆【PF Core Subroutine】☞ Walk to destination"
     
-    eventPlayer.startThrottleInDirection(directionTowards(eventPlayer.getPosition(), eventPlayer.pfDestination if eventPlayer.pfCurrentNodeIndex == -1 and distance(eventPlayer.pfDestination, eventPlayer.pfSavedTarget) < 6 else eventPlayer.pfWalkingToPosition), distance(eventPlayer.getPosition(), eventPlayer.pfDestination), Relativity.TO_WORLD, Throttle.REPLACE_EXISTING, ThrottleReeval.DIRECTION_AND_MAGNITUDE)
+    eventPlayer.startThrottleInDirection(directionTowards(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition), eventPlayer.pfWalkingToPosition and (eventPlayer.pfCurrentNodeIndex != -1 or distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) > 0.25), Relativity.TO_WORLD, Throttle.REPLACE_EXISTING, ThrottleReeval.DIRECTION_AND_MAGNITUDE)
 
 
 rule "【PF Core】Update & Execute":
@@ -92,13 +104,16 @@ rule "【PF Core】Update & Execute":
     if not pfLoadedMap_nodes:
         printLog("Error: Attempted to pathfind player {0} without a loaded map.".format(eventPlayer))
         return
+    eventPlayer.pfWait = getTotalTimeElapsed()
+    waitUntil(pfExecOwner == eventPlayer, 9999)
     #Update saved destination
-    eventPlayer.goal = pfLoadedMap_nodes.index((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.pfDestination)).slice(0, 5), lambda i: not (isInLoS(i + vect(0, 2, 0), eventPlayer.pfDestination + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS) and abs(eventPlayer.pfDestination.y - i.y) < distance(eventPlayer.pfDestination, i) / 2)))[0])
+    eventPlayer.pfSavedTarget = eventPlayer.pfDestination
+    eventPlayer.goal = ((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.pfSavedTarget)).slice(0, 5), lambda i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.pfSavedTarget + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)) * 1000) % 1000
     pfTick()
     if eventPlayer.pfIsPathfinding and eventPlayer.pfCurrentNodeIndex != -1:
         eventPlayer.pfActiveNode = eventPlayer.pfCurrentNodeIndex
     else:
-        eventPlayer.pfActiveNode = pfLoadedMap_nodes.index((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.getPosition())).slice(0, 5), lambda i: not (isInLoS(i + vect(0, 2, 0), eventPlayer.getPosition() + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS) and abs(eventPlayer.getPosition().y - i.y) < distance(eventPlayer.getPosition(), i) / 2)))[0])
+        eventPlayer.pfActiveNode = ((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.getPosition())).slice(0, 5), lambda i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.getPosition() + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)) * 1000) % 1000
         pfTick()
     eventPlayer.scores_gScore = [0]
     eventPlayer.scores_fScore = [0]
@@ -108,28 +123,27 @@ rule "【PF Core】Update & Execute":
     eventPlayer.checkedNode = eventPlayer.pfActiveNode
     eventPlayer.iter = 0
     while len(eventPlayer.open):
+        #The index of the current node in `scores`.
         eventPlayer.current = sorted(eventPlayer.open, lambda player: eventPlayer.scores_fScore[player])[0]
         if eventPlayer.checkedNode != eventPlayer.pfActiveNode:
             eventPlayer.checkedNode = eventPlayer.scores_nodeIndex.index(eventPlayer.pfActiveNode)
             if eventPlayer.checkedNode != -1:
                 eventPlayer.current = eventPlayer.checkedNode
-                eventPlayer.pfPath = []
-                while eventPlayer.current != -1:
-                    eventPlayer.pfPath.append(eventPlayer.scores_nodeIndex[eventPlayer.current])
-                    eventPlayer.current = eventPlayer.scores_parent[eventPlayer.current]
-                    pfTick()
-                eventPlayer.pfPath.append([-1])
-                goto lbl_0
-            eventPlayer.checkedNode = eventPlayer.pfActiveNode
+                eventPlayer.checkedNode = -2
+            else:
+                eventPlayer.checkedNode = eventPlayer.pfActiveNode
+        eventPlayer.currentInExistingPath = eventPlayer.pfPath.index(eventPlayer.scores_nodeIndex[eventPlayer.current])
         #If the goal was found, reconstruct the path.
-        if eventPlayer.scores_nodeIndex[eventPlayer.current] == eventPlayer.pfActiveNode:
-            eventPlayer.pfPath = []
+        if eventPlayer.scores_nodeIndex[eventPlayer.current] == eventPlayer.pfActiveNode or eventPlayer.checkedNode == -2 or eventPlayer.currentInExistingPath != -1:
+            if eventPlayer.currentInExistingPath == -1:
+                eventPlayer.pfPath = []
+            else:
+                eventPlayer.pfPath = eventPlayer.pfPath.slice(0, eventPlayer.currentInExistingPath)
             while eventPlayer.current != -1:
                 eventPlayer.pfPath.append(eventPlayer.scores_nodeIndex[eventPlayer.current])
                 eventPlayer.current = eventPlayer.scores_parent[eventPlayer.current]
-                pfTick()
             eventPlayer.pfPath.append([-1])
-            goto lbl_1
+            goto lbl_0
         eventPlayer.open.remove(eventPlayer.current)
         #Check each neighbor to the current node.
         for eventPlayer.neighbor in range(len(pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]])):
@@ -137,7 +151,7 @@ rule "【PF Core】Update & Execute":
             eventPlayer.neighborI = pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]][eventPlayer.neighbor][0]
             eventPlayer.scoreIndex = eventPlayer.scores_nodeIndex.index(eventPlayer.neighborI)
             #Ensure that the path to the neighbor is enabled.
-            if all([i in eventPlayer.pfPlayerAttributes for i in pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]][eventPlayer.neighbor][1]]):
+            if len(pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]][eventPlayer.neighbor][1]) == 0 or any([i_ in eventPlayer.pfPlayerAttributes for i_ in pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]][eventPlayer.neighbor][1]]):
                 eventPlayer.score = eventPlayer.scores_gScore[eventPlayer.current] + distance(pfLoadedMap_nodes[eventPlayer.scores_nodeIndex[eventPlayer.current]], pfLoadedMap_nodes[eventPlayer.neighborI])
                 #Get neighbor index in scores.
                 #If -1, the neighbor was not added to the score list yet.
@@ -158,13 +172,26 @@ rule "【PF Core】Update & Execute":
             pfTick()
         eventPlayer.iter += 1
     lbl_0:
-    lbl_1:
-    eventPlayer.pfSavedTarget = eventPlayer.pfDestination
     eventPlayer.pfIsPathfinding = true
     eventPlayer.pfCurrentNodeIndex = eventPlayer.pfPath[0]
     eventPlayer.pfWalkingToPosition = pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]
     pfUpdateNodeMeta()
     pfWalkToDestination()
+    pfExecOwner = null
+    eventPlayer.pfWait = null
+    wait(2)
+    if RULE_CONDITION:
+        goto RULE_START
+
+
+rule "【PF Core】Shift destination":
+    @Event eachPlayer
+    @Condition eventPlayer.pfIsPathfinding == true
+    @Condition eventPlayer.pfWalkingToPosition != eventPlayer.pfDestination
+    @Condition eventPlayer.pfCurrentNodeIndex == -1
+    
+    if distance(eventPlayer.pfSavedTarget, eventPlayer.pfDestination) < 5 and isInLoS(eventPlayer.pfSavedTarget + vect(0, 0.25, 0), eventPlayer.pfDestination + vect(0, 0.25, 0), BarrierLos.PASS_THROUGH_BARRIERS):
+        eventPlayer.pfWalkingToPosition = eventPlayer.pfDestination
     wait(2)
     if RULE_CONDITION:
         goto RULE_START
@@ -176,14 +203,17 @@ def pfProgressEventPlayer():
     if len(eventPlayer.pfPath) == 0:
         goto lbl_0
     #Update the current pathfind attributes.
-    #Any rules watching these with the matching condition will activate.
-    eventPlayer.pfAttributes = (([i for i in pfLoadedMap_neighbors[eventPlayer.pfCurrentNodeIndex] if i[0] == eventPlayer.pfPath[0]])[0]).last()
-    #Go to the next node in the path.
-    eventPlayer.pfCurrentNodeIndex = eventPlayer.pfPath[0]
+    if eventPlayer.pfPath[0] != -1:
+        #Any rules watching these with the matching condition will activate.
+        eventPlayer.pfAttributes = (([i_ for i_ in pfLoadedMap_neighbors[eventPlayer.pfPath[0]] if i_[0] == eventPlayer.pfCurrentNodeIndex])[0]).last()
+    else:
+        eventPlayer.pfAttributes = []
     #Pop the current path.
     del eventPlayer.pfPath[0]
+    #Go to the next node in the path.
+    eventPlayer.pfCurrentNodeIndex = eventPlayer.pfPath[0]
     #Set the position that the player is currently walking towards.
-    eventPlayer.pfWalkingToPosition = eventPlayer.pfSavedTarget if eventPlayer.pfCurrentNodeIndex == -1 else pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]
+    eventPlayer.pfWalkingToPosition = (eventPlayer.pfDestination if distance(eventPlayer.pfDestination, eventPlayer.pfSavedTarget) <= 4 else eventPlayer.getPosition()) if eventPlayer.pfCurrentNodeIndex == -1 else pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]
     pfUpdateNodeMeta()
     lbl_0:
 
@@ -191,7 +221,10 @@ def pfProgressEventPlayer():
 rule "【PF Core】Node reached":
     @Event eachPlayer
     @Condition eventPlayer.pfIsPathfinding == true
-    @Condition distance(eventPlayer, eventPlayer.pfWalkingToPosition) <= 0.4
+    @Condition distance(eventPlayer.getPosition() * vect(1, [], 1), eventPlayer.pfWalkingToPosition * vect(1, [], 1)) <= 0.4
+    @Condition abs(eventPlayer.getPosition().y - eventPlayer.pfWalkingToPosition.y) <= 1.5
+    @Condition len(eventPlayer.pfPath) > 0
+    @Condition eventPlayer.pfCurrentNodeIndex != -1
     
     #The player reached the next node in the path to the destination.
     if eventPlayer.pfCurrentNodeIndex == -1:
@@ -204,13 +237,14 @@ rule "【PF Core】Node reached":
         goto RULE_START
 
 
-rule "【PF Core】(optional) Stop throttle when pfDestination is reset":
+rule "【PF Core】Stop throttle when pfDestination is reset":
     @Event eachPlayer
     @Condition eventPlayer.pfIsPathfinding == true
     @Condition eventPlayer.pfDestination == null
     
     eventPlayer.stopThrottleInDirection()
     eventPlayer.pfIsPathfinding = false
+    eventPlayer.pfSavedTarget = null
 
 
 def pfRecalibrate():
@@ -220,33 +254,32 @@ def pfRecalibrate():
     eventPlayer.pfCurrentNodeIndex = -1
     eventPlayer.pfSavedTarget = null
     eventPlayer.pfIsPathfinding = false
+    eventPlayer.pfWalkingToPosition = eventPlayer.getPosition()
 
 
-rule "【PF Core】(optional) Recalibrate when off the path":
+rule "【PF Core】Recalibrate when off the path":
     @Event eachPlayer
     @Condition eventPlayer.pfIsPathfinding == true
-    @Condition distance((eventPlayer.pfWalkingFromPosition + eventPlayer.pfWalkingToPosition) / 2, eventPlayer) > distance(eventPlayer.pfWalkingFromPosition, eventPlayer.pfWalkingToPosition) * 2
+    @Condition distance((eventPlayer.pfWalkingFromPosition + eventPlayer.pfWalkingToPosition) / 2, eventPlayer) > (distance(eventPlayer.pfWalkingFromPosition, eventPlayer.pfWalkingToPosition) + 2) * 1.2
     
-    wait(2, Wait.ABORT_WHEN_FALSE)
+    wait(1, Wait.ABORT_WHEN_FALSE)
     pfRecalibrate()
 
 
-rule "【PF Core】(optional) Skip node when shortcut is found":
+rule "【PF Core】Smooth step":
     @Event eachPlayer
     @Condition eventPlayer.pfIsPathfinding == true
-    @Condition eventPlayer.pfCurrentNodeIndex != -1
-    @Condition isInLoS(eventPlayer.getPosition() + vect(0, 0.25, 0), eventPlayer.pfNextPosition + vect(0, 0.25, 0), BarrierLos.PASS_THROUGH_BARRIERS) == true
+    @Condition len(eventPlayer.pfPath) == 2
+    @Condition distance(eventPlayer, eventPlayer.pfSavedTarget) < distance(eventPlayer.pfWalkingToPosition, eventPlayer.pfSavedTarget)
+    @Condition isInLoS(eventPlayer.getPosition() + vect(0, 0.25, 0), eventPlayer.pfSavedTarget + vect(0, 0.25, 0), BarrierLos.PASS_THROUGH_BARRIERS) == true
     
-    wait(0.1)
     pfProgressEventPlayer()
-    if RULE_CONDITION:
-        goto RULE_START
 
 
-rule "【PF Core】(optional) Recover when stuck or time to next node takes longer than expected":
+rule "【PF Core】Recover when stuck or time to next node takes longer than expected":
     @Event eachPlayer
     @Condition eventPlayer.pfIsPathfinding == true
-    @Condition distance(eventPlayer.getPosition(), eventPlayer.pfDestination) > 5
+    @Condition distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) > 0.4
     @Condition (magnitude(eventPlayer.getVelocity()) < 3 or distance(eventPlayer.pfWalkingFromPosition, eventPlayer.pfWalkingToPosition) - (4.95 * (getTotalTimeElapsed() - eventPlayer.pfStartTime)) < 0) == true
     @Condition (not eventPlayer.hasStatusEffect(Status.ROOTED)) == true
     @Condition (not eventPlayer.hasStatusEffect(Status.FROZEN)) == true
@@ -254,8 +287,8 @@ rule "【PF Core】(optional) Recover when stuck or time to next node takes long
     @Condition (not eventPlayer.hasStatusEffect(Status.KNOCKED_DOWN)) == true
     @Condition (not eventPlayer.hasStatusEffect(Status.STUNNED)) == true
     
-    #Ensure condition is true for at least 3 seconds.
-    wait(3, Wait.ABORT_WHEN_FALSE)
+    #Ensure condition is true for at least 2 seconds.
+    wait(2, Wait.ABORT_WHEN_FALSE)
     #When the bot gets stuck while pathfinding,
     if eventPlayer.pfStuckOnNode - 2 == eventPlayer.pfCurrentNodeIndex:
         if eventPlayer.pfCurrentNodeIndex != -1:
@@ -272,6 +305,6 @@ def pfLookAtDestination():
     @Name "☆【PF Core Subroutine】☞ Look at destination"
     
     #Calling this subroutine will make the player look to the point they are walking towards.
-    eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition() * (vect(1, 0, 1) if distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1)), (eventPlayer.pfWalkingToPosition + Vector.UP * 1.5) * (vect(1, 0, 1) if distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1))), 500, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)
+    eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition() * (vect(1, [], 1) if distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1)), (eventPlayer.pfWalkingToPosition + vect(0, 1.5, 0)) * (vect(1, [], 1) if distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1))), 500, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)
 
 

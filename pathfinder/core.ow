@@ -4,33 +4,37 @@ variables
         0: pfLoadedMap_nodes
         1: pfLoadedMap_neighbors
         2: pfIterationsThisTick
+        3: pfExecOwner
+        4: i
     player:
-        0: pfDestination
-        1: pfPlayerAttributes
-        2: pfAttributes
-        3: pfSavedTarget
-        4: pfIsPathfinding
-        5: pfCurrentNodeIndex
-        6: pfWalkingToPosition
-        7: pfPath
-        8: pfStartTime
-        9: pfWalkingFromPosition
-        10: pfNextPosition
-        11: pfActiveNode
-        12: pfStuckOnNode
-        13: goal
-        14: scores_gScore
-        15: scores_fScore
-        16: scores_parent
-        17: scores_nodeIndex
-        18: open
-        19: checkedNode
-        20: iter
-        21: current
-        22: neighbor
-        23: neighborI
-        24: scoreIndex
-        25: score
+        0: pfWait
+        1: pfDestination
+        2: pfPlayerAttributes
+        3: pfAttributes
+        4: pfSavedTarget
+        5: pfIsPathfinding
+        6: pfCurrentNodeIndex
+        7: pfWalkingToPosition
+        8: pfPath
+        9: pfStartTime
+        10: pfWalkingFromPosition
+        11: pfNextPosition
+        12: pfActiveNode
+        13: pfStuckOnNode
+        14: goal
+        15: scores_gScore
+        16: scores_fScore
+        17: scores_parent
+        18: scores_nodeIndex
+        19: open
+        20: checkedNode
+        21: iter
+        22: current
+        23: currentInExistingPath
+        24: neighbor
+        25: neighborI
+        26: scoreIndex
+        27: score
 }
 
 subroutines
@@ -43,7 +47,24 @@ subroutines
     5: pfLookAtDestination
 }
 
-rule("【PF Core】Next Tick")
+rule("【PF Core】Prepare loaded map")
+{
+
+    event
+    {
+        Ongoing - Global;
+    }
+
+    actions
+    {
+        Wait Until(Global.pfLoadedMap_nodes, 9999);
+        For Global Variable(i, 0, Count Of(Global.pfLoadedMap_nodes), 1);
+            Global.pfLoadedMap_nodes[Global.i] = Vector(X Component Of(Global.pfLoadedMap_nodes[Global.i]), Round To Integer(Y Component Of(Global.pfLoadedMap_nodes[Global.i]), Down) + Global.i / 1000 * (Y Component Of(Global.pfLoadedMap_nodes[Global.i]) < 0 ? -1 : 1), Z Component Of(Global.pfLoadedMap_nodes[Global.i]));
+        End;
+    }
+}
+
+rule("【PF Core】Select next pathfinder")
 {
 
     event
@@ -53,14 +74,14 @@ rule("【PF Core】Next Tick")
 
     conditions
     {
-        Global.pfIterationsThisTick <= 0;
-        Server Load Average < 255;
+        (!Entity Exists(Global.pfExecOwner) || Global.pfExecOwner == Null) == True;
+        Is True For Any(All Players(All Teams), Current Array Element.pfWait) == True;
     }
 
     actions
     {
-        Global.pfIterationsThisTick = Max(Min(Round To Integer(63 - Server Load Average / 4, To Nearest), 15), 2);
-        Wait(Server Load Average < 255 ? 0.016 : 0.3, Ignore Condition);
+        Global.pfExecOwner = First Of(Sorted Array(Filtered Array(All Players(All Teams), Current Array Element.pfWait), Current Array Element.pfWait));
+        Wait(0.016, Ignore Condition);
         Loop If Condition Is True;
     }
 }
@@ -76,10 +97,13 @@ rule("【PF Core Subroutine】☞ Tick")
 
     actions
     {
-        While(Global.pfIterationsThisTick <= 0);
-            Wait Until(Global.pfIterationsThisTick > 0, 9999);
-        End;
         Global.pfIterationsThisTick -= 1;
+        If(Global.pfIterationsThisTick <= 0);
+            Wait(0.016, Ignore Condition);
+            Wait Until(Max(Server Load Average, Server Load) < 255, 9999);
+            "This determines the pathfinding budget for the current tick."
+            Global.pfIterationsThisTick = (Max(Server Load Average, Server Load) < 230) + 1;
+        End;
     }
 }
 
@@ -103,7 +127,6 @@ rule("【PF Core Subroutine】☞ Update node meta")
         "Update the pathfinding start time."
         Event Player.pfStartTime = Total Time Elapsed;
         Event Player.pfWalkingFromPosition = Position Of(Event Player);
-        Event Player.pfNextPosition = Count Of(Event Player.pfPath) == 0 ? 0 : Global.pfLoadedMap_nodes[First Of(Event Player.pfPath)];
     }
 }
 
@@ -118,7 +141,7 @@ rule("☆【PF Core Subroutine】☞ Walk to destination")
 
     actions
     {
-        Start Throttle In Direction(Event Player, Direction Towards(Position Of(Event Player), Event Player.pfCurrentNodeIndex == -1 && Distance Between(Event Player.pfDestination, Event Player.pfSavedTarget) < 6 ? Event Player.pfDestination : Event Player.pfWalkingToPosition), Distance Between(Position Of(Event Player), Event Player.pfDestination), To World, Replace Existing Throttle, Direction And Magnitude);
+        Start Throttle In Direction(Event Player, Direction Towards(Position Of(Event Player), Event Player.pfWalkingToPosition), Event Player.pfWalkingToPosition && (Event Player.pfCurrentNodeIndex != -1 || Distance Between(Position Of(Event Player), Event Player.pfWalkingToPosition) > 0.25), To World, Replace Existing Throttle, Direction And Magnitude);
     }
 }
 
@@ -146,13 +169,16 @@ rule("【PF Core】Update & Execute")
             Log To Inspector(Custom String("Error: Attempted to pathfind player {0} without a loaded map.", Event Player));
             Abort;
         End;
+        Event Player.pfWait = Total Time Elapsed;
+        Wait Until(Global.pfExecOwner == Event Player, 9999);
         "Update saved destination"
-        Event Player.goal = Index Of Array Value(Global.pfLoadedMap_nodes, First Of(Sorted Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Event Player.pfDestination)), 0, 5), !(Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Event Player.pfDestination + Vector(0, 2, 0), Barriers Do Not Block LOS) && Absolute Value(Y Component Of(Event Player.pfDestination) - Y Component Of(Current Array Element)) < Distance Between(Event Player.pfDestination, Current Array Element) / 2))));
+        Event Player.pfSavedTarget = Event Player.pfDestination;
+        Event Player.goal = Absolute Value(Y Component Of(First Of(Sorted Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Event Player.pfSavedTarget)), 0, 5), !Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Event Player.pfSavedTarget + Vector(0, 2, 0), Barriers Do Not Block LOS))))) * 1000 % 1000;
         Call Subroutine(pfTick);
         If(Event Player.pfIsPathfinding && Event Player.pfCurrentNodeIndex != -1);
             Event Player.pfActiveNode = Event Player.pfCurrentNodeIndex;
         Else;
-            Event Player.pfActiveNode = Index Of Array Value(Global.pfLoadedMap_nodes, First Of(Sorted Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Position Of(Event Player))), 0, 5), !(Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Position Of(Event Player) + Vector(0, 2, 0), Barriers Do Not Block LOS) && Absolute Value(Y Component Of(Position Of(Event Player)) - Y Component Of(Current Array Element)) < Distance Between(Position Of(Event Player), Current Array Element) / 2))));
+            Event Player.pfActiveNode = Absolute Value(Y Component Of(First Of(Sorted Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Position Of(Event Player))), 0, 5), !Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Position Of(Event Player) + Vector(0, 2, 0), Barriers Do Not Block LOS))))) * 1000 % 1000;
             Call Subroutine(pfTick);
         End;
         Event Player.scores_gScore = Array(0);
@@ -163,29 +189,28 @@ rule("【PF Core】Update & Execute")
         Event Player.checkedNode = Event Player.pfActiveNode;
         Event Player.iter = 0;
         While(Count Of(Event Player.open));
+            "The index of the current node in `scores`."
             Event Player.current = First Of(Sorted Array(Event Player.open, Event Player.scores_fScore[Current Array Element]));
             If(Event Player.checkedNode != Event Player.pfActiveNode);
                 Event Player.checkedNode = Index Of Array Value(Event Player.scores_nodeIndex, Event Player.pfActiveNode);
                 If(Event Player.checkedNode != -1);
                     Event Player.current = Event Player.checkedNode;
-                    Event Player.pfPath = Empty Array;
-                    While(Event Player.current != -1);
-                        Modify Player Variable(Event Player, pfPath, Append To Array, Event Player.scores_nodeIndex[Event Player.current]);
-                        Event Player.current = Event Player.scores_parent[Event Player.current];
-                        Call Subroutine(pfTick);
-                    End;
-                    Modify Player Variable(Event Player, pfPath, Append To Array, Array(-1));
-                    Skip(39);
+                    Event Player.checkedNode = -2;
+                Else;
+                    Event Player.checkedNode = Event Player.pfActiveNode;
                 End;
-                Event Player.checkedNode = Event Player.pfActiveNode;
             End;
+            Event Player.currentInExistingPath = Index Of Array Value(Event Player.pfPath, Event Player.scores_nodeIndex[Event Player.current]);
             "If the goal was found, reconstruct the path."
-            If(Event Player.scores_nodeIndex[Event Player.current] == Event Player.pfActiveNode);
-                Event Player.pfPath = Empty Array;
+            If(Event Player.scores_nodeIndex[Event Player.current] == Event Player.pfActiveNode || Event Player.checkedNode == -2 || Event Player.currentInExistingPath != -1);
+                If(Event Player.currentInExistingPath == -1);
+                    Event Player.pfPath = Empty Array;
+                Else;
+                    Event Player.pfPath = Array Slice(Event Player.pfPath, 0, Event Player.currentInExistingPath);
+                End;
                 While(Event Player.current != -1);
                     Modify Player Variable(Event Player, pfPath, Append To Array, Event Player.scores_nodeIndex[Event Player.current]);
                     Event Player.current = Event Player.scores_parent[Event Player.current];
-                    Call Subroutine(pfTick);
                 End;
                 Modify Player Variable(Event Player, pfPath, Append To Array, Array(-1));
                 Skip(27);
@@ -197,7 +222,7 @@ rule("【PF Core】Update & Execute")
                 Event Player.neighborI = First Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor]);
                 Event Player.scoreIndex = Index Of Array Value(Event Player.scores_nodeIndex, Event Player.neighborI);
                 "Ensure that the path to the neighbor is enabled."
-                If(Is True For All(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor][1], Array Contains(Event Player.pfPlayerAttributes, Current Array Element)));
+                If(Count Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor][1]) == 0 || Is True For Any(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor][1], Array Contains(Event Player.pfPlayerAttributes, Current Array Element)));
                     Event Player.score = Event Player.scores_gScore[Event Player.current] + Distance Between(Global.pfLoadedMap_nodes[Event Player.scores_nodeIndex[Event Player.current]], Global.pfLoadedMap_nodes[Event Player.neighborI]);
                     "Get neighbor index in scores.
 If -1, the neighbor was not added to the score list yet."
@@ -222,12 +247,40 @@ If -1, the neighbor was not added to the score list yet."
             End;
             Event Player.iter += 1;
         End;
-        Event Player.pfSavedTarget = Event Player.pfDestination;
         Event Player.pfIsPathfinding = True;
         Event Player.pfCurrentNodeIndex = First Of(Event Player.pfPath);
         Event Player.pfWalkingToPosition = Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex];
         Call Subroutine(pfUpdateNodeMeta);
         Call Subroutine(pfWalkToDestination);
+        Global.pfExecOwner = Null;
+        Event Player.pfWait = Null;
+        Wait(2, Ignore Condition);
+        Loop If Condition Is True;
+    }
+}
+
+rule("【PF Core】Shift destination")
+{
+
+    event
+    {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+
+    conditions
+    {
+        Event Player.pfIsPathfinding == True;
+        Event Player.pfWalkingToPosition != Event Player.pfDestination;
+        Event Player.pfCurrentNodeIndex == -1;
+    }
+
+    actions
+    {
+        If(Distance Between(Event Player.pfSavedTarget, Event Player.pfDestination) < 5 && Is In Line Of Sight(Event Player.pfSavedTarget + Vector(0, 0.25, 0), Event Player.pfDestination + Vector(0, 0.25, 0), Barriers Do Not Block LOS));
+            Event Player.pfWalkingToPosition = Event Player.pfDestination;
+        End;
         Wait(2, Ignore Condition);
         Loop If Condition Is True;
     }
@@ -245,17 +298,21 @@ rule("【PF Core Subroutine】☞ Progress event player")
     actions
     {
         If(Count Of(Event Player.pfPath) == 0);
-            Skip(6);
+            Skip(10);
         End;
-        "Update the current pathfind attributes.
-Any rules watching these with the matching condition will activate."
-        Event Player.pfAttributes = Last Of(First Of(Filtered Array(Global.pfLoadedMap_neighbors[Event Player.pfCurrentNodeIndex], Current Array Element[0] == First Of(Event Player.pfPath))));
-        "Go to the next node in the path."
-        Event Player.pfCurrentNodeIndex = First Of(Event Player.pfPath);
+        "Update the current pathfind attributes."
+        If(First Of(Event Player.pfPath) != -1);
+            "Any rules watching these with the matching condition will activate."
+            Event Player.pfAttributes = Last Of(First Of(Filtered Array(Global.pfLoadedMap_neighbors[First Of(Event Player.pfPath)], First Of(Current Array Element) == Event Player.pfCurrentNodeIndex)));
+        Else;
+            Event Player.pfAttributes = Empty Array;
+        End;
         "Pop the current path."
         Modify Player Variable(Event Player, pfPath, Remove From Array By Index, 0);
+        "Go to the next node in the path."
+        Event Player.pfCurrentNodeIndex = First Of(Event Player.pfPath);
         "Set the position that the player is currently walking towards."
-        Event Player.pfWalkingToPosition = Event Player.pfCurrentNodeIndex == -1 ? Event Player.pfSavedTarget : Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex];
+        Event Player.pfWalkingToPosition = Event Player.pfCurrentNodeIndex == -1 ? (Distance Between(Event Player.pfDestination, Event Player.pfSavedTarget) <= 4 ? Event Player.pfDestination : Position Of(Event Player)) : Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex];
         Call Subroutine(pfUpdateNodeMeta);
     }
 }
@@ -273,7 +330,10 @@ rule("【PF Core】Node reached")
     conditions
     {
         Event Player.pfIsPathfinding == True;
-        Distance Between(Event Player, Event Player.pfWalkingToPosition) <= 0.4;
+        Distance Between(Position Of(Event Player) * Vector(1, Empty Array, 1), Event Player.pfWalkingToPosition * Vector(1, Empty Array, 1)) <= 0.4;
+        Absolute Value(Y Component Of(Position Of(Event Player)) - Y Component Of(Event Player.pfWalkingToPosition)) <= 1.5;
+        Count Of(Event Player.pfPath) > 0;
+        Event Player.pfCurrentNodeIndex != -1;
     }
 
     actions
@@ -290,7 +350,7 @@ rule("【PF Core】Node reached")
     }
 }
 
-rule("【PF Core】(optional) Stop throttle when pfDestination is reset")
+rule("【PF Core】Stop throttle when pfDestination is reset")
 {
 
     event
@@ -310,6 +370,7 @@ rule("【PF Core】(optional) Stop throttle when pfDestination is reset")
     {
         Stop Throttle In Direction(Event Player);
         Event Player.pfIsPathfinding = False;
+        Event Player.pfSavedTarget = Null;
     }
 }
 
@@ -328,10 +389,11 @@ rule("【PF Core Subroutine】☞ Recalibrate")
         Event Player.pfCurrentNodeIndex = -1;
         Event Player.pfSavedTarget = Null;
         Event Player.pfIsPathfinding = False;
+        Event Player.pfWalkingToPosition = Position Of(Event Player);
     }
 }
 
-rule("【PF Core】(optional) Recalibrate when off the path")
+rule("【PF Core】Recalibrate when off the path")
 {
 
     event
@@ -344,17 +406,17 @@ rule("【PF Core】(optional) Recalibrate when off the path")
     conditions
     {
         Event Player.pfIsPathfinding == True;
-        Distance Between((Event Player.pfWalkingFromPosition + Event Player.pfWalkingToPosition) / 2, Event Player) > Distance Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) * 2;
+        Distance Between((Event Player.pfWalkingFromPosition + Event Player.pfWalkingToPosition) / 2, Event Player) > (Distance Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) + 2) * 1.2;
     }
 
     actions
     {
-        Wait(2, Abort When False);
+        Wait(1, Abort When False);
         Call Subroutine(pfRecalibrate);
     }
 }
 
-rule("【PF Core】(optional) Skip node when shortcut is found")
+rule("【PF Core】Smooth step")
 {
 
     event
@@ -367,19 +429,18 @@ rule("【PF Core】(optional) Skip node when shortcut is found")
     conditions
     {
         Event Player.pfIsPathfinding == True;
-        Event Player.pfCurrentNodeIndex != -1;
-        Is In Line Of Sight(Position Of(Event Player) + Vector(0, 0.25, 0), Event Player.pfNextPosition + Vector(0, 0.25, 0), Barriers Do Not Block LOS) == True;
+        Count Of(Event Player.pfPath) == 2;
+        Distance Between(Event Player, Event Player.pfSavedTarget) < Distance Between(Event Player.pfWalkingToPosition, Event Player.pfSavedTarget);
+        Is In Line Of Sight(Position Of(Event Player) + Vector(0, 0.25, 0), Event Player.pfSavedTarget + Vector(0, 0.25, 0), Barriers Do Not Block LOS) == True;
     }
 
     actions
     {
-        Wait(0.1, Ignore Condition);
         Call Subroutine(pfProgressEventPlayer);
-        Loop If Condition Is True;
     }
 }
 
-rule("【PF Core】(optional) Recover when stuck or time to next node takes longer than expected")
+rule("【PF Core】Recover when stuck or time to next node takes longer than expected")
 {
 
     event
@@ -392,7 +453,7 @@ rule("【PF Core】(optional) Recover when stuck or time to next node takes long
     conditions
     {
         Event Player.pfIsPathfinding == True;
-        Distance Between(Position Of(Event Player), Event Player.pfDestination) > 5;
+        Distance Between(Position Of(Event Player), Event Player.pfWalkingToPosition) > 0.4;
         (Magnitude Of(Velocity Of(Event Player)) < 3 || Distance Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) - 4.95 * (Total Time Elapsed - Event Player.pfStartTime) < 0) == True;
         !Has Status(Event Player, Rooted) == True;
         !Has Status(Event Player, Frozen) == True;
@@ -403,8 +464,8 @@ rule("【PF Core】(optional) Recover when stuck or time to next node takes long
 
     actions
     {
-        "Ensure condition is true for at least 3 seconds."
-        Wait(3, Abort When False);
+        "Ensure condition is true for at least 2 seconds."
+        Wait(2, Abort When False);
         "When the bot gets stuck while pathfinding,"
         If(Event Player.pfStuckOnNode - 2 == Event Player.pfCurrentNodeIndex);
             If(Event Player.pfCurrentNodeIndex != -1);
@@ -431,6 +492,6 @@ rule("☆【PF Core Subroutine】☞ Look at destination")
     actions
     {
         "Calling this subroutine will make the player look to the point they are walking towards."
-        Start Facing(Event Player, Direction Towards(Eye Position(Event Player) * (Distance Between(Position Of(Event Player), Event Player.pfWalkingToPosition) < 3 ? Vector(1, 0, 1) : Vector(1, 1, 1)), (Event Player.pfWalkingToPosition + Up * 1.5) * (Distance Between(Position Of(Event Player), Event Player.pfWalkingToPosition) < 3 ? Vector(1, 0, 1) : Vector(1, 1, 1))), 500, To World, Direction And Turn Rate);
+        Start Facing(Event Player, Direction Towards(Eye Position(Event Player) * (Distance Between(Position Of(Event Player), Event Player.pfWalkingToPosition) < 3 ? Vector(1, Empty Array, 1) : Vector(1, 1, 1)), (Event Player.pfWalkingToPosition + Vector(0, 1.5, 0)) * (Distance Between(Position Of(Event Player), Event Player.pfWalkingToPosition) < 3 ? Vector(1, Empty Array, 1) : Vector(1, 1, 1))), 500, To World, Direction And Turn Rate);
     }
 }

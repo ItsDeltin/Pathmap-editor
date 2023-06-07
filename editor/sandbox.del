@@ -253,8 +253,8 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
                         MessageLine.Text('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'),
                         MessageLine.Text('These workshop codes contain the editor loaded with a completed waypoint graph.\n' +
                             'You can use these to see how your map should look.\n'),
-                        MessageLine.Text('Esperança', Color.SkyBlue),
-                        MessageLine.Text('HP2DG', Color.Green)
+                        MessageLine.Text('Esperança     Hanamura', Color.SkyBlue),
+                        MessageLine.Text('GZWF9              FQY78', Color.Green)
                     ],
                     () => [
                         MessageLine.Text('Pathfinding is made up of 3 components: Nodes, paths, and attributes.'),
@@ -309,7 +309,7 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
                         MessageLine.Text(<'Set Player Variable(pfDestination, Objective Position(0));\n<0>', '                               '>, subheader: 'Workshop code', subheaderColor: Color.Green),
                         MessageLine.Text(<'pfDestination = ObjectivePosition(0);\n<0>', '                               '>, subheader: 'ostw code', subheaderColor: Color.SkyBlue),
                         MessageLine.Text(<'eventPlayer().pfDestination = getObjectivePosition(0)\n<0>\n', '                               '>, subheader: 'overpy code', subheaderColor: Color.Yellow),
-                        MessageLine.Text('You can even chase the pfDestination variable to another player\'s position to make the bot follow them.')
+                        MessageLine.Text('You can chase the pfDestination variable to another player\'s position to make the bot follow them.')
                     ]
                 ]);
             },

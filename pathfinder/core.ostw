@@ -129,7 +129,7 @@ rule: '【PF Core】Shift destination'
 Event.OngoingPlayer
 if (pfIsPathfinding)
 if (pfWalkingToPosition != pfDestination)
-if (pfPath.Length <= 2)
+if (pfCurrentNodeIndex == -1)
 {
     if (pfSavedTarget.DistanceTo(pfDestination) < 5 && IsInLineOfSight(pfSavedTarget + Up() * 0.25, pfDestination + Up() * 0.25)) {
         pfWalkingToPosition = pfDestination;

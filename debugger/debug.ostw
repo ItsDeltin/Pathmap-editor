@@ -47,7 +47,7 @@ if (HasSpawned(HostPlayer()))
     SetMeleeEnabled(HostPlayer(), false);
     SetAbility1Enabled(HostPlayer(), false);
     SetAbility2Enabled(HostPlayer(), false);
-    CreateHudText(AllPlayers(), Text: <'CAP: <0>, <1>, <2>\nPos: <5>\nTime: <3>\nOwner: <4>\nIterations: <6>', ServerLoad(), ServerLoadAverage(), ServerLoadPeak(), TotalTimeElapsed(), pfExecOwner, PositionOf(HostPlayer()), 15 - ((Max(Min(ServerLoadAverage(), 245), 210) - 210) / 35 * 15)>, Location: Location.Top);
+    CreateHudText(AllPlayers(), Text: <'CAP: <0>, <1>, <2>\nPos: <5>\nTime: <3>\nOwner: <4>', ServerLoad(), ServerLoadAverage(), ServerLoadPeak(), TotalTimeElapsed(), pfExecOwner, PositionOf(HostPlayer())>, Location: Location.Top);
 }
 
 playervar Player selectedPlayer;

@@ -172,12 +172,12 @@ rule("【PF Core】Update & Execute")
         Wait Until(Global.pfExecOwner == Event Player, 9999);
         "Update saved destination"
         Event Player.pfSavedTarget = Event Player.pfDestination;
-        Event Player.goal = Absolute Value(Y Component Of(First Of(Sorted Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Event Player.pfSavedTarget)), 0, 5), !Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Event Player.pfSavedTarget + Vector(0, 2, 0), Barriers Do Not Block LOS))))) * 1000 % 1000;
+        Event Player.goal = Round To Integer(Absolute Value(Y Component Of(First Of(Sorted Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Event Player.pfSavedTarget)), 0, 5), !Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Event Player.pfSavedTarget + Vector(0, 2, 0), Barriers Do Not Block LOS))))) * 1000 % 1000, Down);
         Call Subroutine(pfTick);
         If(Event Player.pfIsPathfinding && Event Player.pfCurrentNodeIndex != -1);
             Event Player.pfActiveNode = Event Player.pfCurrentNodeIndex;
         Else;
-            Event Player.pfActiveNode = Absolute Value(Y Component Of(First Of(Sorted Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Position Of(Event Player))), 0, 5), !Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Position Of(Event Player) + Vector(0, 2, 0), Barriers Do Not Block LOS))))) * 1000 % 1000;
+            Event Player.pfActiveNode = Round To Integer(Absolute Value(Y Component Of(First Of(Sorted Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Position Of(Event Player))), 0, 5), !Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Position Of(Event Player) + Vector(0, 2, 0), Barriers Do Not Block LOS))))) * 1000 % 1000, Down);
             Call Subroutine(pfTick);
         End;
         Event Player.scores_gScore = Array(0);
@@ -299,15 +299,15 @@ rule("【PF Core Subroutine】☞ Progress event player")
         If(Count Of(Event Player.pfPath) == 0);
             Skip(10);
         End;
+        "Pop the current path."
+        Modify Player Variable(Event Player, pfPath, Remove From Array By Index, 0);
         "Update the current pathfind attributes."
-        If(First Of(Event Player.pfPath) != -1);
+        If(Count Of(Event Player.pfPath) && First Of(Event Player.pfPath) != -1);
             "Any rules watching these with the matching condition will activate."
             Event Player.pfAttributes = Last Of(First Of(Filtered Array(Global.pfLoadedMap_neighbors[First Of(Event Player.pfPath)], First Of(Current Array Element) == Event Player.pfCurrentNodeIndex)));
         Else;
             Event Player.pfAttributes = Empty Array;
         End;
-        "Pop the current path."
-        Modify Player Variable(Event Player, pfPath, Remove From Array By Index, 0);
         "Go to the next node in the path."
         Event Player.pfCurrentNodeIndex = First Of(Event Player.pfPath);
         "Set the position that the player is currently walking towards."

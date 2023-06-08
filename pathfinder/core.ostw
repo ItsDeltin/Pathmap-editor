@@ -226,15 +226,15 @@ void pfProgressEventPlayer() playervar '【PF Core Subroutine】☞ Progress eve
         return;
     }
 
+    # Pop the current path.
+    pfPath.ModRemoveByIndex(0);
     # Update the current pathfind attributes.
-    if (pfPath.First != -1) {
+    if (pfPath.Length && pfPath.First != -1) {
         # Any rules watching these with the matching condition will activate.
         pfAttributes = pfLoadedMap.neighbors[pfPath.First].FilteredArray(segment => segment[0] == pfCurrentNodeIndex).First.Last;
     } else {
         pfAttributes = [];
     }
-    # Pop the current path.
-    pfPath.ModRemoveByIndex(0);
     # Go to the next node in the path.
     pfCurrentNodeIndex = pfPath.First;
     # Set the position that the player is currently walking towards.
@@ -280,11 +280,11 @@ void pfLookAtDestination() playervar '☆【PF Core Subroutine】☞ Look at des
 
 # Selects a node index from a position.
 Number chooseNodeFromPosition(in Vector vector) {
-    return pfLoadedMap.nodes
+    return (pfLoadedMap.nodes
         .SortedArray(n => n.DistanceTo(vector))
         .Slice(0, 5)
         .SortedArray(n => !(IsInLineOfSight(n + Up() * 2, vector + Up() * 2, BarrierLOS.NoBarriersBlock)))
-        .First.Y.Abs() * 1000 % 1000;
+        .First.Y.Abs() * 1000 % 1000).Floor();
 }
 
 # Gets the shortest path from start to goal.

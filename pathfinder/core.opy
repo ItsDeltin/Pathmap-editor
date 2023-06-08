@@ -107,12 +107,12 @@ rule "【PF Core】Update & Execute":
     waitUntil(pfExecOwner == eventPlayer, 9999)
     #Update saved destination
     eventPlayer.pfSavedTarget = eventPlayer.pfDestination
-    eventPlayer.goal = ((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.pfSavedTarget)).slice(0, 5), lambda i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.pfSavedTarget + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)) * 1000) % 1000
+    eventPlayer.goal = floor(((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.pfSavedTarget)).slice(0, 5), lambda i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.pfSavedTarget + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)) * 1000) % 1000)
     pfTick()
     if eventPlayer.pfIsPathfinding and eventPlayer.pfCurrentNodeIndex != -1:
         eventPlayer.pfActiveNode = eventPlayer.pfCurrentNodeIndex
     else:
-        eventPlayer.pfActiveNode = ((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.getPosition())).slice(0, 5), lambda i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.getPosition() + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)) * 1000) % 1000
+        eventPlayer.pfActiveNode = floor(((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.getPosition())).slice(0, 5), lambda i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.getPosition() + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)) * 1000) % 1000)
         pfTick()
     eventPlayer.scores_gScore = [0]
     eventPlayer.scores_fScore = [0]
@@ -201,14 +201,14 @@ def pfProgressEventPlayer():
     
     if len(eventPlayer.pfPath) == 0:
         goto lbl_0
+    #Pop the current path.
+    del eventPlayer.pfPath[0]
     #Update the current pathfind attributes.
-    if eventPlayer.pfPath[0] != -1:
+    if len(eventPlayer.pfPath) and eventPlayer.pfPath[0] != -1:
         #Any rules watching these with the matching condition will activate.
         eventPlayer.pfAttributes = (([i_ for i_ in pfLoadedMap_neighbors[eventPlayer.pfPath[0]] if i_[0] == eventPlayer.pfCurrentNodeIndex])[0]).last()
     else:
         eventPlayer.pfAttributes = []
-    #Pop the current path.
-    del eventPlayer.pfPath[0]
     #Go to the next node in the path.
     eventPlayer.pfCurrentNodeIndex = eventPlayer.pfPath[0]
     #Set the position that the player is currently walking towards.

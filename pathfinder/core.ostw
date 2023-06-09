@@ -353,7 +353,6 @@ void aStar() {
                 # Get neighbor index in scores.
                 # If -1, the neighbor was not added to the score list yet.
                 if (scoreIndex == -1) {
-                    # Note: not required after debugging.
                     open += scores.Length;
                     scores += { parent: current, gScore: score, fScore: score + h(neighborI), nodeIndex: neighborI };
                 } else if (score < scores[scoreIndex].gScore) {

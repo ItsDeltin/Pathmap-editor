@@ -234,7 +234,6 @@ rule("【PF Core】Update & Execute")
                         "Get neighbor index in scores.
 If -1, the neighbor was not added to the score list yet."
                         If(Event Player.scoreIndex == -1);
-                            "Note: not required after debugging."
                             Modify Player Variable(Event Player, open, Append To Array, Count Of(Event Player.scores_gScore));
                             Modify Player Variable(Event Player, scores_gScore, Append To Array, Event Player.score);
                             Modify Player Variable(Event Player, scores_fScore, Append To Array, Event Player.score + Distance Between(Global.pfLoadedMap_nodes[Event Player.neighborI], Global.pfLoadedMap_nodes[Event Player.pfActiveNode]) * 20);

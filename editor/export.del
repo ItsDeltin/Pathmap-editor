@@ -521,8 +521,8 @@ void ExportMapToOverpy()
     LogToInspector('*/ function load(name, array) { return ( /*');
     LogToInspector(<'*/ `rule "【Map】<0> (${name})":\n` + /*', CurrentMap()>);
     LogToInspector(<'*/ `    @Condition getCurrentMap() == Map.<0>\n` + /*', mapNameToOverpyName(CurrentMap())>);
-    LogToInspector(<'*/ `    pfLoadedMap_${name} = [${array.join(\',\')}]\n`); } /*'>);
-    LogToInspector('*/ load("nodes", nodes) + load("neighbors", neighbors)');
+    LogToInspector(<'*/ `    pfLoadedMap_${name} = ${array}\n`); } /*'>);
+    LogToInspector('*/ load("nodes", `[${nodes.join(\',\')}]`) + load("neighbors", JSON.stringify(neighbors))');
 }
 
 # Exports the segments and attributes in a nicely optimized way.

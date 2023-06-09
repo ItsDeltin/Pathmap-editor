@@ -163,7 +163,6 @@ rule "【PF Core】Update & Execute":
                     #Get neighbor index in scores.
                     #If -1, the neighbor was not added to the score list yet.
                     if eventPlayer.scoreIndex == -1:
-                        #Note: not required after debugging.
                         eventPlayer.open.append(len(eventPlayer.scores_gScore))
                         eventPlayer.scores_gScore.append(eventPlayer.score)
                         eventPlayer.scores_fScore.append(eventPlayer.score + distance(pfLoadedMap_nodes[eventPlayer.neighborI], pfLoadedMap_nodes[eventPlayer.pfActiveNode]) * 20)

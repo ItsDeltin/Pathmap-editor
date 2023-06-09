@@ -50,6 +50,10 @@ playervar Vector pfWalkingFromPosition;
 playervar Number pfActiveNode;
 # This variable is set when a player fails to reaches a node.
 playervar Number pfStuckOnNode;
+# Player received path from another pathfinder.
+playervar Boolean pfWasBroadcasted;
+# Is the player failing to walk?
+playervar Boolean pfIsStuck;
 
 rule: '【PF Core】Prepare loaded map' {
     WaitUntil(<Boolean>pfLoadedMap.nodes, 9999);
@@ -77,9 +81,9 @@ void pfTick() '【PF Core Subroutine】☞ Tick'
     pfIterationsThisTick--;
     if (pfIterationsThisTick <= 0) {
         MinWait();
-        WaitUntil(Max(ServerLoadAverage(), ServerLoad()) < 255, 9999);
+        WaitUntil(Max(ServerLoadAverage(), ServerLoad()) < 255, 0.25);
         # This determines the pathfinding budget for the current tick.
-        pfIterationsThisTick = (Max(ServerLoadAverage(), ServerLoad()) < 230) + 1;
+        pfIterationsThisTick = (Max(ServerLoadAverage(), ServerLoad()) < 230) + (Max(ServerLoadAverage(), ServerLoad()) < 180) * 2 + 1;
     }
 }
 
@@ -106,12 +110,15 @@ if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5)
     }
 
     pfWait = TotalTimeElapsed();
-    WaitUntil(pfExecOwner == EventPlayer(), 9999);
+    pfWasBroadcasted = false;
+    WaitUntil(pfExecOwner == EventPlayer() || pfWasBroadcasted, 9999);
     pfEvent('PF Execute');
     
     # Update saved destination
     pfSavedTarget = pfDestination;
-    aStar();
+    if (!pfWasBroadcasted) {
+        aStar();
+    }
     pfIsPathfinding = true;
     pfCurrentNodeIndex = pfPath.First;
     pfWalkingToPosition = pfLoadedMap.nodes[pfCurrentNodeIndex];
@@ -123,23 +130,10 @@ if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5)
     LoopIfConditionIsTrue();
 }
 
-rule: '【PF Core】Shift destination'
-Event.OngoingPlayer
-if (pfIsPathfinding)
-if (pfWalkingToPosition != pfDestination)
-if (pfCurrentNodeIndex == -1)
-{
-    if (pfSavedTarget.DistanceTo(pfDestination) < 5 && IsInLineOfSight(pfSavedTarget + Up() * 0.25, pfDestination + Up() * 0.25)) {
-        pfWalkingToPosition = pfDestination;
-        pfEvent('shifted destination');
-    }
-    Wait(2);
-    LoopIfConditionIsTrue();
-}
-
 rule: '【PF Core】Node reached'
 Event.OngoingPlayer
 if (pfIsPathfinding)
+if (pfWalkingToPosition)
 # Horizontal distance to current position is less than 0.4.
 if ((PositionOf() * Vector(1, 0, 1)).DistanceTo(pfWalkingToPosition * Vector(1, 0, 1)) <= 0.4)
 # Vertical distance to current position is less than 1.5.
@@ -147,15 +141,7 @@ if (PositionOf().Y - pfWalkingToPosition.Y~Abs() <= 1.5)
 if (pfPath.Length > 0)
 if (pfCurrentNodeIndex != -1)
 {
-    # The player reached the next node in the path to the destination.
-    if (pfCurrentNodeIndex == -1) {
-        // todo
-        pfEvent('Reached destination');
-        # The destination was reached, stop pathfinding.
-        pfIsPathfinding = false;
-    } else {
-        pfProgressEventPlayer();
-    }
+    pfProgressEventPlayer();
     Wait(0.2);
     LoopIfConditionIsTrue();
 }
@@ -170,53 +156,74 @@ if (pfDestination == null)
     pfSavedTarget = null;
 }
 
-rule: '【PF Core】Recalibrate when off the path'
+rule: '【PF Core】Insurance'
 Event.OngoingPlayer
 if (pfIsPathfinding)
-if (((pfWalkingFromPosition + pfWalkingToPosition) / 2).DistanceTo(EventPlayer()) > (pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) + 2) * 1.2)
+if (pfWalkingToPosition)
 {
-    Wait(1, WaitBehavior.AbortWhenFalse);
-    pfEvent('Not on path; recalibrating.');
-    pfRecalibrate();
-}
-
-rule: '【PF Core】Smooth step'
-Event.OngoingPlayer
-if (pfIsPathfinding)
-if (pfPath.Length == 2)
-if (EventPlayer().DistanceTo(pfSavedTarget) < pfWalkingToPosition.DistanceTo(pfSavedTarget))
-if (IsInLineOfSight(PositionOf() + Up() * 0.25, pfSavedTarget + Up() * 0.25))
-{
-    pfEvent('Smooth step');
-    pfProgressEventPlayer();
-}
-
-rule: '【PF Core】Recover when stuck or time to next node takes longer than expected'
-Event.OngoingPlayer
-if (pfIsPathfinding)
-if (PositionOf().DistanceTo(pfWalkingToPosition) > 0.4)
-if (VelocityOf().Magnitude < 3 || pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) - 5.5 * 0.9 * (TotalTimeElapsed() - pfStartTime) < 0)
-if (!HasStatus(EventPlayer(), Status.Rooted))
-if (!HasStatus(EventPlayer(), Status.Frozen))
-if (!HasStatus(EventPlayer(), Status.Asleep))
-if (!HasStatus(EventPlayer(), Status.KnockedDown))
-if (!HasStatus(EventPlayer(), Status.Stunned))
-{
-    # Ensure condition is true for at least 2 seconds.
-    Wait(2, WaitBehavior.AbortWhenFalse);
-    # When the bot gets stuck while pathfinding,
-    if (pfStuckOnNode - 2 == pfCurrentNodeIndex) {
-        pfEvent('Stuck, teleporting');
-        if (pfCurrentNodeIndex != -1) {
-            LogToInspector(<'Pathfinder <0> struggled to reach node <1> at <2>. Try adjusting your map in the editor.', EventPlayer(), pfCurrentNodeIndex, pfLoadedMap.nodes[pfCurrentNodeIndex]>);
-        }
-        Teleport(EventPlayer(), pfWalkingToPosition);
-    } else {
-        pfEvent('Stuck, recalibrating');
-        pfStuckOnNode = pfCurrentNodeIndex + 2;
+    # Recalibrate
+    if (((pfWalkingFromPosition + pfWalkingToPosition) / 2).DistanceTo(EventPlayer()) > (pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) + 2) * 1.2)
+    {
+        pfEvent('Not on path; recalibrating.');
         pfRecalibrate();
     }
+    # Smooth step
+    else if (pfPath.Length == 2 &&
+        EventPlayer().DistanceTo(pfSavedTarget) < pfWalkingToPosition.DistanceTo(pfSavedTarget) &&
+        IsInLineOfSight(PositionOf() + Up() * 0.25, pfSavedTarget + Up() * 0.25))
+    {
+        pfEvent('Smooth step');
+        pfProgressEventPlayer();
+    }
+    # Recovery
+    else if (EventPlayer().DistanceTo(pfWalkingToPosition) > .25 &&
+        pfIsStuck || pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) - 5.5 * 0.9 * (TotalTimeElapsed() - pfStartTime) < 0 &&
+        !HasStatus(EventPlayer(), Status.Rooted) &&
+        !HasStatus(EventPlayer(), Status.Frozen) &&
+        !HasStatus(EventPlayer(), Status.Asleep) &&
+        !HasStatus(EventPlayer(), Status.KnockedDown) &&
+        !HasStatus(EventPlayer(), Status.Stunned))
+    {
+        if (pfCurrentNodeIndex == -1)
+        {
+            pfWalkingToPosition = null;
+        }
+        else if (pfStuckOnNode - 2 == pfCurrentNodeIndex)
+        {
+            pfEvent('Stuck, teleporting');
+            LogToInspector(<'Pathfinder <0> struggled to reach node <1> at <2>. Try adjusting your map in the editor.', EventPlayer(), pfCurrentNodeIndex, pfLoadedMap.nodes[pfCurrentNodeIndex]>);
+            Teleport(EventPlayer(), pfWalkingToPosition);
+        }
+        else
+        {
+            pfEvent('Stuck, recalibrating');
+            pfStuckOnNode = pfCurrentNodeIndex + 2;
+            pfRecalibrate();
+        }
+    }
+    # Shift destination
+    else if (
+        pfWalkingToPosition != pfDestination &&
+        pfCurrentNodeIndex == -1 &&
+        pfSavedTarget.DistanceTo(pfDestination) < 5 &&
+        IsInLineOfSight(pfSavedTarget + Up(), pfDestination + Up()))
+    {
+        pfWalkingToPosition = pfDestination;
+    }
+
+    Wait(2);
     LoopIfConditionIsTrue();
+}
+
+rule: '【PF Core】Check throttle'
+Event.OngoingPlayer
+if (pfIsPathfinding)
+if (VelocityOf().Magnitude < 3)
+{
+    Wait(2.1, WaitBehavior.AbortWhenFalse);
+    pfIsStuck = true;
+    WaitUntil(!pfWalkingToPosition || !pfIsPathfinding || VelocityOf().Magnitude >= 3, 9999);
+    pfIsStuck = false;
 }
 
 void pfProgressEventPlayer() playervar '【PF Core Subroutine】☞ Progress event player' {
@@ -266,7 +273,7 @@ void pfWalkToDestination() playervar '☆【PF Core Subroutine】☞ Walk to des
     StartThrottleInDirection(
         EventPlayer(),
         PositionOf().DirectionTowards(pfWalkingToPosition),
-        pfWalkingToPosition && (pfCurrentNodeIndex != -1 || PositionOf().DistanceTo(pfWalkingToPosition) > .25),
+        pfWalkingToPosition && (pfCurrentNodeIndex != -1 || PositionOf().DistanceTo(pfWalkingToPosition) > .4),
         Relative.ToWorld,
         ThrottleBehavior.ReplaceExistingThrottle,
         ThrottleRev.DirectionAndMagnitude);
@@ -374,4 +381,14 @@ void reconstructPath(in PfNode[] scores, ref Number current, in Number currentIn
         current = scores[current].parent;
     }
     pfPath += [-1];
+
+    Player[] broadcastTo = PlayersWithinRadius(PositionOf() + Up(), 4, Team.All, RadiusLOS.Off)
+        .FilteredArray(p =>
+            p != EventPlayer() &&
+            p.pfWait &&
+            p.pfDestination.DistanceTo(pfDestination) < 4 &&
+            p.pfPlayerAttributes == pfPlayerAttributes);
+    
+    broadcastTo.pfPath = pfPath;
+    broadcastTo.pfWasBroadcasted = true;
 }

@@ -539,7 +539,7 @@ rule("Initial Global")
         Set Global Variable(func_group, Empty Array);
         If(Not(Global Variable(__loadPersist)));
             Set Global Variable(__loadPersist, True);
-            Set Global Variable(version, 1);
+            Set Global Variable(version, 2);
             Set Global Variable(map, Current Map);
             Set Global Variable(Nodes_Node_UniqueID, Empty Array);
             Set Global Variable(Nodes_Node_Position, Empty Array);
@@ -4322,7 +4322,7 @@ rule("Subroutine: Export: Core")
         ExportCore;
     }
 
-    // Action count: 118
+    // Action count: 121
     actions
     {
         "Export core code to workshop."
@@ -4350,293 +4350,276 @@ rule("Subroutine: Export: Core")
         10: pfWalkingFromPosition
         11: pfActiveNode
         12: pfStuckOnNode
-        13: {0}", Custom String("goal
-        14: scores_gScore
-        15: scores_fScore
-        16: scores_parent
-        17: scores_nodeIndex{0}", Custom String("
-        18: open
-        19: checkedNode
-        20: iter
-        21: current
-        22: currentInExistingPath{0}", Custom String("
-        23: neighbor
-        24: neighborI
-        25: scoreIndex
-        26: score
+        13: {0}", Custom String("pfWasBroadcasted
+        14: pfIsStuck
+        15: goal
+        16: scores_gScore
+        17: scores_fScore
+  {0}", Custom String("      18: scores_parent
+        19: scores_nodeIndex
+        20: open
+        21: checkedNode
+        22: iter{0}", Custom String("
+        23: current
+        24: currentInExistingPath
+        25: broadcastTo
+        26: neighbor
+        27: /*")))));
+            Log To Inspector(Custom String("*/neighborI
+        28: scoreIndex
+        29: score
 }
 
 subroutines
-{/*")))));
-            Log To Inspector(Custom String("*/
+{
     0: pfTick
-    1: pfUpdateNodeMeta
+    1: {0}", Custom String("pfUpdateNodeMeta
     2: pfWalkToDestination
     3: pfProgressEventPlayer
-    4: {0}", Custom String("pfRecalibrate
-    5: pfLookAtDestination
+    4: pfRecalibrate
+    5: {0}", Custom String("pfLookAtDestination
 }
 
 rule(\"【PF Core】Prepare loaded map\")
 {
 
     event
-  {0}", Custom String("  {
-        Ongoing - Global;
+    {
+        Ongoing -{0}", Custom String(" Global;
     }
 
     actions
     {
-        Wait Until(Global.pfLoadedMap_nodes, 9999);{0}", Custom String("
-        For Global Variable(i, 0, Count Of(Global.pfLoadedMap_nodes), 1);
-            /*")))));
-            Log To Inspector(Custom String("*/Global.pfLoadedMap_nodes[Global.i] = Vector(X Component Of(Global.pfLoadedMap_nodes[Global.i]), Round To Integer(Y {0}", Custom String("Component Of(Global.pfLoadedMap_nodes[Global.i]), Down) + Global.i / 1000 * (Y Component {0}", Custom String("Of(Global.pfLoadedMap_nodes[Global.i]) < 0 ? -1 : 1), Z Component Of(Global.pfLoadedMap_nodes[Global.i]));
-        End;{0}", Custom String("
+        Wait Until(Global.pfLoadedMap_nodes, 9999);
+        For Global /*")))));
+            Log To Inspector(Custom String("*/Variable(i, 0, Count Of(Global.pfLoadedMap_nodes), 1);
+            Global.pfLoadedMap_nodes[Global.i] = Vector(X {0}", Custom String("Component Of(Global.pfLoadedMap_nodes[Global.i]), Round To Integer(Y Component Of(Global.pfLoadedMap_nodes[Global.i]), Down) {0}", Custom String("+ Global.i / 1000 * (Y Component Of(Global.pfLoadedMap_nodes[Global.i]) < 0 ? -1 : 1), Z Component {0}", Custom String("Of(Global.pfLoadedMap_nodes[Global.i]));
+        End;
     }
 }
 
-rule(\"【PF Core】Select next pathfinder\")
+rule(\"【PF Core】Select next pathfinder\")/*")))));
+            Log To Inspector(Custom String("*/
 {
 
     event
     {
-        Ongoing - Global;/*")))));
-            Log To Inspector(Custom String("*/
+        Ongoing - Global;
     }
 
     conditions
     {
-        (!Entity Exists(Global.pfExecOwner) || Global.pfExecOwner == Null) == {0}", Custom String("True;
-        Is True For Any(All Players(All Teams), Current Array Element.pfWait) == True;
-    }
-
-    actions{0}", Custom String("
-    {
-        Global.pfExecOwner = First Of(Sorted Array(Filtered Array(All Players(All Teams), Current Array {0}", Custom String("Element.pfWait), Current Array Element.pfWait));
-        Wait(0.016, Ignore Condition);
-        Loop If Condition Is /*")))));
-            Log To Inspector(Custom String("*/True;
-    }
-}
-
-rule(\"【PF Core Subroutine】☞ Tick\")
-{
-
-    event
-    {
-        Subroutine;{0}", Custom String("
-        pfTick;
+        (!Entity {0}", Custom String("Exists(Global.pfExecOwner) || Global.pfExecOwner == Null) == True;
+        Is True For Any(All Players(All Teams), Current{0}", Custom String(" Array Element.pfWait) == True;
     }
 
     actions
     {
-        Global.pfIterationsThisTick -= 1;
-        {0}", Custom String("If(Global.pfIterationsThisTick <= 0);
-            Wait(0.016, Ignore Condition);
-            Wait Until(Max(Server Load{0}", Custom String(" Average, Server Load) < 255, 9999);
-            \"This determines the pathfinding budget for the current tick.\"
-      /*")))));
-            Log To Inspector(Custom String("*/      Global.pfIterationsThisTick = (Max(Server Load Average, Server Load) < 230) + 1;
-        End;
+        Global.pfExecOwner = First Of(Sorted {0}", Custom String("Array(Filtered Array(All Players(All Teams), Current Array Element.pfWait), Current Array Element.pfWait));
+        /*")))));
+            Log To Inspector(Custom String("*/Wait(0.016, Ignore Condition);
+        Loop If Condition Is True;
     }
 }
-{0}", Custom String("
-rule(\"【PF Core Subroutine】☞ Update node meta\")
+
+rule({0}", Custom String("\"【PF Core Subroutine】☞ Tick\")
 {
 
     event
     {
         Subroutine;
-        {0}", Custom String("pfUpdateNodeMeta;
+        pfTick;
+    }
+{0}", Custom String("
+    actions
+    {
+        Global.pfIterationsThisTick -= 1;
+        If(Global.pfIterationsThisTick <= 0);
+     {0}", Custom String("       Wait(0.016, Ignore Condition);
+            Wait Until(Max(Server Load Average, Server Load) < 255, 0.25);
+       /*")))));
+            Log To Inspector(Custom String("*/     \"This determines the pathfinding budget for the current tick.\"
+            Global.pfIterationsThisTick = {0}", Custom String("(Max(Server Load Average, Server Load) < 230) + (Max(Server Load Average, Server Load) < 180) * 2 + 1;
+        End;
+   {0}", Custom String(" }
+}
+
+rule(\"【PF Core Subroutine】☞ Update node meta\")
+{
+
+    event
+    {
+        Subroutine;{0}", Custom String("
+        pfUpdateNodeMeta;
     }
 
     actions
     {
         If(Event Player.pfCurrentNodeIndex != -1);
-            {0}", Custom String("Event Player.pfActiveNode = Event Player.pfCurrentNodeIndex;
+    /*")))));
+            Log To Inspector(Custom String("*/        Event Player.pfActiveNode = Event Player.pfCurrentNodeIndex;
         End;
-        If(Event Player.pfStuckOnNode == 1);/*")))));
-            Log To Inspector(Custom String("*/
+        If(Event {0}", Custom String("Player.pfStuckOnNode == 1);
             Event Player.pfStuckOnNode = 0;
         End;
-        \"Update the pathfinding start time.\"
-        {0}", Custom String("Event Player.pfStartTime = Total Time Elapsed;
-        Event Player.pfWalkingFromPosition = Position Of(Event Player);
-{0}", Custom String("    }
+        {0}", Custom String("\"Update the pathfinding start time.\"
+        Event Player.pfStartTime = Total Time Elapsed;
+        Event {0}", Custom String("Player.pfWalkingFromPosition = Position Of(Event Player);
+    }
 }
 
-rule(\"☆【PF Core Subroutine】☞ Walk to destination\")
+rule(/*")))));
+            Log To Inspector(Custom String("*/\"☆【PF Core Subroutine】☞ Walk to destination\")
 {
 
     event
     {
-        {0}", Custom String("Subroutine;
-        pfWalkToDestination;
+        Subroutine;
+        {0}", Custom String("pfWalkToDestination;
     }
 
     actions
     {
-        Start Throttle In Direction(Event /*")))));
-            Log To Inspector(Custom String("*/Player, Direction Towards(Position Of(Event Player), Event Player.pfWalkingToPosition), Event Player.pfWalkingToPosition &&{0}", Custom String(" (Event Player.pfCurrentNodeIndex != -1 || Distance Between(Position Of(Event Player), Event Player.pfWalkingToPosition) > {0}", Custom String("0.25), To World, Replace Existing Throttle, Direction And Magnitude);
+        Start Throttle In Direction(Event Player, Direction {0}", Custom String("Towards(Position Of(Event Player), Event Player.pfWalkingToPosition), Event Player.pfWalkingToPosition && (Event {0}", Custom String("Player.pfCurrentNodeIndex != -1 || Distance Between(Position Of(Event Player), Event Player.pfWalkingToPosition) > 0.4), To /*")))));
+            Log To Inspector(Custom String("*/World, Replace Existing Throttle, Direction And Magnitude);
     }
 }
 
-rule({0}", Custom String("\"【PF Core】Update & Execute\")
+rule(\"【PF Core】Update & Execute\"){0}", Custom String("
 {
 
     event
     {
         Ongoing - Each Player;
         All;
-       /*")))));
-            Log To Inspector(Custom String("*/ All;
+        All;
     }
 
-    conditions
+    {0}", Custom String("conditions
     {
         Event Player.pfDestination == True;
-        Distance {0}", Custom String("Between(Event Player, Event Player.pfDestination) > 4;
-        (!Event Player.pfSavedTarget || Distance Between(Event {0}", Custom String("Player.pfDestination, Event Player.pfSavedTarget) > 5) == True;
+        Distance Between(Event Player, Event {0}", Custom String("Player.pfDestination) > 4;
+        (!Event Player.pfSavedTarget || Distance Between(Event Player.pfDestination, Event /*")))));
+            Log To Inspector(String Replace(Custom String("*/Player.pfSavedTarget) > 5) == True;
     }
 
     actions
     {
-        {0}", Custom String("\"Ensure that a map is loaded.\"
-        If(!Global.pfLoadedMap_nodes);
-            Log To Inspector(Custom String(/*")))));
-            Log To Inspector(String Replace(Custom String("*/\"Error: Attempted to pathfind player ⨁0} without a loaded map.\", Event Player));
+        \"Ensure that a map is loaded.\"
+   {0}", Custom String("     If(!Global.pfLoadedMap_nodes);
+            Log To Inspector(Custom String({0}", Custom String("\"Error: Attempted to pathfind player ⨁0} without a loaded map.\", Event Player));
             Abort;
-        End;{0}", Custom String("
+        End;{0}", Custom String("
         Event Player.pfWait = Total Time Elapsed;
-        Wait Until(Global.pfExecOwner == Event Player, 9999);
-   {0}", Custom String("     \"Update saved destination\"
+        Event Player.pfWasBroadcasted = False;
+        Wait /*")))), Custom String("⨁"), Custom String("{")));
+            Log To Inspector(Custom String("*/Until(Global.pfExecOwner == Event Player || Event Player.pfWasBroadcasted, 9999);
+        \"Update saved destination\"{0}", Custom String("
         Event Player.pfSavedTarget = Event Player.pfDestination;
-        Event {0}", Custom String("Player.goal = Round To Integer(Absolute Value(Y Component Of(First Of(Sorted Array(Array Slice(Sorted /*")))), Custom String("⨁"), Custom String("{")));
-            Log To Inspector(Custom String("*/Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Event Player.pfSavedTarget)), 0, 5), !Is In Line Of{0}", Custom String(" Sight(Current Array Element + Vector(0, 2, 0), Event Player.pfSavedTarget + Vector(0, 2, 0), Barriers Do Not Block LOS))))) {0}", Custom String("* 1000 % 1000, Down);
-        Call Subroutine(pfTick);
-        If(Event Player.pfIsPathfinding && Event {0}", Custom String("Player.pfCurrentNodeIndex != -1);
-            Event Player.pfActiveNode = Event Player.pfCurrentNodeIndex;
-        Else;/*")))));
-            Log To Inspector(Custom String("*/
-            Event Player.pfActiveNode = Round To Integer(Absolute Value(Y Component Of(First Of(Sorted Array(Array {0}", Custom String("Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Position Of(Event Player))), 0, 5), !Is {0}", Custom String("In Line Of Sight(Current Array Element + Vector(0, 2, 0), Position Of(Event Player) + Vector(0, 2, 0), Barriers Do Not Block {0}", Custom String("LOS))))) * 1000 % 1000, Down);
+        If(!Event Player.pfWasBroadcasted);
+        {0}", Custom String("    Event Player.goal = Round To Integer(Absolute Value(Y Component Of(First Of(Sorted Array(Array Slice(Sorted {0}", Custom String("Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Event Player.pfSavedTarget)), 0, 5), !Is In Line Of /*")))));
+            Log To Inspector(Custom String("*/Sight(Current Array Element + Vector(0, 2, 0), Event Player.pfSavedTarget + Vector(0, 2, 0), Barriers Do Not Block LOS))))){0}", Custom String(" * 1000 % 1000, Down);
             Call Subroutine(pfTick);
-        End;
-        Event Player.scores_gScore =/*")))));
-            Log To Inspector(Custom String("*/ Array(0);
-        Event Player.scores_fScore = Array(0);
-        Event Player.scores_parent = Array(-1);
-        {0}", Custom String("Event Player.scores_nodeIndex = Array(Event Player.goal);
-        Event Player.open = Array(0);
-        Event {0}", Custom String("Player.checkedNode = Event Player.pfActiveNode;
-        Event Player.iter = 0;
-        While(Count Of(Event {0}", Custom String("Player.open));
-            \"The index of the current node in `scores`.\"
-            Event Player.current = First /*")))));
-            Log To Inspector(Custom String("*/Of(Sorted Array(Event Player.open, Event Player.scores_fScore[Current Array Element]));
-            If(Event {0}", Custom String("Player.checkedNode != Event Player.pfActiveNode);
-                Event Player.checkedNode = Index Of Array Value(Event {0}", Custom String("Player.scores_nodeIndex, Event Player.pfActiveNode);
-                If(Event Player.checkedNode != -1);
-              {0}", Custom String("      Event Player.current = Event Player.checkedNode;
-                    Event Player.checkedNode = -2;
-              /*")))));
-            Log To Inspector(Custom String("*/  Else;
-                    Event Player.checkedNode = Event Player.pfActiveNode;
-                End;
-           {0}", Custom String(" End;
-            Event Player.currentInExistingPath = Index Of Array Value(Event Player.pfPath, Event {0}", Custom String("Player.scores_nodeIndex[Event Player.current]);
-            \"If the goal was found, reconstruct the path.\"
-          {0}", Custom String("  If(Event Player.scores_nodeIndex[Event Player.current] == Event Player.pfActiveNode || Event Player.checkedNode == -2 || /*")))));
-            Log To Inspector(Custom String("*/Event Player.currentInExistingPath != -1);
-                If(Event Player.currentInExistingPath == -1);
-            {0}", Custom String("        Event Player.pfPath = Empty Array;
-                Else;
-                    Event Player.pfPath = Array {0}", Custom String("Slice(Event Player.pfPath, 0, Event Player.currentInExistingPath);
-                End;
-                While(Event {0}", Custom String("Player.current != -1);
-                    Modify Player Variable(Event Player, pfPath, Append To Array, Event /*")))));
-            Log To Inspector(Custom String("*/Player.scores_nodeIndex[Event Player.current]);
-                    Event Player.current = Event {0}", Custom String("Player.scores_parent[Event Player.current];
-                End;
-                Modify Player Variable(Event Player, {0}", Custom String("pfPath, Append To Array, Array(-1));
-                Skip(27);
-            End;
-            Modify Player {0}", Custom String("Variable(Event Player, open, Remove From Array By Value, Event Player.current);
-            /*")))));
-            Log To Inspector(Custom String("*/\"Check each neighbor to the current node.\"
-            For Player Variable(Event Player, neighbor, 0, Count {0}", Custom String("Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]]), 1);
-                {0}", Custom String("\"The neighbor index to be used like `pfLoadedMap.nodes[neighborI]`.\"
-                Event Player.neighborI = First {0}", Custom String("Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor]);
-             /*")))));
-            Log To Inspector(Custom String("*/   Event Player.scoreIndex = Index Of Array Value(Event Player.scores_nodeIndex, Event Player.neighborI);
-              {0}", Custom String("  \"Ensure that the path to the neighbor is enabled.\"
-                If(Count Of(Global.pfLoadedMap_neighbors[Event {0}", Custom String("Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor][1]) == 0 || Is True For {0}", Custom String("Any(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor][1], Array /*")))));
-            Log To Inspector(Custom String("*/Contains(Event Player.pfPlayerAttributes, Current Array Element)));
-                    Event Player.score = Event {0}", Custom String("Player.scores_gScore[Event Player.current] + Distance Between(Global.pfLoadedMap_nodes[Event Player.scores_nodeIndex[Event {0}", Custom String("Player.current]], Global.pfLoadedMap_nodes[Event Player.neighborI]);
-                    {0}", Custom String("\"Get neighbor index in scores.
-If -1, the neighbor was not added to the score list yet.\"
-                    If(Event /*")))));
-            Log To Inspector(Custom String("*/Player.scoreIndex == -1);
-                        \"Note: not required after debugging.\"
-                        {0}", Custom String("Modify Player Variable(Event Player, open, Append To Array, Count Of(Event Player.scores_gScore));
-                       {0}", Custom String(" Modify Player Variable(Event Player, scores_gScore, Append To Array, Event Player.score);
-                        Modify {0}", Custom String("Player Variable(Event Player, scores_fScore, Append To Array, Event Player.score + Distance /*")))));
-            Log To Inspector(Custom String("*/Between(Global.pfLoadedMap_nodes[Event Player.neighborI], Global.pfLoadedMap_nodes[Event Player.pfActiveNode]) * 20);
-  {0}", Custom String("                      Modify Player Variable(Event Player, scores_parent, Append To Array, Event Player.current);
-        {0}", Custom String("                Modify Player Variable(Event Player, scores_nodeIndex, Append To Array, Event Player.neighborI);
-         {0}", Custom String("               Else If(Event Player.score < Event Player.scores_gScore[Event Player.scoreIndex]);
-                        /*")))));
-            Log To Inspector(Custom String("*/Event Player.scores_gScore[Event Player.scoreIndex] = Event Player.score;
-                        Event {0}", Custom String("Player.scores_fScore[Event Player.scoreIndex] = Event Player.score + Distance Between(Global.pfLoadedMap_nodes[Event {0}", Custom String("Player.neighborI], Global.pfLoadedMap_nodes[Event Player.pfActiveNode]) * 20;
-                        Event {0}", Custom String("Player.scores_parent[Event Player.scoreIndex] = Event Player.current;
-                        Event /*")))));
-            Log To Inspector(Custom String("*/Player.scores_nodeIndex[Event Player.scoreIndex] = Event Player.neighborI;
-                        If(!Array {0}", Custom String("Contains(Event Player.open, Event Player.scoreIndex));
-                            Modify Player Variable(Event Player, {0}", Custom String("open, Append To Array, Event Player.scoreIndex);
-                        End;
-                    End;
-             {0}", Custom String("   End;
+            If(Event Player.pfIsPathfinding && Event {0}", Custom String("Player.pfCurrentNodeIndex != -1);
+                Event Player.pfActiveNode = Event Player.pfCurrentNodeIndex;
+        {0}", Custom String("    Else;
+                Event Player.pfActiveNode = Round To Integer(Absolute Value(Y Component Of(First Of(Sorted /*")))));
+            Log To Inspector(Custom String("*/Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Position Of(Event {0}", Custom String("Player))), 0, 5), !Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Position Of(Event Player) + Vector(0, 2, 0), {0}", Custom String("Barriers Do Not Block LOS))))) * 1000 % 1000, Down);
                 Call Subroutine(pfTick);
             End;
-            Event Player.iter += 1;
-        End;/*")))));
+     {0}", Custom String("       Event Player.scores_gScore = Array(0);
+            Event Player.scores_fScore = Array(0);
+            Event /*")))));
+            Log To Inspector(Custom String("*/Player.scores_parent = Array(-1);
+            Event Player.scores_nodeIndex = Array(Event Player.goal);
+            {0}", Custom String("Event Player.open = Array(0);
+            Event Player.checkedNode = Event Player.pfActiveNode;
+            Event {0}", Custom String("Player.iter = 0;
+            While(Count Of(Event Player.open));
+                {0}", Custom String("\"The index of the current node in `scores`.\"
+                Event Player.current = First Of(Sorted Array(Event /*")))));
+            Log To Inspector(Custom String("*/Player.open, Event Player.scores_fScore[Current Array Element]));
+                If(Event Player.checkedNode != Event {0}", Custom String("Player.pfActiveNode);
+                    Event Player.checkedNode = Index Of Array Value(Event Player.scores_nodeIndex, {0}", Custom String("Event Player.pfActiveNode);
+                    If(Event Player.checkedNode != -1);
+                        Event {0}", Custom String("Player.current = Event Player.checkedNode;
+                        Event Player.checkedNode = -2;
+                    /*")))));
+            Log To Inspector(Custom String("*/Else;
+                        Event Player.checkedNode = Event Player.pfActiveNode;
+                    End;
+     {0}", Custom String("           End;
+                Event Player.currentInExistingPath = Index Of Array Value(Event Player.pfPath, Event {0}", Custom String("Player.scores_nodeIndex[Event Player.current]);
+                \"If the goal was found, reconstruct the path.\"
+      {0}", Custom String("          If(Event Player.scores_nodeIndex[Event Player.current] == Event Player.pfActiveNode || Event Player.checkedNode == /*")))));
+            Log To Inspector(Custom String("*/-2 || Event Player.currentInExistingPath != -1);
+                    If(Event Player.currentInExistingPath == -1);
+  {0}", Custom String("                      Event Player.pfPath = Empty Array;
+                    Else;
+                        Event {0}", Custom String("Player.pfPath = Array Slice(Event Player.pfPath, 0, Event Player.currentInExistingPath);
+                    End;
+     {0}", Custom String("               While(Event Player.current != -1);
+                        Modify Player Variable(Event Player, pfPath, /*")))));
+            Log To Inspector(Custom String("*/Append To Array, Event Player.scores_nodeIndex[Event Player.current]);
+                        Event Player.current = {0}", Custom String("Event Player.scores_parent[Event Player.current];
+                    End;
+                    Modify Player {0}", Custom String("Variable(Event Player, pfPath, Append To Array, Array(-1));
+                    Event Player.broadcastTo = Filtered {0}", Custom String("Array(Players Within Radius(Position Of(Event Player) + Up, 4, All Teams, Off), Current Array Element != Event Player && /*")))));
+            Log To Inspector(Custom String("*/Current Array Element.pfWait && Distance Between(Current Array Element.pfDestination, Event Player.pfDestination) < 4 && {0}", Custom String("Current Array Element.pfPlayerAttributes == Event Player.pfPlayerAttributes);
+                    Event {0}", Custom String("Player.broadcastTo.pfPath = Event Player.pfPath;
+                    Event Player.broadcastTo.pfWasBroadcasted = True;
+{0}", Custom String("                    Skip(27);
+                End;
+                Modify Player Variable(Event Player, open, Remove /*")))));
+            Log To Inspector(Custom String("*/From Array By Value, Event Player.current);
+                \"Check each neighbor to the current node.\"
+            {0}", Custom String("    For Player Variable(Event Player, neighbor, 0, Count Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event {0}", Custom String("Player.current]]), 1);
+                    \"The neighbor index to be used like `pfLoadedMap.nodes[neighborI]`.\"
+     {0}", Custom String("               Event Player.neighborI = First Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event /*")))));
+            Log To Inspector(Custom String("*/Player.current]][Event Player.neighbor]);
+                    Event Player.scoreIndex = Index Of Array Value(Event {0}", Custom String("Player.scores_nodeIndex, Event Player.neighborI);
+                    \"Ensure that the path to the neighbor is enabled.\"{0}", Custom String("
+                    If(Count Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event {0}", Custom String("Player.neighbor][1]) == 0 || Is True For Any(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event /*")))));
+            Log To Inspector(Custom String("*/Player.current]][Event Player.neighbor][1], Array Contains(Event Player.pfPlayerAttributes, Current Array Element)));
+  {0}", Custom String("                      Event Player.score = Event Player.scores_gScore[Event Player.current] + Distance {0}", Custom String("Between(Global.pfLoadedMap_nodes[Event Player.scores_nodeIndex[Event Player.current]], Global.pfLoadedMap_nodes[Event {0}", Custom String("Player.neighborI]);
+                        /*")))));
+            Log To Inspector(Custom String("*/\"Get neighbor index in scores.
+If -1, the neighbor was not added to the score list yet.\"
+                        {0}", Custom String("If(Event Player.scoreIndex == -1);
+                            \"Note: not required after debugging.\"
+                {0}", Custom String("            Modify Player Variable(Event Player, open, Append To Array, Count Of(Event Player.scores_gScore));
+           {0}", Custom String("                 Modify Player Variable(Event Player, scores_gScore, Append To Array, Event Player.score);
+                /*")))));
+            Log To Inspector(Custom String("*/            Modify Player Variable(Event Player, scores_fScore, Append To Array, Event Player.score + Distance {0}", Custom String("Between(Global.pfLoadedMap_nodes[Event Player.neighborI], Global.pfLoadedMap_nodes[Event Player.pfActiveNode]) * 20);
+    {0}", Custom String("                        Modify Player Variable(Event Player, scores_parent, Append To Array, Event Player.current);
+      {0}", Custom String("                      Modify Player Variable(Event Player, scores_nodeIndex, Append To Array, Event Player.neighborI);
+    /*")))));
+            Log To Inspector(Custom String("*/                        Else If(Event Player.score < Event Player.scores_gScore[Event Player.scoreIndex]);
+             {0}", Custom String("               Event Player.scores_gScore[Event Player.scoreIndex] = Event Player.score;
+                            Event{0}", Custom String(" Player.scores_fScore[Event Player.scoreIndex] = Event Player.score + Distance Between(Global.pfLoadedMap_nodes[Event {0}", Custom String("Player.neighborI], Global.pfLoadedMap_nodes[Event Player.pfActiveNode]) * 20;
+                            Event /*")))));
+            Log To Inspector(Custom String("*/Player.scores_parent[Event Player.scoreIndex] = Event Player.current;
+                            Event {0}", Custom String("Player.scores_nodeIndex[Event Player.scoreIndex] = Event Player.neighborI;
+                            If(!Array {0}", Custom String("Contains(Event Player.open, Event Player.scoreIndex));
+                                Modify Player Variable(Event {0}", Custom String("Player, open, Append To Array, Event Player.scoreIndex);
+                            End;
+                        End;/*")))));
             Log To Inspector(Custom String("*/
+                    End;
+                    Call Subroutine(pfTick);
+                End;
+                Event{0}", Custom String(" Player.iter += 1;
+            End;
+        End;
         Event Player.pfIsPathfinding = True;
-        Event Player.pfCurrentNodeIndex = First Of(Event {0}", Custom String("Player.pfPath);
-        Event Player.pfWalkingToPosition = Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex];
- {0}", Custom String("       Call Subroutine(pfUpdateNodeMeta);
-        Call Subroutine(pfWalkToDestination);
-        Global.pfExecOwner = {0}", Custom String("Null;
+        Event {0}", Custom String("Player.pfCurrentNodeIndex = First Of(Event Player.pfPath);
+        Event Player.pfWalkingToPosition = {0}", Custom String("Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex];
+        Call Subroutine(pfUpdateNodeMeta);
+        Call /*")))));
+            Log To Inspector(Custom String("*/Subroutine(pfWalkToDestination);
+        Global.pfExecOwner = Null;
         Event Player.pfWait = Null;
-        Wait(2, Ignore Condition);
-        Loop If Condition Is True;
-  /*")))));
-            Log To Inspector(Custom String("*/  }
-}
-
-rule(\"【PF Core】Shift destination\")
-{
-
-    event
-    {
-        Ongoing - Each Player;{0}", Custom String("
-        All;
-        All;
-    }
-
-    conditions
-    {
-        Event Player.pfIsPathfinding == True;
-  {0}", Custom String("      Event Player.pfWalkingToPosition != Event Player.pfDestination;
-        Event Player.pfCurrentNodeIndex == -1;
-  {0}", Custom String("  }
-
-    actions
-    {
-        If(Distance Between(Event Player.pfSavedTarget, Event Player.pfDestination) < 5 && /*")))));
-            Log To Inspector(Custom String("*/Is In Line Of Sight(Event Player.pfSavedTarget + Vector(0, 0.25, 0), Event Player.pfDestination + Vector(0, 0.25, 0), {0}", Custom String("Barriers Do Not Block LOS));
-            Event Player.pfWalkingToPosition = Event Player.pfDestination;
-        End;{0}", Custom String("
-        Wait(2, Ignore Condition);
+        {0}", Custom String("Wait(2, Ignore Condition);
         Loop If Condition Is True;
     }
 }
@@ -4647,30 +4630,30 @@ rule({0}", Custom String("\"【PF Core Subroutine】☞ Progress event player\")
     event
     {
         Subroutine;
-        /*")))));
-            Log To Inspector(Custom String("*/pfProgressEventPlayer;
+        {0}", Custom String("pfProgressEventPlayer;
     }
 
     actions
     {
         If(Count Of(Event Player.pfPath) == 0);
-         {0}", Custom String("   Skip(10);
+            /*")))));
+            Log To Inspector(Custom String("*/Skip(10);
         End;
         \"Pop the current path.\"
         Modify Player Variable(Event Player, pfPath, {0}", Custom String("Remove From Array By Index, 0);
         \"Update the current pathfind attributes.\"
         If(Count Of(Event {0}", Custom String("Player.pfPath) && First Of(Event Player.pfPath) != -1);
-            /*")))));
-            Log To Inspector(Custom String("*/\"Any rules watching these with the matching condition will activate.\"
-            Event Player.pfAttributes = Last {0}", Custom String("Of(First Of(Filtered Array(Global.pfLoadedMap_neighbors[First Of(Event Player.pfPath)], First Of(Current Array Element) == {0}", Custom String("Event Player.pfCurrentNodeIndex)));
+            {0}", Custom String("\"Any rules watching these with the matching condition will activate.\"
+            Event Player.pfAttributes = Last /*")))));
+            Log To Inspector(Custom String("*/Of(First Of(Filtered Array(Global.pfLoadedMap_neighbors[First Of(Event Player.pfPath)], First Of(Current Array Element) == {0}", Custom String("Event Player.pfCurrentNodeIndex)));
         Else;
             Event Player.pfAttributes = Empty Array;
         End;{0}", Custom String("
         \"Go to the next node in the path.\"
-        Event Player.pfCurrentNodeIndex = First Of(Event Player.pfPath);/*")))));
-            Log To Inspector(Custom String("*/
+        Event Player.pfCurrentNodeIndex = First Of(Event Player.pfPath);{0}", Custom String("
         \"Set the position that the player is currently walking towards.\"
-        Event Player.pfWalkingToPosition = {0}", Custom String("Event Player.pfCurrentNodeIndex == -1 ? (Distance Between(Event Player.pfDestination, Event Player.pfSavedTarget) <= 4 ? {0}", Custom String("Event Player.pfDestination : Position Of(Event Player)) : Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex];
+        Event Player.pfWalkingToPosition = /*")))));
+            Log To Inspector(Custom String("*/Event Player.pfCurrentNodeIndex == -1 ? (Distance Between(Event Player.pfDestination, Event Player.pfSavedTarget) <= 4 ? {0}", Custom String("Event Player.pfDestination : Position Of(Event Player)) : Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex];
      {0}", Custom String("   Call Subroutine(pfUpdateNodeMeta);
     }
 }
@@ -4679,8 +4662,7 @@ rule(\"【PF Core】Node reached\")
 {
 
     event
-    {/*")))));
-            Log To Inspector(Custom String("*/
+    {{0}", Custom String("
         Ongoing - Each Player;
         All;
         All;
@@ -4688,164 +4670,142 @@ rule(\"【PF Core】Node reached\")
 
     conditions
     {
-        Event{0}", Custom String(" Player.pfIsPathfinding == True;
-        Distance Between(Position Of(Event Player) * Vector(1, Empty Array, 1), Event {0}", Custom String("Player.pfWalkingToPosition * Vector(1, Empty Array, 1)) <= 0.4;
-        Absolute Value(Y Component Of(Position Of(Event {0}", Custom String("Player)) - Y Component Of(Event Player.pfWalkingToPosition)) <= 1.5;
-        Count Of(Event Player.pfPath) > 0;
-        /*")))));
-            Log To Inspector(Custom String("*/Event Player.pfCurrentNodeIndex != -1;
+        Event /*")))));
+            Log To Inspector(Custom String("*/Player.pfIsPathfinding == True;
+        Event Player.pfWalkingToPosition == True;
+        Distance Between(Position {0}", Custom String("Of(Event Player) * Vector(1, Empty Array, 1), Event Player.pfWalkingToPosition * Vector(1, Empty Array, 1)) <= 0.4;
+      {0}", Custom String("  Absolute Value(Y Component Of(Position Of(Event Player)) - Y Component Of(Event Player.pfWalkingToPosition)) <= 1.5;
+   {0}", Custom String("     Count Of(Event Player.pfPath) > 0;
+        Event Player.pfCurrentNodeIndex != -1;
     }
 
     actions
-    {
-        {0}", Custom String("\"The player reached the next node in the path to the destination.\"
-        If(Event Player.pfCurrentNodeIndex == -1);{0}", Custom String("
-            \"The destination was reached, stop pathfinding.\"
-            Event Player.pfIsPathfinding = False;
-    {0}", Custom String("    Else;
-            Call Subroutine(pfProgressEventPlayer);
-        End;
+    {/*")))));
+            Log To Inspector(Custom String("*/
+        Call Subroutine(pfProgressEventPlayer);
         Wait(0.2, Ignore Condition);
-  /*")))));
-            Log To Inspector(Custom String("*/      Loop If Condition Is True;
+        Loop If Condition Is{0}", Custom String(" True;
     }
 }
 
 rule(\"【PF Core】Stop throttle when pfDestination is reset\")
-{{0}", Custom String("
+{
 
     event
-    {
+    {{0}", Custom String("
         Ongoing - Each Player;
         All;
         All;
     }
 
-    conditions{0}", Custom String("
+    conditions
     {
-        Event Player.pfIsPathfinding == True;
+        Event {0}", Custom String("Player.pfIsPathfinding == True;
         Event Player.pfDestination == Null;
     }
 
-    {0}", Custom String("actions
+    actions
     {
-        Stop Throttle In Direction(Event Player);
+       /*")))));
+            Log To Inspector(Custom String("*/ Stop Throttle In Direction(Event Player);
         Event Player.pfIsPathfinding = False;
-    /*")))));
-            Log To Inspector(Custom String("*/    Event Player.pfSavedTarget = Null;
+        Event {0}", Custom String("Player.pfSavedTarget = Null;
     }
 }
 
 rule(\"【PF Core Subroutine】☞ Recalibrate\")
 {
 
- {0}", Custom String("   event
-    {
+    event
+{0}", Custom String("    {
         Subroutine;
         pfRecalibrate;
     }
 
     actions
     {
-        Stop {0}", Custom String("Throttle In Direction(Event Player);
+        Stop Throttle In {0}", Custom String("Direction(Event Player);
         Event Player.pfCurrentNodeIndex = -1;
-        Event Player.pfSavedTarget ={0}", Custom String(" Null;
-        Event Player.pfIsPathfinding = False;
-        Event Player.pfWalkingToPosition = Position Of(Event /*")))));
-            Log To Inspector(Custom String("*/Player);
-    }
-}
-
-rule(\"【PF Core】Recalibrate when off the path\")
-{
-
-    event
-    {
-      {0}", Custom String("  Ongoing - Each Player;
-        All;
-        All;
-    }
-
-    conditions
-    {
-        Event {0}", Custom String("Player.pfIsPathfinding == True;
-        Distance Between((Event Player.pfWalkingFromPosition + Event {0}", Custom String("Player.pfWalkingToPosition) / 2, Event Player) > (Distance Between(Event Player.pfWalkingFromPosition, Event /*")))));
-            Log To Inspector(Custom String("*/Player.pfWalkingToPosition) + 2) * 1.2;
-    }
-
-    actions
-    {
-        Wait(1, Abort When False);
-     {0}", Custom String("   Call Subroutine(pfRecalibrate);
-    }
-}
-
-rule(\"【PF Core】Smooth step\")
-{
-
-    event
-    {
-{0}", Custom String("        Ongoing - Each Player;
-        All;
-        All;
-    }
-
-    conditions
-    {
-        Event {0}", Custom String("Player.pfIsPathfinding == True;
-        Count Of(Event Player.pfPath) == 2;
-        Distance Between(Event Player, Event/*")))));
-            Log To Inspector(Custom String("*/ Player.pfSavedTarget) < Distance Between(Event Player.pfWalkingToPosition, Event Player.pfSavedTarget);
-        Is In {0}", Custom String("Line Of Sight(Position Of(Event Player) + Vector(0, 0.25, 0), Event Player.pfSavedTarget + Vector(0, 0.25, 0), Barriers Do {0}", Custom String("Not Block LOS) == True;
-    }
-
-    actions
-    {
-        Call Subroutine(pfProgressEventPlayer);
-    }
-}{0}", Custom String("
-
-rule(\"【PF Core】Recover when stuck or time to next node takes longer than expected\")
-{
-
-    event
+        Event Player.pfSavedTarget = Null;
    /*")))));
-            Log To Inspector(Custom String("*/ {
+            Log To Inspector(Custom String("*/     Event Player.pfIsPathfinding = False;
+        Event Player.pfWalkingToPosition = Position Of(Event Player);
+    {0}", Custom String("}
+}
+
+rule(\"【PF Core】Insurance\")
+{
+
+    event
+    {
         Ongoing - Each Player;
+        {0}", Custom String("All;
+        All;
+    }
+
+    conditions
+    {
+        Event Player.pfIsPathfinding == True;
+        {0}", Custom String("Event Player.pfWalkingToPosition == True;
+    }
+
+    actions
+    {
+        \"Recalibrate\"
+        /*")))));
+            Log To Inspector(Custom String("*/If(Distance Between((Event Player.pfWalkingFromPosition + Event Player.pfWalkingToPosition) / 2, Event Player) > (Distance {0}", Custom String("Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) + 2) * 1.2);
+            Call {0}", Custom String("Subroutine(pfRecalibrate);
+            \"Smooth step\"
+            Else If(Count Of(Event Player.pfPath) == 2 && {0}", Custom String("Distance Between(Event Player, Event Player.pfSavedTarget) < Distance Between(Event Player.pfWalkingToPosition, Event /*")))));
+            Log To Inspector(Custom String("*/Player.pfSavedTarget) && Is In Line Of Sight(Position Of(Event Player) + Vector(0, 0.25, 0), Event Player.pfSavedTarget + {0}", Custom String("Vector(0, 0.25, 0), Barriers Do Not Block LOS));
+            Call Subroutine(pfProgressEventPlayer);
+            {0}", Custom String("\"Recovery\"
+            Else If(Distance Between(Event Player, Event Player.pfWalkingToPosition) > 0.25 && Event {0}", Custom String("Player.pfIsStuck || Distance Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) - 4.95 * (Total /*")))));
+            Log To Inspector(Custom String("*/Time Elapsed - Event Player.pfStartTime) < 0 && !Has Status(Event Player, Rooted) && !Has Status(Event Player, Frozen) && {0}", Custom String("!Has Status(Event Player, Asleep) && !Has Status(Event Player, Knocked Down) && !Has Status(Event Player, Stunned));
+     {0}", Custom String("       If(Event Player.pfCurrentNodeIndex == -1);
+                Event Player.pfWalkingToPosition = Null;
+            {0}", Custom String("    Else If(Event Player.pfStuckOnNode - 2 == Event Player.pfCurrentNodeIndex);
+                Log To Inspector(Custom /*")))));
+            Log To Inspector(String Replace(Custom String("*/String(\"Pathfinder ⨁0} struggled to reach node ⨁1} at ⨁2}. Try adjusting your map in the editor.\", Event Player, {0}", Custom String("Event Player.pfCurrentNodeIndex, Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex]));
+                {0}", Custom String("Teleport(Event Player, Event Player.pfWalkingToPosition);
+            Else;
+                Event Player.pfStuckOnNode {0}", Custom String("= Event Player.pfCurrentNodeIndex + 2;
+                Call Subroutine(pfRecalibrate);
+            End;
+            /*")))), Custom String("⨁"), Custom String("{")));
+            Log To Inspector(Custom String("*/\"Shift destination\"
+            Else If(Event Player.pfWalkingToPosition != Event Player.pfDestination && Event {0}", Custom String("Player.pfCurrentNodeIndex == -1 && Distance Between(Event Player.pfSavedTarget, Event Player.pfDestination) < 5 && Is In Line{0}", Custom String(" Of Sight(Event Player.pfSavedTarget + Up, Event Player.pfDestination + Up, Barriers Do Not Block LOS));
+            Event{0}", Custom String(" Player.pfWalkingToPosition = Event Player.pfDestination;
+        End;
+        Wait(2, Ignore Condition);
+        /*")))));
+            Log To Inspector(Custom String("*/Loop If Condition Is True;
+    }
+}
+
+rule(\"【PF Core】Check throttle\")
+{
+
+    event
+    {
+   {0}", Custom String("     Ongoing - Each Player;
         All;
         All;
     }
 
     conditions
     {
-        {0}", Custom String("Event Player.pfIsPathfinding == True;
-        Distance Between(Position Of(Event Player), Event {0}", Custom String("Player.pfWalkingToPosition) > 0.4;
-        (Magnitude Of(Velocity Of(Event Player)) < 3 || Distance Between(Event {0}", Custom String("Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) - 4.95 * (Total Time Elapsed - Event Player.pfStartTime) < 0) /*")))));
-            Log To Inspector(Custom String("*/== True;
-        !Has Status(Event Player, Rooted) == True;
-        !Has Status(Event Player, Frozen) == True;
-   {0}", Custom String("     !Has Status(Event Player, Asleep) == True;
-        !Has Status(Event Player, Knocked Down) == True;
-        !Has {0}", Custom String("Status(Event Player, Stunned) == True;
+        Event {0}", Custom String("Player.pfIsPathfinding == True;
+        Magnitude Of(Velocity Of(Event Player)) < 3;
     }
 
     actions
-    {
-        {0}", Custom String("\"Ensure condition is true for at least 2 seconds.\"
-        Wait(2, Abort When False);
-        /*")))));
-            Log To Inspector(String Replace(Custom String("*/\"When the bot gets stuck while pathfinding,\"
-        If(Event Player.pfStuckOnNode - 2 == Event {0}", Custom String("Player.pfCurrentNodeIndex);
-            If(Event Player.pfCurrentNodeIndex != -1);
-                Log To {0}", Custom String("Inspector(Custom String(\"Pathfinder ⨁0} struggled to reach node ⨁1} at ⨁2}. Try adjusting your map in the editor.\", {0}", Custom String("Event Player, Event Player.pfCurrentNodeIndex, Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex]));
-            /*")))), Custom String("⨁"), Custom String("{")));
-            Log To Inspector(Custom String("*/End;
-            Teleport(Event Player, Event Player.pfWalkingToPosition);
-        Else;
-            Event {0}", Custom String("Player.pfStuckOnNode = Event Player.pfCurrentNodeIndex + 2;
-            Call Subroutine(pfRecalibrate);
-        End;{0}", Custom String("
-        Loop If Condition Is True;
+    {{0}", Custom String("
+        Wait(2.1, Abort When False);
+        Event Player.pfIsStuck = True;
+        Wait Until(!Event /*")))));
+            Log To Inspector(Custom String("*/Player.pfWalkingToPosition || !Event Player.pfIsPathfinding || Magnitude Of(Velocity Of(Event Player)) >= 3, 9999);
+    {0}", Custom String("    Event Player.pfIsStuck = False;
     }
 }
 
@@ -4860,13 +4820,12 @@ rule(\"☆【PF Core Subroutine】☞ Look at destination\")
 
     actions
     {
-      /*")))));
-            Log To Inspector(Custom String("*/  \"Calling this subroutine will make the player look to the point they are walking towards.\"
-        Start {0}", Custom String("Facing(Event Player, Direction Towards(Eye Position(Event Player) * (Distance Between(Position Of(Event Player), Event {0}", Custom String("Player.pfWalkingToPosition) < 3 ? Vector(1, Empty Array, 1) : Vector(1, 1, 1)), (Event Player.pfWalkingToPosition + Vector(0,{0}", Custom String(" 1.5, 0)) * (Distance Between(Position Of(Event Player), Event Player.pfWalkingToPosition) < 3 ? Vector(1, Empty Array, 1) : /*")))));
-            Log To Inspector(Custom String("*/Vector(1, 1, 1))), 500, To World, Direction And Turn Rate);
+     {0}", Custom String("   \"Calling this subroutine will make the player look to the point they are walking towards.\"
+        Start Facing(Event /*")))));
+            Log To Inspector(Custom String("*/Player, Direction Towards(Eye Position(Event Player) * (Distance Between(Position Of(Event Player), Event {0}", Custom String("Player.pfWalkingToPosition) < 3 ? Vector(1, Empty Array, 1) : Vector(1, 1, 1)), (Event Player.pfWalkingToPosition + Vector(0,{0}", Custom String(" 1.5, 0)) * (Distance Between(Position Of(Event Player), Event Player.pfWalkingToPosition) < 3 ? Vector(1, Empty Array, 1) : {0}", Custom String("Vector(1, 1, 1))), 500, To World, Direction And Turn Rate);
     }
 }
-/*"));
+/*")))));
             "Export core code to ostw."
             Else If(Compare(Global Variable(outputLanguage), ==, 1));
             Log To Inspector(Custom String("*/struct PfMap {
@@ -4919,24 +4878,28 @@ playervar Vector {0}", Custom String("pfWalkingFromPosition;
 playervar Number pfActiveNode;
 {0}", Custom String("# This variable is set when a player fails to reaches a node.
 playervar Number pfStuckOnNode;
+/*")))));
+            Log To Inspector(Custom String("*/# Player received path from another pathfinder.
+playervar Boolean pfWasBroadcasted;
+{0}", Custom String("# Is the player failing to walk?
+playervar Boolean pfIsStuck;
 
-rule: /*")))));
-            Log To Inspector(Custom String("*/'【PF Core】Prepare loaded map' {
-    WaitUntil(<Boolean>pfLoadedMap.nodes, 9999);
-    for (Number i = 0; {0}", Custom String("pfLoadedMap.nodes.Length; 1) {
-        pfLoadedMap.nodes[i] = Vector(
+rule: '【PF Core】Prepare loaded map' {
+    {0}", Custom String("WaitUntil(<Boolean>pfLoadedMap.nodes, 9999);
+    for (Number i = 0; pfLoadedMap.nodes.Length; 1) {
+        {0}", Custom String("pfLoadedMap.nodes[i] = Vector(
             pfLoadedMap.nodes[i].X,
-          {0}", Custom String("  pfLoadedMap.nodes[i].Y.Floor() + (i / 1000) * (pfLoadedMap.nodes[i].Y < 0 ? -1 : 1),
-            pfLoadedMap.nodes[i].Z{0}", Custom String("
+            pfLoadedMap.nodes[i].Y.Floor() + (i / /*")))));
+            Log To Inspector(Custom String("*/1000) * (pfLoadedMap.nodes[i].Y < 0 ? -1 : 1),
+            pfLoadedMap.nodes[i].Z
         );
     }
 }
 
-void pfEvent(in String text) {
+{0}", Custom String("void pfEvent(in String text) {
     // dbgEvents += {
     //     name: text,
-    /*")))));
-            Log To Inspector(Custom String("*///     timeStamp: TotalTimeElapsed()
+    {0}", Custom String("//     timeStamp: TotalTimeElapsed()
     // };
     // while (dbgEvents.Length > 10) {
     {0}", Custom String("//     dbgEvents.ModRemoveByIndex(0);
@@ -4945,94 +4908,75 @@ void pfEvent(in String text) {
 
 void pfTick() '【PF Core Subroutine】☞ Tick'
 {
-    {0}", Custom String("pfIterationsThisTick--;
+    /*")))));
+            Log To Inspector(Custom String("*/pfIterationsThisTick--;
     if (pfIterationsThisTick <= 0) {
         MinWait();
-        {0}", Custom String("WaitUntil(Max(ServerLoadAverage(), ServerLoad()) < 255, 9999);
-        /*")))));
-            Log To Inspector(Custom String("*/# This determines the pathfinding budget for the current tick.
-        pfIterationsThisTick = (Max(ServerLoadAverage(), {0}", Custom String("ServerLoad()) < 230) + 1;
+        {0}", Custom String("WaitUntil(Max(ServerLoadAverage(), ServerLoad()) < 255, 0.25);
+        {0}", Custom String("# This determines the pathfinding budget for the current tick.
+        pfIterationsThisTick = (Max(ServerLoadAverage(), {0}", Custom String("ServerLoad()) < 230) + (Max(ServerLoadAverage(), ServerLoad()) < 180) * 2 + 1;
     }
 }
 
-rule: '【PF Core】Select next pathfinder'
-if (!EntityExists(pfExecOwner) {0}", Custom String("|| pfExecOwner == null)
-if (AllPlayers().IsTrueForAny(p => p.pfWait))
+rule: /*")))));
+            Log To Inspector(Custom String("*/'【PF Core】Select next pathfinder'
+if (!EntityExists(pfExecOwner) || pfExecOwner == null)
+if {0}", Custom String("(AllPlayers().IsTrueForAny(p => p.pfWait))
 {
-    pfExecOwner = {0}", Custom String("AllPlayers().FilteredArray(p => p.pfWait).SortedArray(p => p.pfWait).First;
+    pfExecOwner = AllPlayers().FilteredArray(p => p.pfWait).SortedArray(p {0}", Custom String("=> p.pfWait).First;
     MinWait();
-    LoopIfConditionIsTrue();/*")))));
-            Log To Inspector(Custom String("*/
+    LoopIfConditionIsTrue();
 }
 
 rule: '【PF Core】Update & Execute'
-Event.OngoingPlayer
+{0}", Custom String("Event.OngoingPlayer
 if (pfDestination)
-if {0}", Custom String("(EventPlayer().DistanceTo(pfDestination) > 4)
-if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5)
+if (EventPlayer().DistanceTo(pfDestination) > 4)
+if (!pfSavedTarget || /*")))));
+            Log To Inspector(Custom String("*/pfDestination.DistanceTo(pfSavedTarget) > 5)
 {
- {0}", Custom String("   # Ensure that a map is loaded.
+    # Ensure that a map is loaded.
     if (!pfLoadedMap.nodes)
-    {
-        LogToInspector(<{0}", Custom String("'Error: Attempted to pathfind player <0> without a loaded map.', EventPlayer()>);
-        return;
+ {0}", Custom String("   {
+        LogToInspector(<'Error: Attempted to pathfind player <0> without a loaded map.', EventPlayer()>);
+        {0}", Custom String("return;
     }
 
-    /*")))));
-            Log To Inspector(Custom String("*/pfWait = TotalTimeElapsed();
-    WaitUntil(pfExecOwner == EventPlayer(), 9999);
+    pfWait = TotalTimeElapsed();
+    pfWasBroadcasted = false;
+    WaitUntil(pfExecOwner == {0}", Custom String("EventPlayer() || pfWasBroadcasted, 9999);
     pfEvent('PF Execute');
-    {0}", Custom String("
+    
     # Update saved destination
-    pfSavedTarget = pfDestination;
-    aStar();
-    pfIsPathfinding = true;
-    {0}", Custom String("pfCurrentNodeIndex = pfPath.First;
+    /*")))));
+            Log To Inspector(Custom String("*/pfSavedTarget = pfDestination;
+    if (!pfWasBroadcasted) {
+        aStar();
+    }
+    pfIsPathfinding = true;{0}", Custom String("
+    pfCurrentNodeIndex = pfPath.First;
     pfWalkingToPosition = pfLoadedMap.nodes[pfCurrentNodeIndex];
     {0}", Custom String("pfUpdateNodeMeta();
     pfWalkToDestination();
     pfExecOwner = null;
     pfWait = null;
     Wait(2);
-    /*")))));
-            Log To Inspector(Custom String("*/LoopIfConditionIsTrue();
-}
-
-rule: '【PF Core】Shift destination'
-Event.OngoingPlayer
-if (pfIsPathfinding){0}", Custom String("
-if (pfWalkingToPosition != pfDestination)
-if (pfCurrentNodeIndex == -1)
-{
-    if {0}", Custom String("(pfSavedTarget.DistanceTo(pfDestination) < 5 && IsInLineOfSight(pfSavedTarget + Up() * 0.25, pfDestination + Up() * 0.25)) {{0}", Custom String("
-        pfWalkingToPosition = pfDestination;
-        pfEvent('shifted destination');
-    }
-    Wait(2);
-    /*")))));
-            Log To Inspector(Custom String("*/LoopIfConditionIsTrue();
+    {0}", Custom String("LoopIfConditionIsTrue();
 }
 
 rule: '【PF Core】Node reached'
 Event.OngoingPlayer
 if (pfIsPathfinding)
-{0}", Custom String("# Horizontal distance to current position is less than 0.4.
+if /*")))));
+            Log To Inspector(Custom String("*/(pfWalkingToPosition)
+# Horizontal distance to current position is less than 0.4.
 if ((PositionOf() * Vector(1, 0, {0}", Custom String("1)).DistanceTo(pfWalkingToPosition * Vector(1, 0, 1)) <= 0.4)
 {0}", Custom String("# Vertical distance to current position is less than 1.5.
 if (PositionOf().Y - pfWalkingToPosition.Y~Abs() <= 1.5)
-if /*")))));
-            Log To Inspector(Custom String("*/(pfPath.Length > 0)
+if {0}", Custom String("(pfPath.Length > 0)
 if (pfCurrentNodeIndex != -1)
 {
-    {0}", Custom String("# The player reached the next node in the path to the destination.
-    if (pfCurrentNodeIndex == -1) {
-        {0}", Custom String("// todo
-        pfEvent('Reached destination');
-        # The destination was reached, stop pathfinding.
-        {0}", Custom String("pfIsPathfinding = false;
-    } else {
-        pfProgressEventPlayer();
-    }
+    pfProgressEventPlayer();
     Wait(0.2);
     /*")))));
             Log To Inspector(Custom String("*/LoopIfConditionIsTrue();
@@ -5048,92 +4992,114 @@ if (pfDestination == null)
     pfSavedTarget = null;
 }
 
-rule: '【PF Core】Recalibrate when off the path'
+rule: '【PF Core】Insurance'
 Event.OngoingPlayer
-if {0}", Custom String("(pfIsPathfinding)
-if (((pfWalkingFromPosition + pfWalkingToPosition) / 2).DistanceTo(EventPlayer()) > /*")))));
-            Log To Inspector(Custom String("*/(pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) + 2) * 1.2)
-{
-    Wait(1, WaitBehavior.AbortWhenFalse);
-   {0}", Custom String(" pfEvent('Not on path; recalibrating.');
-    pfRecalibrate();
-}
-
-rule: '【PF Core】Smooth step'
-{0}", Custom String("Event.OngoingPlayer
 if (pfIsPathfinding)
-if (pfPath.Length == 2)
-if (EventPlayer().DistanceTo(pfSavedTarget) < {0}", Custom String("pfWalkingToPosition.DistanceTo(pfSavedTarget))
-if (IsInLineOfSight(PositionOf() + Up() * 0.25, pfSavedTarget + Up() * /*")))));
-            Log To Inspector(Custom String("*/0.25))
+if{0}", Custom String(" (pfWalkingToPosition)
 {
-    pfEvent('Smooth step');
-    pfProgressEventPlayer();
-}
-
-rule: {0}", Custom String("'【PF Core】Recover when stuck or time to next node takes longer than expected'
-Event.OngoingPlayer
-if {0}", Custom String("(pfIsPathfinding)
-if (PositionOf().DistanceTo(pfWalkingToPosition) > 0.4)
-if (VelocityOf().Magnitude < 3 || {0}", Custom String("pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) - 5.5 * 0.9 * (TotalTimeElapsed() - pfStartTime) < 0)
-if /*")))));
-            Log To Inspector(Custom String("*/(!HasStatus(EventPlayer(), Status.Rooted))
-if (!HasStatus(EventPlayer(), Status.Frozen))
-if {0}", Custom String("(!HasStatus(EventPlayer(), Status.Asleep))
-if (!HasStatus(EventPlayer(), Status.KnockedDown))
-if {0}", Custom String("(!HasStatus(EventPlayer(), Status.Stunned))
-{
-    # Ensure condition is true for at least 2 seconds.
-    Wait(2, {0}", Custom String("WaitBehavior.AbortWhenFalse);
-    # When the bot gets stuck while pathfinding,
-    if (pfStuckOnNode - 2 == /*")))));
-            Log To Inspector(Custom String("*/pfCurrentNodeIndex) {
-        pfEvent('Stuck, teleporting');
-        if (pfCurrentNodeIndex != -1) {
-            {0}", Custom String("LogToInspector(<'Pathfinder <0> struggled to reach node <1> at <2>. Try adjusting your map in the editor.', EventPlayer(), {0}", Custom String("pfCurrentNodeIndex, pfLoadedMap.nodes[pfCurrentNodeIndex]>);
-        }
-        Teleport(EventPlayer(), {0}", Custom String("pfWalkingToPosition);
-    } else {
-        pfEvent('Stuck, recalibrating');
-        pfStuckOnNode = /*")))));
-            Log To Inspector(Custom String("*/pfCurrentNodeIndex + 2;
+    # Recalibrate
+    if (((pfWalkingFromPosition + pfWalkingToPosition) / /*")))));
+            Log To Inspector(Custom String("*/2).DistanceTo(EventPlayer()) > (pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) + 2) * 1.2)
+    {
+        {0}", Custom String("pfEvent('Not on path; recalibrating.');
         pfRecalibrate();
     }
+    # Smooth step
+    else if {0}", Custom String("(pfPath.Length == 2 &&
+        EventPlayer().DistanceTo(pfSavedTarget) < pfWalkingToPosition.DistanceTo(pfSavedTarget) &&{0}", Custom String("
+        IsInLineOfSight(PositionOf() + Up() * 0.25, pfSavedTarget + Up() * 0.25))
+    {
+        pfEvent(/*")))));
+            Log To Inspector(Custom String("*/'Smooth step');
+        pfProgressEventPlayer();
+    }
+    # Recovery
+    else if {0}", Custom String("(EventPlayer().DistanceTo(pfWalkingToPosition) > .25 &&
+        pfIsStuck || {0}", Custom String("pfWalkingFromPosition.DistanceTo(pfWalkingToPosition) - 5.5 * 0.9 * (TotalTimeElapsed() - pfStartTime) < 0 &&
+        {0}", Custom String("!HasStatus(EventPlayer(), Status.Rooted) &&
+        !HasStatus(EventPlayer(), Status.Frozen) &&
+        /*")))));
+            Log To Inspector(Custom String("*/!HasStatus(EventPlayer(), Status.Asleep) &&
+        !HasStatus(EventPlayer(), Status.KnockedDown) &&
+        {0}", Custom String("!HasStatus(EventPlayer(), Status.Stunned))
+    {
+        if (pfCurrentNodeIndex == -1)
+        {
+            {0}", Custom String("pfWalkingToPosition = null;
+        }
+        else if (pfStuckOnNode - 2 == pfCurrentNodeIndex)
+        {
+       {0}", Custom String("     pfEvent('Stuck, teleporting');
+            LogToInspector(</*")))));
+            Log To Inspector(Custom String("*/'Pathfinder <0> struggled to reach node <1> at <2>. Try adjusting your map in the editor.', EventPlayer(), {0}", Custom String("pfCurrentNodeIndex, pfLoadedMap.nodes[pfCurrentNodeIndex]>);
+            Teleport(EventPlayer(), pfWalkingToPosition);
+{0}", Custom String("        }
+        else
+        {
+            pfEvent('Stuck, recalibrating');
+            pfStuckOnNode = {0}", Custom String("pfCurrentNodeIndex + 2;
+            pfRecalibrate();
+        }
+    }
+    # Shift destination
+    else if (
+ /*")))));
+            Log To Inspector(Custom String("*/       pfWalkingToPosition != pfDestination &&
+        pfCurrentNodeIndex == -1 &&
+        {0}", Custom String("pfSavedTarget.DistanceTo(pfDestination) < 5 &&
+        IsInLineOfSight(pfSavedTarget + Up(), pfDestination + Up()))
+   {0}", Custom String(" {
+        pfWalkingToPosition = pfDestination;
+    }
+
+    Wait(2);
     LoopIfConditionIsTrue();
 }
 
-void {0}", Custom String("pfProgressEventPlayer() playervar '【PF Core Subroutine】☞ Progress event player' {
+{0}", Custom String("rule: '【PF Core】Check throttle'
+Event.OngoingPlayer
+if (pfIsPathfinding)
+if (VelocityOf().Magnitude < 3)
+{
+/*")))));
+            Log To Inspector(Custom String("*/    Wait(2.1, WaitBehavior.AbortWhenFalse);
+    pfIsStuck = true;
+    WaitUntil(!pfWalkingToPosition || {0}", Custom String("!pfIsPathfinding || VelocityOf().Magnitude >= 3, 9999);
+    pfIsStuck = false;
+}
+
+void pfProgressEventPlayer() {0}", Custom String("playervar '【PF Core Subroutine】☞ Progress event player' {
     // Remove after debugging
- {0}", Custom String("   if (pfPath.Length == 0) {
+    if (pfPath.Length == {0}", Custom String("0) {
         pfEvent('Logic error: progress without any more path');
         return;
-    }{0}", Custom String("
+    }
 
-    # Pop the current path.
+    /*")))));
+            Log To Inspector(Custom String("*/# Pop the current path.
     pfPath.ModRemoveByIndex(0);
     # Update the current pathfind attributes.
-    /*")))));
-            Log To Inspector(Custom String("*/if (pfPath.Length && pfPath.First != -1) {
-        {0}", Custom String("# Any rules watching these with the matching condition will activate.
-        pfAttributes = {0}", Custom String("pfLoadedMap.neighbors[pfPath.First].FilteredArray(segment => segment[0] == pfCurrentNodeIndex).First.Last;
-    } else {{0}", Custom String("
+    if {0}", Custom String("(pfPath.Length && pfPath.First != -1) {
+        # Any rules watching these with the matching condition will activate.
+ {0}", Custom String("       pfAttributes = pfLoadedMap.neighbors[pfPath.First].FilteredArray(segment => segment[0] == {0}", Custom String("pfCurrentNodeIndex).First.Last;
+    } else {
         pfAttributes = [];
     }
-    # Go to the next node in the path.
+    /*")))));
+            Log To Inspector(Custom String("*/# Go to the next node in the path.
     pfCurrentNodeIndex = pfPath.First;
- /*")))));
-            Log To Inspector(Custom String("*/   # Set the position that the player is currently walking towards.
-    pfWalkingToPosition = pfCurrentNodeIndex == -1 ?{0}", Custom String(" pfDestination.DistanceTo(pfSavedTarget) <= 4 ? pfDestination : PositionOf() : pfLoadedMap.nodes[pfCurrentNodeIndex];
+    {0}", Custom String("# Set the position that the player is currently walking towards.
+    pfWalkingToPosition = pfCurrentNodeIndex == -1 ? {0}", Custom String("pfDestination.DistanceTo(pfSavedTarget) <= 4 ? pfDestination : PositionOf() : pfLoadedMap.nodes[pfCurrentNodeIndex];
     {0}", Custom String("pfUpdateNodeMeta();
 }
 
 void pfUpdateNodeMeta() playervar '【PF Core Subroutine】☞ Update node meta' {
-    if {0}", Custom String("(pfCurrentNodeIndex != -1) {
+    if /*")))));
+            Log To Inspector(Custom String("*/(pfCurrentNodeIndex != -1) {
         pfActiveNode = pfCurrentNodeIndex;
     }
     if (pfStuckOnNode == 1) {
-      /*")))));
-            Log To Inspector(Custom String("*/  pfStuckOnNode = 0;
+   {0}", Custom String("     pfStuckOnNode = 0;
     }
     # Update the pathfinding start time.
     pfStartTime = TotalTimeElapsed();
@@ -5144,27 +5110,27 @@ void pfRecalibrate() playervar '【PF Core Subroutine】☞ Recalibrate' {{0}", 
     StopThrottleInDirection();
     pfCurrentNodeIndex = -1;
     pfSavedTarget = null;
-    pfIsPathfinding = {0}", Custom String("false;
+    pfIsPathfinding = /*")))));
+            Log To Inspector(Custom String("*/false;
     pfWalkingToPosition = PositionOf();
 }
 
-void pfWalkToDestination() playervar /*")))));
-            Log To Inspector(Custom String("*/'☆【PF Core Subroutine】☞ Walk to destination' {
+void pfWalkToDestination() playervar {0}", Custom String("'☆【PF Core Subroutine】☞ Walk to destination' {
     StartThrottleInDirection(
         EventPlayer(),
-      {0}", Custom String("  PositionOf().DirectionTowards(pfWalkingToPosition),
-        pfWalkingToPosition && (pfCurrentNodeIndex != -1 || {0}", Custom String("PositionOf().DistanceTo(pfWalkingToPosition) > .25),
+        {0}", Custom String("PositionOf().DirectionTowards(pfWalkingToPosition),
+        pfWalkingToPosition && (pfCurrentNodeIndex != -1 || {0}", Custom String("PositionOf().DistanceTo(pfWalkingToPosition) > .4),
         Relative.ToWorld,
-        {0}", Custom String("ThrottleBehavior.ReplaceExistingThrottle,
+        /*")))));
+            Log To Inspector(Custom String("*/ThrottleBehavior.ReplaceExistingThrottle,
         ThrottleRev.DirectionAndMagnitude);
 }
 
-void /*")))));
-            Log To Inspector(Custom String("*/pfLookAtDestination() playervar '☆【PF Core Subroutine】☞ Look at destination' {
+void {0}", Custom String("pfLookAtDestination() playervar '☆【PF Core Subroutine】☞ Look at destination' {
     Vector distanceModifier: {0}", Custom String("(PositionOf().DistanceTo(pfWalkingToPosition) < 3 ? Vector(1,0,1) : Vector(1,1,1));
     {0}", Custom String("# Calling this subroutine will make the player look to the point they are walking towards.
-    StartFacing(EventPlayer(), {0}", Custom String("DirectionTowards(EyePosition() * distanceModifier, (pfWalkingToPosition + Up() * 1.5) * distanceModifier), 500, /*")))));
-            Log To Inspector(Custom String("*/Relative.ToWorld, FacingRev.DirectionAndTurnRate);
+    StartFacing(EventPlayer(), /*")))));
+            Log To Inspector(Custom String("*/DirectionTowards(EyePosition() * distanceModifier, (pfWalkingToPosition + Up() * 1.5) * distanceModifier), 500, {0}", Custom String("Relative.ToWorld, FacingRev.DirectionAndTurnRate);
 }
 
 # Selects a node index from a position.
@@ -5172,107 +5138,118 @@ Number {0}", Custom String("chooseNodeFromPosition(in Vector vector) {
     return (pfLoadedMap.nodes
         .SortedArray(n => {0}", Custom String("n.DistanceTo(vector))
         .Slice(0, 5)
-        .SortedArray(n => !(IsInLineOfSight(n + Up() * 2, vector + Up() * 2,{0}", Custom String(" BarrierLOS.NoBarriersBlock)))
+        .SortedArray(n => !(IsInLineOfSight(n + Up() * 2, vector + Up() * 2, /*")))));
+            Log To Inspector(Custom String("*/BarrierLOS.NoBarriersBlock)))
         .First.Y.Abs() * 1000 % 1000).Floor();
 }
 
-/*")))));
-            Log To Inspector(Custom String("*/# Gets the shortest path from start to goal.
+{0}", Custom String("# Gets the shortest path from start to goal.
 void aStar() {
-    Number goal = chooseNodeFromPosition(pfSavedTarget);{0}", Custom String("
+    Number goal = chooseNodeFromPosition(pfSavedTarget);{0}", Custom String("
     pfTick();
     if (pfIsPathfinding && pfCurrentNodeIndex != -1) {
         pfActiveNode = pfCurrentNodeIndex;
-{0}", Custom String("    } else {
+  {0}", Custom String("  } else {
         pfActiveNode = chooseNodeFromPosition(PositionOf());
         pfTick();
     }
 
-    Number {0}", Custom String("heuristicWeight: 20;
-    const Number => Number h: n => (pfLoadedMap.nodes[n]).DistanceTo(pfLoadedMap.nodes[pfActiveNode]) /*")))));
-            Log To Inspector(Custom String("*/* heuristicWeight;
+    Number /*")))));
+            Log To Inspector(Custom String("*/heuristicWeight: 20;
+    const Number => Number h: n => {0}", Custom String("(pfLoadedMap.nodes[n]).DistanceTo(pfLoadedMap.nodes[pfActiveNode]) * heuristicWeight;
 
-    PfNode[] scores = [{ parent: -1, gScore: 0, fScore: 0, nodeIndex: goal }];
-    Number[] {0}", Custom String("open = [0];
+    PfNode[] scores = [{ parent:{0}", Custom String(" -1, gScore: 0, fScore: 0, nodeIndex: goal }];
+    Number[] open = [0];
     Number checkedNode = pfActiveNode;
 
-    Number iter = 0;
+ {0}", Custom String("   Number iter = 0;
     while (open.Length) {
-        {0}", Custom String("# The index of the current node in `scores`.
-        Number current = open.SortedArray((o, i) => scores[o].fScore).First;{0}", Custom String("
-        # The index of the current node in `pfLoadedMap.nodes`.
-        Number currentNodeIndex: /*")))));
-            Log To Inspector(Custom String("*/scores[current].nodeIndex;
-
+        # The index of the current node in `scores`.
+        Number /*")))));
+            Log To Inspector(Custom String("*/current = open.SortedArray((o, i) => scores[o].fScore).First;
+        {0}", Custom String("# The index of the current node in `pfLoadedMap.nodes`.
+        Number currentNodeIndex: scores[current].nodeIndex;
+{0}", Custom String("
         if (checkedNode != pfActiveNode) {
-            checkedNode = scores.Map(s => {0}", Custom String("s.nodeIndex).IndexOf(pfActiveNode);
+            checkedNode = scores.Map(s => s.nodeIndex).IndexOf(pfActiveNode);{0}", Custom String("
             if (checkedNode != -1) {
                 current = checkedNode;
-    {0}", Custom String("            checkedNode = -2;
-            }
+                checkedNode = -2;
+   /*")))));
+            Log To Inspector(Custom String("*/         }
             else {
                 checkedNode = pfActiveNode;
-      {0}", Custom String("      }
+            }
         }
 
-        Number currentInExistingPath = pfPath.IndexOf(currentNodeIndex);
+      {0}", Custom String("  Number currentInExistingPath = pfPath.IndexOf(currentNodeIndex);
 
-        /*")))));
-            Log To Inspector(Custom String("*/# If the goal was found, reconstruct the path.
+        {0}", Custom String("# If the goal was found, reconstruct the path.
         if (currentNodeIndex == pfActiveNode || checkedNode == -2 || {0}", Custom String("currentInExistingPath != -1) {
             reconstructPath(scores, current, currentInExistingPath, iter);
-            {0}", Custom String("return;
+            /*")))));
+            Log To Inspector(Custom String("*/return;
         }
 
         open.ModRemoveByValue(current);
 
         {0}", Custom String("# Check each neighbor to the current node.
-        foreach (Any[] neighbor in pfLoadedMap.neighbors[currentNodeIndex]) {/*")))));
-            Log To Inspector(Custom String("*/
+        foreach (Any[] neighbor in pfLoadedMap.neighbors[currentNodeIndex]) {{0}", Custom String("
             # The neighbor index to be used like `pfLoadedMap.nodes[neighborI]`.
             Number neighborI = {0}", Custom String("neighbor[0];
             Number scoreIndex = scores.Map(s => s.nodeIndex).IndexOf(neighborI);
-            Number[] {0}", Custom String("neighborAttributes: <Number[]>neighbor[1];
+            Number[] /*")))));
+            Log To Inspector(Custom String("*/neighborAttributes: <Number[]>neighbor[1];
             # Ensure that the path to the neighbor is enabled.
-            {0}", Custom String("if (neighborAttributes.Length == 0 || neighborAttributes.IsTrueForAny(a => pfPlayerAttributes.Contains(a))) {
-             /*")))));
-            Log To Inspector(Custom String("*/   Number score = scores[current].gScore + pfLoadedMap.nodes[currentNodeIndex].DistanceTo(pfLoadedMap.nodes[neighborI]);{0}", Custom String("
+           {0}", Custom String(" if (neighborAttributes.Length == 0 || neighborAttributes.IsTrueForAny(a => pfPlayerAttributes.Contains(a))) {
+           {0}", Custom String("     Number score = scores[current].gScore + pfLoadedMap.nodes[currentNodeIndex].DistanceTo(pfLoadedMap.nodes[neighborI]);{0}", Custom String("
 
                 # Get neighbor index in scores.
-                {0}", Custom String("# If -1, the neighbor was not added to the score list yet.
+                /*")))));
+            Log To Inspector(Custom String("*/# If -1, the neighbor was not added to the score list yet.
                 if (scoreIndex == -1) {
-                    {0}", Custom String("# Note: not required after debugging.
+                  {0}", Custom String("  # Note: not required after debugging.
                     open += scores.Length;
-                    scores += { parent:/*")))));
-            Log To Inspector(Custom String("*/ current, gScore: score, fScore: score + h(neighborI), nodeIndex: neighborI };
+                    scores += { {0}", Custom String("parent: current, gScore: score, fScore: score + h(neighborI), nodeIndex: neighborI };
                 } else if (score < {0}", Custom String("scores[scoreIndex].gScore) {
-                    scores[scoreIndex] = { parent: current, gScore: score, fScore: score + {0}", Custom String("h(neighborI), nodeIndex: neighborI };
+                    scores[scoreIndex] = { parent: current, gScore: score, fScore: score + /*")))));
+            Log To Inspector(Custom String("*/h(neighborI), nodeIndex: neighborI };
                     if (!open.Contains(scoreIndex))
-                        open {0}", Custom String("+= scoreIndex;
+                        {0}", Custom String("open += scoreIndex;
                 }
             }
             pfTick();
         }
         iter++;
-    }
-}/*")))));
-            Log To Inspector(Custom String("*/
+    }{0}", Custom String("
+}
 
-void reconstructPath(in PfNode[] scores, ref Number current, in Number currentInExistingPath, in Number iter) {
-  {0}", Custom String("  if (currentInExistingPath == -1) {
+void reconstructPath(in PfNode[] scores, ref Number current, in Number currentInExistingPath, in Number iter) {{0}", Custom String("
+    if (currentInExistingPath == -1) {
         pfPath = [];
-        pfEvent(<'Pathfind completed in <0> iterations', {0}", Custom String("iter>);
+        pfEvent(<'Pathfind completed in <0> iterations', /*")))));
+            Log To Inspector(Custom String("*/iter>);
     } else {
         pfPath = pfPath.Slice(0, currentInExistingPath);
         pfEvent(<{0}", Custom String("'Intercepted existing path in <0> iterations', iter>);
     }
     while (current != -1) {
-        pfPath += /*")))));
-            Log To Inspector(Custom String("*/scores[current].nodeIndex;
+        pfPath += {0}", Custom String("scores[current].nodeIndex;
         current = scores[current].parent;
     }
     pfPath += [-1];
-}/*"));
+
+    Player[] {0}", Custom String("broadcastTo = PlayersWithinRadius(PositionOf() + Up(), 4, Team.All, RadiusLOS.Off)
+        .FilteredArray(p =>
+         /*")))));
+            Log To Inspector(Custom String("*/   p != EventPlayer() &&
+            p.pfWait &&
+            p.pfDestination.DistanceTo(pfDestination) < 4 &&
+    {0}", Custom String("        p.pfPlayerAttributes == pfPlayerAttributes);
+    
+    broadcastTo.pfPath = pfPath;
+    {0}", Custom String("broadcastTo.pfWasBroadcasted = true;
+}/*"))));
             "Export core code to overpy."
             Else If(Compare(Global Variable(outputLanguage), ==, 2));
             Log To Inspector(Custom String("*/#Global variables
@@ -5300,80 +5277,83 @@ playervar /*")))));
             Log To Inspector(Custom String("*/pfWalkingFromPosition
 playervar pfActiveNode
 playervar pfStuckOnNode
+playervar pfWasBroadcasted
+playervar {0}", Custom String("pfIsStuck
 playervar goal
 playervar scores_gScore
-{0}", Custom String("playervar scores_fScore
+playervar scores_fScore
 playervar scores_parent
-playervar scores_nodeIndex
+playervar {0}", Custom String("scores_nodeIndex
 playervar open
-playervar checkedNode{0}", Custom String("
+playervar checkedNode
 playervar iter
 playervar current
-playervar currentInExistingPath
+playervar {0}", Custom String("currentInExistingPath
+playervar broadcastTo
 playervar neighbor
 playervar neighborI
-{0}", Custom String("playervar scoreIndex
-playervar score
+playervar scoreIndex
+/*")))));
+            Log To Inspector(Custom String("*/playervar score
 
 
 #Subroutine names
 
 subroutine pfTick
-subroutine pfUpdateNodeMeta/*")))));
-            Log To Inspector(Custom String("*/
-subroutine pfWalkToDestination
+subroutine pfUpdateNodeMeta
+subroutine {0}", Custom String("pfWalkToDestination
 subroutine pfProgressEventPlayer
 subroutine pfRecalibrate
-subroutine {0}", Custom String("pfLookAtDestination
+subroutine pfLookAtDestination
 
-
+{0}", Custom String("
 rule \"【PF Core】Prepare loaded map\":
     waitUntil(pfLoadedMap_nodes, 9999)
-    for{0}", Custom String(" i in range(len(pfLoadedMap_nodes)):
-        pfLoadedMap_nodes[i] = vect(pfLoadedMap_nodes[i].x, {0}", Custom String("floor(pfLoadedMap_nodes[i].y) + (i / 1000 * (-1 if pfLoadedMap_nodes[i].y < 0 else 1)), pfLoadedMap_nodes[i].z)
+    for i in {0}", Custom String("range(len(pfLoadedMap_nodes)):
+        pfLoadedMap_nodes[i] = vect(pfLoadedMap_nodes[i].x, floor(pfLoadedMap_nodes[i].y) + /*")))));
+            Log To Inspector(Custom String("*/(i / 1000 * (-1 if pfLoadedMap_nodes[i].y < 0 else 1)), pfLoadedMap_nodes[i].z)
 
 
-/*")))));
-            Log To Inspector(Custom String("*/rule \"【PF Core】Select next pathfinder\":
-    @Condition (not entityExists(pfExecOwner) or pfExecOwner == null) == {0}", Custom String("true
-    @Condition any([player.pfWait for player in getAllPlayers()]) == true
+rule {0}", Custom String("\"【PF Core】Select next pathfinder\":
+    @Condition (not entityExists(pfExecOwner) or pfExecOwner == null) == true
+{0}", Custom String("    @Condition any([player.pfWait for player in getAllPlayers()]) == true
     
-    pfExecOwner = sorted([player{0}", Custom String(" for player in getAllPlayers() if player.pfWait], lambda i_: i_.pfWait)[0]
+    pfExecOwner = sorted([player for {0}", Custom String("player in getAllPlayers() if player.pfWait], lambda i_: i_.pfWait)[0]
     wait()
     if RULE_CONDITION:
-       {0}", Custom String(" goto RULE_START
+        goto /*")))));
+            Log To Inspector(Custom String("*/RULE_START
 
 
 def pfTick():
     @Name \"【PF Core Subroutine】☞ Tick\"
     
-    /*")))));
-            Log To Inspector(Custom String("*/pfIterationsThisTick -= 1
+    pfIterationsThisTick {0}", Custom String("-= 1
     if pfIterationsThisTick <= 0:
         wait()
-        {0}", Custom String("waitUntil(max(getAverageServerLoad(), getServerLoad()) < 255, 9999)
-        {0}", Custom String("#This determines the pathfinding budget for the current tick.
-        pfIterationsThisTick = (max(getAverageServerLoad(), {0}", Custom String("getServerLoad()) < 230) + 1
-
+        waitUntil(max(getAverageServerLoad(), getServerLoad()){0}", Custom String(" < 255, 0.25)
+        #This determines the pathfinding budget for the current tick.
+        pfIterationsThisTick = {0}", Custom String("((max(getAverageServerLoad(), getServerLoad()) < 230) + ((max(getAverageServerLoad(), getServerLoad()) < 180) * 2)) + 1
+/*")))));
+            Log To Inspector(Custom String("*/
 
 def pfUpdateNodeMeta():
-    @Name \"【PF Core Subroutine】☞ Update node meta\"/*")))));
-            Log To Inspector(Custom String("*/
+    @Name \"【PF Core Subroutine】☞ Update node meta\"
     
-    if eventPlayer.pfCurrentNodeIndex != -1:
-        eventPlayer.pfActiveNode = eventPlayer.pfCurrentNodeIndex{0}", Custom String("
-    if eventPlayer.pfStuckOnNode == 1:
+    if {0}", Custom String("eventPlayer.pfCurrentNodeIndex != -1:
+        eventPlayer.pfActiveNode = eventPlayer.pfCurrentNodeIndex
+    if {0}", Custom String("eventPlayer.pfStuckOnNode == 1:
         eventPlayer.pfStuckOnNode = 0
-    {0}", Custom String("#Update the pathfinding start time.
-    eventPlayer.pfStartTime = getTotalTimeElapsed()
-    {0}", Custom String("eventPlayer.pfWalkingFromPosition = eventPlayer.getPosition()
+    #Update the pathfinding start time.
+    {0}", Custom String("eventPlayer.pfStartTime = getTotalTimeElapsed()
+    eventPlayer.pfWalkingFromPosition = eventPlayer.getPosition()
 
-
+/*")))));
+            Log To Inspector(Custom String("*/
 def pfWalkToDestination():
-    @Name /*")))));
-            Log To Inspector(Custom String("*/\"☆【PF Core Subroutine】☞ Walk to destination\"
+    @Name \"☆【PF Core Subroutine】☞ Walk to destination\"
     
-    {0}", Custom String("eventPlayer.startThrottleInDirection(directionTowards(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition), {0}", Custom String("eventPlayer.pfWalkingToPosition and (eventPlayer.pfCurrentNodeIndex != -1 or distance(eventPlayer.getPosition(), {0}", Custom String("eventPlayer.pfWalkingToPosition) > 0.25), Relativity.TO_WORLD, Throttle.REPLACE_EXISTING, /*")))));
+    {0}", Custom String("eventPlayer.startThrottleInDirection(directionTowards(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition), {0}", Custom String("eventPlayer.pfWalkingToPosition and (eventPlayer.pfCurrentNodeIndex != -1 or distance(eventPlayer.getPosition(), {0}", Custom String("eventPlayer.pfWalkingToPosition) > 0.4), Relativity.TO_WORLD, Throttle.REPLACE_EXISTING, /*")))));
             Log To Inspector(Custom String("*/ThrottleReeval.DIRECTION_AND_MAGNITUDE)
 
 
@@ -5389,237 +5369,223 @@ rule \"【PF Core】Update & Execute\":
             Log To Inspector(String Replace(Custom String("*/\"Error: Attempted to pathfind player ⨁0} without a loaded map.\".format(eventPlayer))
         return
     {0}", Custom String("eventPlayer.pfWait = getTotalTimeElapsed()
-    waitUntil(pfExecOwner == eventPlayer, 9999)
-    {0}", Custom String("#Update saved destination
-    eventPlayer.pfSavedTarget = eventPlayer.pfDestination
-    eventPlayer.goal = {0}", Custom String("floor(((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.pfSavedTarget)).slice(0, 5), lambda/*")))), Custom String("⨁"), Custom String("{")));
-            Log To Inspector(Custom String("*/ i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.pfSavedTarget + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)){0}", Custom String(" * 1000) % 1000)
-    pfTick()
-    if eventPlayer.pfIsPathfinding and eventPlayer.pfCurrentNodeIndex != -1:
-        {0}", Custom String("eventPlayer.pfActiveNode = eventPlayer.pfCurrentNodeIndex
-    else:
-        eventPlayer.pfActiveNode = {0}", Custom String("floor(((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.getPosition())).slice(0, 5), lambda/*")))));
-            Log To Inspector(Custom String("*/ i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.getPosition() + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)){0}", Custom String(" * 1000) % 1000)
+    eventPlayer.pfWasBroadcasted = false
+    waitUntil(pfExecOwner == {0}", Custom String("eventPlayer or eventPlayer.pfWasBroadcasted, 9999)
+    #Update saved destination
+    eventPlayer.pfSavedTarget = {0}", Custom String("eventPlayer.pfDestination
+    if not eventPlayer.pfWasBroadcasted:
+        eventPlayer.goal = /*")))), Custom String("⨁"), Custom String("{")));
+            Log To Inspector(Custom String("*/floor(((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.pfSavedTarget)).slice(0, 5), {0}", Custom String("lambda i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.pfSavedTarget + vect(0, 2, 0), {0}", Custom String("BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)) * 1000) % 1000)
         pfTick()
-    eventPlayer.scores_gScore = [0]
-    eventPlayer.scores_fScore = [0]
-    {0}", Custom String("eventPlayer.scores_parent = [-1]
-    eventPlayer.scores_nodeIndex = [eventPlayer.goal]
-    eventPlayer.open = [0]
-  {0}", Custom String("  eventPlayer.checkedNode = eventPlayer.pfActiveNode
-    eventPlayer.iter = 0
-    while len(eventPlayer.open):
-      /*")))));
-            Log To Inspector(Custom String("*/  #The index of the current node in `scores`.
-        eventPlayer.current = sorted(eventPlayer.open, lambda player: {0}", Custom String("eventPlayer.scores_fScore[player])[0]
-        if eventPlayer.checkedNode != eventPlayer.pfActiveNode:
-            {0}", Custom String("eventPlayer.checkedNode = eventPlayer.scores_nodeIndex.index(eventPlayer.pfActiveNode)
-            if {0}", Custom String("eventPlayer.checkedNode != -1:
-                eventPlayer.current = eventPlayer.checkedNode
+        if eventPlayer.pfIsPathfinding and{0}", Custom String(" eventPlayer.pfCurrentNodeIndex != -1:
+            eventPlayer.pfActiveNode = eventPlayer.pfCurrentNodeIndex
+        /*")))));
+            Log To Inspector(Custom String("*/else:
+            eventPlayer.pfActiveNode = floor(((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: {0}", Custom String("distance(player, eventPlayer.getPosition())).slice(0, 5), lambda i_: not isInLoS(i_ + vect(0, 2, 0), {0}", Custom String("eventPlayer.getPosition() + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)) * 1000) % 1000)
+            {0}", Custom String("pfTick()
+        eventPlayer.scores_gScore = [0]
+        eventPlayer.scores_fScore = [0]
+        /*")))));
+            Log To Inspector(Custom String("*/eventPlayer.scores_parent = [-1]
+        eventPlayer.scores_nodeIndex = [eventPlayer.goal]
+        eventPlayer.open ={0}", Custom String(" [0]
+        eventPlayer.checkedNode = eventPlayer.pfActiveNode
+        eventPlayer.iter = 0
+        while {0}", Custom String("len(eventPlayer.open):
+            #The index of the current node in `scores`.
+            eventPlayer.current = {0}", Custom String("sorted(eventPlayer.open, lambda player: eventPlayer.scores_fScore[player])[0]
+            if eventPlayer.checkedNode != /*")))));
+            Log To Inspector(Custom String("*/eventPlayer.pfActiveNode:
+                eventPlayer.checkedNode = {0}", Custom String("eventPlayer.scores_nodeIndex.index(eventPlayer.pfActiveNode)
+                if eventPlayer.checkedNode != -1:
+        {0}", Custom String("            eventPlayer.current = eventPlayer.checkedNode
+                    eventPlayer.checkedNode = -2
+            {0}", Custom String("    else:
+                    eventPlayer.checkedNode = eventPlayer.pfActiveNode
+            /*")))));
+            Log To Inspector(Custom String("*/eventPlayer.currentInExistingPath = eventPlayer.pfPath.index(eventPlayer.scores_nodeIndex[eventPlayer.current])
+        {0}", Custom String("    #If the goal was found, reconstruct the path.
+            if eventPlayer.scores_nodeIndex[eventPlayer.current] == {0}", Custom String("eventPlayer.pfActiveNode or eventPlayer.checkedNode == -2 or eventPlayer.currentInExistingPath != -1:
+                if {0}", Custom String("eventPlayer.currentInExistingPath == -1:
+                    eventPlayer.pfPath = []
+                else:
+          /*")))));
+            Log To Inspector(Custom String("*/          eventPlayer.pfPath = eventPlayer.pfPath.slice(0, eventPlayer.currentInExistingPath)
+                while {0}", Custom String("eventPlayer.current != -1:
+                    {0}", Custom String("eventPlayer.pfPath.append(eventPlayer.scores_nodeIndex[eventPlayer.current])
+                    eventPlayer.current = {0}", Custom String("eventPlayer.scores_parent[eventPlayer.current]
+                eventPlayer.pfPath.append([-1])
                 /*")))));
-            Log To Inspector(Custom String("*/eventPlayer.checkedNode = -2
-            else:
-                eventPlayer.checkedNode = eventPlayer.pfActiveNode
-{0}", Custom String("        eventPlayer.currentInExistingPath = eventPlayer.pfPath.index(eventPlayer.scores_nodeIndex[eventPlayer.current])
-  {0}", Custom String("      #If the goal was found, reconstruct the path.
-        if eventPlayer.scores_nodeIndex[eventPlayer.current] == {0}", Custom String("eventPlayer.pfActiveNode or eventPlayer.checkedNode == -2 or eventPlayer.currentInExistingPath != -1:
-            if /*")))));
-            Log To Inspector(Custom String("*/eventPlayer.currentInExistingPath == -1:
-                eventPlayer.pfPath = []
-            else:
-               {0}", Custom String(" eventPlayer.pfPath = eventPlayer.pfPath.slice(0, eventPlayer.currentInExistingPath)
-            while eventPlayer.current{0}", Custom String(" != -1:
-                eventPlayer.pfPath.append(eventPlayer.scores_nodeIndex[eventPlayer.current])
-                {0}", Custom String("eventPlayer.current = eventPlayer.scores_parent[eventPlayer.current]
-            eventPlayer.pfPath.append([-1])
+            Log To Inspector(Custom String("*/eventPlayer.broadcastTo = [player for player in getPlayersInRadius(eventPlayer.getPosition() + Vector.UP, 4, Team.ALL, {0}", Custom String("LosCheck.OFF) if player != eventPlayer and player.pfWait and distance(player.pfDestination, eventPlayer.pfDestination) < 4 {0}", Custom String("and player.pfPlayerAttributes == eventPlayer.pfPlayerAttributes]
+                eventPlayer.broadcastTo.pfPath = {0}", Custom String("eventPlayer.pfPath
+                eventPlayer.broadcastTo.pfWasBroadcasted = true
+                goto lbl_0
        /*")))));
-            Log To Inspector(Custom String("*/     goto lbl_0
-        eventPlayer.open.remove(eventPlayer.current)
-        {0}", Custom String("#Check each neighbor to the current node.
-        for eventPlayer.neighbor in {0}", Custom String("range(len(pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]])):
-            {0}", Custom String("#The neighbor index to be used like `pfLoadedMap.nodes[neighborI]`.
-            eventPlayer.neighborI = /*")))));
-            Log To Inspector(Custom String("*/pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]][eventPlayer.neighbor][0]
-            {0}", Custom String("eventPlayer.scoreIndex = eventPlayer.scores_nodeIndex.index(eventPlayer.neighborI)
-            {0}", Custom String("#Ensure that the path to the neighbor is enabled.
-            if {0}", Custom String("len(pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]][eventPlayer.neighbor][1]) == 0 or any([i_ in /*")))));
-            Log To Inspector(Custom String("*/eventPlayer.pfPlayerAttributes for i_ in {0}", Custom String("pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]][eventPlayer.neighbor][1]]):
-                {0}", Custom String("eventPlayer.score = eventPlayer.scores_gScore[eventPlayer.current] + {0}", Custom String("distance(pfLoadedMap_nodes[eventPlayer.scores_nodeIndex[eventPlayer.current]], pfLoadedMap_nodes[eventPlayer.neighborI])
-  /*")))));
-            Log To Inspector(Custom String("*/              #Get neighbor index in scores.
-                {0}", Custom String("#If -1, the neighbor was not added to the score list yet.
-                if eventPlayer.scoreIndex == -1:
-            {0}", Custom String("        #Note: not required after debugging.
-                    eventPlayer.open.append(len(eventPlayer.scores_gScore)){0}", Custom String("
-                    eventPlayer.scores_gScore.append(eventPlayer.score)
+            Log To Inspector(Custom String("*/     eventPlayer.open.remove(eventPlayer.current)
+            #Check each neighbor to the current node.
+            {0}", Custom String("for eventPlayer.neighbor in range(len(pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]])):
+        {0}", Custom String("        #The neighbor index to be used like `pfLoadedMap.nodes[neighborI]`.
+                eventPlayer.neighborI = {0}", Custom String("pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]][eventPlayer.neighbor][0]
+                /*")))));
+            Log To Inspector(Custom String("*/eventPlayer.scoreIndex = eventPlayer.scores_nodeIndex.index(eventPlayer.neighborI)
+                {0}", Custom String("#Ensure that the path to the neighbor is enabled.
+                if {0}", Custom String("len(pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]][eventPlayer.neighbor][1]) == 0 or any([i_ in {0}", Custom String("eventPlayer.pfPlayerAttributes for i_ in /*")))));
+            Log To Inspector(Custom String("*/pfLoadedMap_neighbors[eventPlayer.scores_nodeIndex[eventPlayer.current]][eventPlayer.neighbor][1]]):
+                   {0}", Custom String(" eventPlayer.score = eventPlayer.scores_gScore[eventPlayer.current] + {0}", Custom String("distance(pfLoadedMap_nodes[eventPlayer.scores_nodeIndex[eventPlayer.current]], pfLoadedMap_nodes[eventPlayer.neighborI])
+ {0}", Custom String("                   #Get neighbor index in scores.
                     /*")))));
+            Log To Inspector(Custom String("*/#If -1, the neighbor was not added to the score list yet.
+                    if eventPlayer.scoreIndex == -1:
+      {0}", Custom String("                  #Note: not required after debugging.
+                        {0}", Custom String("eventPlayer.open.append(len(eventPlayer.scores_gScore))
+                        {0}", Custom String("eventPlayer.scores_gScore.append(eventPlayer.score)
+                        /*")))));
             Log To Inspector(Custom String("*/eventPlayer.scores_fScore.append(eventPlayer.score + distance(pfLoadedMap_nodes[eventPlayer.neighborI], {0}", Custom String("pfLoadedMap_nodes[eventPlayer.pfActiveNode]) * 20)
-                    {0}", Custom String("eventPlayer.scores_parent.append(eventPlayer.current)
-                    {0}", Custom String("eventPlayer.scores_nodeIndex.append(eventPlayer.neighborI)
-                elif eventPlayer.score < /*")))));
+                        {0}", Custom String("eventPlayer.scores_parent.append(eventPlayer.current)
+                        {0}", Custom String("eventPlayer.scores_nodeIndex.append(eventPlayer.neighborI)
+                    elif eventPlayer.score < /*")))));
             Log To Inspector(Custom String("*/eventPlayer.scores_gScore[eventPlayer.scoreIndex]:
-                    eventPlayer.scores_gScore[eventPlayer.scoreIndex]{0}", Custom String(" = eventPlayer.score
-                    eventPlayer.scores_fScore[eventPlayer.scoreIndex] = eventPlayer.score + {0}", Custom String("distance(pfLoadedMap_nodes[eventPlayer.neighborI], pfLoadedMap_nodes[eventPlayer.pfActiveNode]) * 20
-                    {0}", Custom String("eventPlayer.scores_parent[eventPlayer.scoreIndex] = eventPlayer.current
-                    /*")))));
-            Log To Inspector(Custom String("*/eventPlayer.scores_nodeIndex[eventPlayer.scoreIndex] = eventPlayer.neighborI
-                    if not {0}", Custom String("eventPlayer.scoreIndex in eventPlayer.open:
-                        eventPlayer.open.append(eventPlayer.scoreIndex)
-   {0}", Custom String("         pfTick()
-        eventPlayer.iter += 1
-    lbl_0:
+                        {0}", Custom String("eventPlayer.scores_gScore[eventPlayer.scoreIndex] = eventPlayer.score
+                        {0}", Custom String("eventPlayer.scores_fScore[eventPlayer.scoreIndex] = eventPlayer.score + distance(pfLoadedMap_nodes[eventPlayer.neighborI], {0}", Custom String("pfLoadedMap_nodes[eventPlayer.pfActiveNode]) * 20
+                        eventPlayer.scores_parent[eventPlayer.scoreIndex]/*")))));
+            Log To Inspector(Custom String("*/ = eventPlayer.current
+                        eventPlayer.scores_nodeIndex[eventPlayer.scoreIndex] = {0}", Custom String("eventPlayer.neighborI
+                        if not eventPlayer.scoreIndex in eventPlayer.open:
+                      {0}", Custom String("      eventPlayer.open.append(eventPlayer.scoreIndex)
+                pfTick()
+            eventPlayer.iter += 1
+   {0}", Custom String("     lbl_0:
     eventPlayer.pfIsPathfinding = true
-    {0}", Custom String("eventPlayer.pfCurrentNodeIndex = eventPlayer.pfPath[0]
-    eventPlayer.pfWalkingToPosition = /*")))));
-            Log To Inspector(Custom String("*/pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]
+    eventPlayer.pfCurrentNodeIndex = eventPlayer.pfPath[0]
+    /*")))));
+            Log To Inspector(Custom String("*/eventPlayer.pfWalkingToPosition = pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]
     pfUpdateNodeMeta()
-    pfWalkToDestination()
-    pfExecOwner{0}", Custom String(" = null
+    {0}", Custom String("pfWalkToDestination()
+    pfExecOwner = null
     eventPlayer.pfWait = null
     wait(2)
     if RULE_CONDITION:
-        goto RULE_START
-
-
-rule {0}", Custom String("\"【PF Core】Shift destination\":
-    @Event eachPlayer
-    @Condition eventPlayer.pfIsPathfinding == true
-    {0}", Custom String("@Condition eventPlayer.pfWalkingToPosition != eventPlayer.pfDestination
-    @Condition eventPlayer.pfCurrentNodeIndex == -1/*")))));
-            Log To Inspector(Custom String("*/
-    
-    if distance(eventPlayer.pfSavedTarget, eventPlayer.pfDestination) < 5 and isInLoS(eventPlayer.pfSavedTarget{0}", Custom String(" + vect(0, 0.25, 0), eventPlayer.pfDestination + vect(0, 0.25, 0), BarrierLos.PASS_THROUGH_BARRIERS):
-        {0}", Custom String("eventPlayer.pfWalkingToPosition = eventPlayer.pfDestination
-    wait(2)
-    if RULE_CONDITION:
-        goto {0}", Custom String("RULE_START
+{0}", Custom String("        goto RULE_START
 
 
 def pfProgressEventPlayer():
-    @Name \"【PF Core Subroutine】☞ Progress event player\"
-    /*")))));
-            Log To Inspector(Custom String("*/
+    @Name {0}", Custom String("\"【PF Core Subroutine】☞ Progress event player\"
+    
     if len(eventPlayer.pfPath) == 0:
-        goto lbl_0
+        goto lbl_0/*")))));
+            Log To Inspector(Custom String("*/
     #Pop the current path.
-    del {0}", Custom String("eventPlayer.pfPath[0]
+    del eventPlayer.pfPath[0]
     #Update the current pathfind attributes.
-    if len(eventPlayer.pfPath) and {0}", Custom String("eventPlayer.pfPath[0] != -1:
-        #Any rules watching these with the matching condition will activate.
-        {0}", Custom String("eventPlayer.pfAttributes = (([i_ for i_ in pfLoadedMap_neighbors[eventPlayer.pfPath[0]] if i_[0] == /*")))));
-            Log To Inspector(Custom String("*/eventPlayer.pfCurrentNodeIndex])[0]).last()
+    if {0}", Custom String("len(eventPlayer.pfPath) and eventPlayer.pfPath[0] != -1:
+        {0}", Custom String("#Any rules watching these with the matching condition will activate.
+        eventPlayer.pfAttributes = (([i_ for i_ in {0}", Custom String("pfLoadedMap_neighbors[eventPlayer.pfPath[0]] if i_[0] == eventPlayer.pfCurrentNodeIndex])[0]).last()
     else:
-        eventPlayer.pfAttributes = []
-    {0}", Custom String("#Go to the next node in the path.
-    eventPlayer.pfCurrentNodeIndex = eventPlayer.pfPath[0]
-    {0}", Custom String("#Set the position that the player is currently walking towards.
-    eventPlayer.pfWalkingToPosition = {0}", Custom String("(eventPlayer.pfDestination if distance(eventPlayer.pfDestination, eventPlayer.pfSavedTarget) <= 4 else /*")))));
-            Log To Inspector(Custom String("*/eventPlayer.getPosition()) if eventPlayer.pfCurrentNodeIndex == -1 else pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]{0}", Custom String("
+        /*")))));
+            Log To Inspector(Custom String("*/eventPlayer.pfAttributes = []
+    #Go to the next node in the path.
+    eventPlayer.pfCurrentNodeIndex = {0}", Custom String("eventPlayer.pfPath[0]
+    #Set the position that the player is currently walking towards.
+    {0}", Custom String("eventPlayer.pfWalkingToPosition = (eventPlayer.pfDestination if distance(eventPlayer.pfDestination, {0}", Custom String("eventPlayer.pfSavedTarget) <= 4 else eventPlayer.getPosition()) if eventPlayer.pfCurrentNodeIndex == -1 else /*")))));
+            Log To Inspector(Custom String("*/pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]
     pfUpdateNodeMeta()
     lbl_0:
 
 
-rule \"【PF Core】Node reached\":
+rule {0}", Custom String("\"【PF Core】Node reached\":
     @Event eachPlayer
-    {0}", Custom String("@Condition eventPlayer.pfIsPathfinding == true
+    @Condition eventPlayer.pfIsPathfinding == true
+    {0}", Custom String("@Condition eventPlayer.pfWalkingToPosition == true
     @Condition distance(eventPlayer.getPosition() * vect(1, [], 1), {0}", Custom String("eventPlayer.pfWalkingToPosition * vect(1, [], 1)) <= 0.4
     @Condition abs(eventPlayer.getPosition().y - /*")))));
             Log To Inspector(Custom String("*/eventPlayer.pfWalkingToPosition.y) <= 1.5
     @Condition len(eventPlayer.pfPath) > 0
     @Condition {0}", Custom String("eventPlayer.pfCurrentNodeIndex != -1
     
-    #The player reached the next node in the path to the destination.
-    {0}", Custom String("if eventPlayer.pfCurrentNodeIndex == -1:
-        #The destination was reached, stop pathfinding.
-        {0}", Custom String("eventPlayer.pfIsPathfinding = false
-    else:
-        pfProgressEventPlayer()
+    pfProgressEventPlayer()
     wait(0.2)
-    if RULE_CONDITION:/*")))));
-            Log To Inspector(Custom String("*/
-        goto RULE_START
+    if RULE_CONDITION:
+   {0}", Custom String("     goto RULE_START
 
 
 rule \"【PF Core】Stop throttle when pfDestination is reset\":
-    @Event {0}", Custom String("eachPlayer
-    @Condition eventPlayer.pfIsPathfinding == true
+    @Event eachPlayer
+{0}", Custom String("    @Condition eventPlayer.pfIsPathfinding == true
     @Condition eventPlayer.pfDestination == null
-    {0}", Custom String("
-    eventPlayer.stopThrottleInDirection()
+    
+    /*")))));
+            Log To Inspector(Custom String("*/eventPlayer.stopThrottleInDirection()
     eventPlayer.pfIsPathfinding = false
-    eventPlayer.pfSavedTarget = {0}", Custom String("null
+    eventPlayer.pfSavedTarget = null{0}", Custom String("
 
 
 def pfRecalibrate():
     @Name \"【PF Core Subroutine】☞ Recalibrate\"
     
-    /*")))));
-            Log To Inspector(Custom String("*/eventPlayer.stopThrottleInDirection()
+    {0}", Custom String("eventPlayer.stopThrottleInDirection()
     eventPlayer.pfCurrentNodeIndex = -1
-    eventPlayer.pfSavedTarget = null{0}", Custom String("
-    eventPlayer.pfIsPathfinding = false
+    eventPlayer.pfSavedTarget = null
+ {0}", Custom String("   eventPlayer.pfIsPathfinding = false
     eventPlayer.pfWalkingToPosition = eventPlayer.getPosition()
 
 
-rule {0}", Custom String("\"【PF Core】Recalibrate when off the path\":
+rule /*")))));
+            Log To Inspector(Custom String("*/\"【PF Core】Insurance\":
     @Event eachPlayer
-    @Condition eventPlayer.pfIsPathfinding == {0}", Custom String("true
-    @Condition distance((eventPlayer.pfWalkingFromPosition + eventPlayer.pfWalkingToPosition) / 2, eventPlayer) > /*")))));
-            Log To Inspector(Custom String("*/(distance(eventPlayer.pfWalkingFromPosition, eventPlayer.pfWalkingToPosition) + 2) * 1.2
+    @Condition eventPlayer.pfIsPathfinding == true
+    {0}", Custom String("@Condition eventPlayer.pfWalkingToPosition == true
     
-    wait(1, {0}", Custom String("Wait.ABORT_WHEN_FALSE)
-    pfRecalibrate()
-
-
-rule \"【PF Core】Smooth step\":
-    @Event eachPlayer
-    {0}", Custom String("@Condition eventPlayer.pfIsPathfinding == true
-    @Condition len(eventPlayer.pfPath) == 2
-    @Condition {0}", Custom String("distance(eventPlayer, eventPlayer.pfSavedTarget) < distance(eventPlayer.pfWalkingToPosition, eventPlayer.pfSavedTarget)
-   /*")))));
-            Log To Inspector(Custom String("*/ @Condition isInLoS(eventPlayer.getPosition() + vect(0, 0.25, 0), eventPlayer.pfSavedTarget + vect(0, 0.25, 0), {0}", Custom String("BarrierLos.PASS_THROUGH_BARRIERS) == true
-    
-    pfProgressEventPlayer()
-
-
-rule {0}", Custom String("\"【PF Core】Recover when stuck or time to next node takes longer than expected\":
-    @Event eachPlayer
-    {0}", Custom String("@Condition eventPlayer.pfIsPathfinding == true
-    @Condition distance(eventPlayer.getPosition(), /*")))));
-            Log To Inspector(Custom String("*/eventPlayer.pfWalkingToPosition) > 0.4
-    @Condition (magnitude(eventPlayer.getVelocity()) < 3 or {0}", Custom String("distance(eventPlayer.pfWalkingFromPosition, eventPlayer.pfWalkingToPosition) - (4.95 * (getTotalTimeElapsed() - {0}", Custom String("eventPlayer.pfStartTime)) < 0) == true
-    @Condition (not eventPlayer.hasStatusEffect(Status.ROOTED)) == true
-    {0}", Custom String("@Condition (not eventPlayer.hasStatusEffect(Status.FROZEN)) == true
-    @Condition (not /*")))));
-            Log To Inspector(Custom String("*/eventPlayer.hasStatusEffect(Status.ASLEEP)) == true
-    @Condition (not {0}", Custom String("eventPlayer.hasStatusEffect(Status.KNOCKED_DOWN)) == true
-    @Condition (not eventPlayer.hasStatusEffect(Status.STUNNED)){0}", Custom String(" == true
-    
-    #Ensure condition is true for at least 2 seconds.
-    wait(2, Wait.ABORT_WHEN_FALSE)
-    {0}", Custom String("#When the bot gets stuck while pathfinding,
-    if eventPlayer.pfStuckOnNode - 2 == eventPlayer.pfCurrentNodeIndex:
-    /*")))));
-            Log To Inspector(String Replace(Custom String("*/    if eventPlayer.pfCurrentNodeIndex != -1:
-            printLog({0}", Custom String("\"Pathfinder ⨁0} struggled to reach node ⨁1} at ⨁2}. Try adjusting your map in the editor.\".format(eventPlayer, {0}", Custom String("eventPlayer.pfCurrentNodeIndex, pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]))
-        {0}", Custom String("eventPlayer.teleport(eventPlayer.pfWalkingToPosition)
-    else:
-        eventPlayer.pfStuckOnNode = /*")))), Custom String("⨁"), Custom String("{")));
-            Log To Inspector(Custom String("*/eventPlayer.pfCurrentNodeIndex + 2
+    #Recalibrate
+    if {0}", Custom String("distance((eventPlayer.pfWalkingFromPosition + eventPlayer.pfWalkingToPosition) / 2, eventPlayer) > {0}", Custom String("(distance(eventPlayer.pfWalkingFromPosition, eventPlayer.pfWalkingToPosition) + 2) * 1.2:
         pfRecalibrate()
+      /*")))));
+            Log To Inspector(Custom String("*/  #Smooth step
+    elif len(eventPlayer.pfPath) == 2 and distance(eventPlayer, eventPlayer.pfSavedTarget) < {0}", Custom String("distance(eventPlayer.pfWalkingToPosition, eventPlayer.pfSavedTarget) and isInLoS(eventPlayer.getPosition() + vect(0, 0.25, {0}", Custom String("0), eventPlayer.pfSavedTarget + vect(0, 0.25, 0), BarrierLos.PASS_THROUGH_BARRIERS):
+        pfProgressEventPlayer()
+  {0}", Custom String("      #Recovery
+    elif distance(eventPlayer, eventPlayer.pfWalkingToPosition) > 0.25 and eventPlayer.pfIsStuck or /*")))));
+            Log To Inspector(Custom String("*/distance(eventPlayer.pfWalkingFromPosition, eventPlayer.pfWalkingToPosition) - (4.95 * (getTotalTimeElapsed() - {0}", Custom String("eventPlayer.pfStartTime)) < 0 and not eventPlayer.hasStatusEffect(Status.ROOTED) and not {0}", Custom String("eventPlayer.hasStatusEffect(Status.FROZEN) and not eventPlayer.hasStatusEffect(Status.ASLEEP) and not {0}", Custom String("eventPlayer.hasStatusEffect(Status.KNOCKED_DOWN) and not eventPlayer.hasStatusEffect(Status.STUNNED):
+        if /*")))));
+            Log To Inspector(String Replace(Custom String("*/eventPlayer.pfCurrentNodeIndex == -1:
+            eventPlayer.pfWalkingToPosition = null
+        elif {0}", Custom String("eventPlayer.pfStuckOnNode - 2 == eventPlayer.pfCurrentNodeIndex:
+            printLog({0}", Custom String("\"Pathfinder ⨁0} struggled to reach node ⨁1} at ⨁2}. Try adjusting your map in the editor.\".format(eventPlayer, {0}", Custom String("eventPlayer.pfCurrentNodeIndex, pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]))
+            /*")))), Custom String("⨁"), Custom String("{")));
+            Log To Inspector(Custom String("*/eventPlayer.teleport(eventPlayer.pfWalkingToPosition)
+        else:
+            eventPlayer.pfStuckOnNode = {0}", Custom String("eventPlayer.pfCurrentNodeIndex + 2
+            pfRecalibrate()
+        #Shift destination
+    elif {0}", Custom String("eventPlayer.pfWalkingToPosition != eventPlayer.pfDestination and eventPlayer.pfCurrentNodeIndex == -1 and {0}", Custom String("distance(eventPlayer.pfSavedTarget, eventPlayer.pfDestination) < 5 and isInLoS(eventPlayer.pfSavedTarget + Vector.UP, /*")))));
+            Log To Inspector(Custom String("*/eventPlayer.pfDestination + Vector.UP, BarrierLos.PASS_THROUGH_BARRIERS):
+        eventPlayer.pfWalkingToPosition = {0}", Custom String("eventPlayer.pfDestination
+    wait(2)
     if RULE_CONDITION:
         goto RULE_START
 
-{0}", Custom String("
-def pfLookAtDestination():
+
+rule {0}", Custom String("\"【PF Core】Check throttle\":
+    @Event eachPlayer
+    @Condition eventPlayer.pfIsPathfinding == true
+    {0}", Custom String("@Condition magnitude(eventPlayer.getVelocity()) < 3
+    
+    wait(2.1, Wait.ABORT_WHEN_FALSE)
+    /*")))));
+            Log To Inspector(Custom String("*/eventPlayer.pfIsStuck = true
+    waitUntil(not eventPlayer.pfWalkingToPosition or not eventPlayer.pfIsPathfinding or {0}", Custom String("magnitude(eventPlayer.getVelocity()) >= 3, 9999)
+    eventPlayer.pfIsStuck = false
+
+
+def pfLookAtDestination():{0}", Custom String("
     @Name \"☆【PF Core Subroutine】☞ Look at destination\"
     
     {0}", Custom String("#Calling this subroutine will make the player look to the point they are walking towards.
-    {0}", Custom String("eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition() * (vect(1, [], 1) if distance(eventPlayer.getPosition(),/*")))));
-            Log To Inspector(Custom String("*/ eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1)), (eventPlayer.pfWalkingToPosition + vect(0, 1.5, 0)) * (vect(1, {0}", Custom String("[], 1) if distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1))), 500, {0}", Custom String("Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)
+    /*")))));
+            Log To Inspector(Custom String("*/eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition() * (vect(1, [], 1) if {0}", Custom String("distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1)), {0}", Custom String("(eventPlayer.pfWalkingToPosition + vect(0, 1.5, 0)) * (vect(1, [], 1) if distance(eventPlayer.getPosition(), {0}", Custom String("eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1))), 500, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)
+/*")))));
+            Log To Inspector(Custom String("*/
 
-
-/*"))));
+/*"));
         End;
     }
 }
@@ -6172,12 +6138,12 @@ rule("lambda")
         Skip(335);
         Set Global Variable(objectiveDescription, Null);
         Set Global Variable(lines_Type, Array(2, 1, 0));
-        Set Global Variable(lines_Content, Array(Array(Custom String("Import code: GZWF9"), Color(Orange)), Array(Custom String("v1.0.0"), Color(Sky Blue)), Array(Custom String("Initial Release"), Color(White))));
+        Set Global Variable(lines_Content, Array(Array(Custom String("Import code: hp2dg"), Color(Orange)), Array(Custom String("v1.0.0"), Color(Sky Blue)), Array(Custom String("Initial Release"), Color(White))));
         Call Subroutine(showMessage);
         Skip(330);
         Set Global Variable(objectiveDescription, Null);
         Set Global Variable(lines_Type, Array(1, 0, 2, 1, 0, 0, 1, 0, 1, 0));
-        Set Global Variable(lines_Content, Array(Array(Custom String("Pathmap Editor v1.0.0"), Color(Lime Green)), Array(Custom String("https://github.com/ItsDeltin/Pathmap-editor\n"), Color(Blue)), Array(Custom String("  ☆ Credits ☆  "), Color(Rose)), Array(Custom String("Created by Deltin"), Color(Sky Blue)), Array(Custom String("with Overwatch Script To Workshop"), Color(White)), Array(Custom String("https://github.com/ItsDeltin/Overwatch-Script-To-Workshop\n"), Color(Blue)), Array(Custom String("Josbird"), Color(Orange)), Array(Custom String("- Cursor menu library\n- Noclip\n"), Color(White)), Array(Custom String("Zezombye"), Color(Yellow)), Array(Custom String("- Map symmetry data\n- overpy"), Color(White))));
+        Set Global Variable(lines_Content, Array(Array(Custom String("Pathmap Editor v1.0.1"), Color(Lime Green)), Array(Custom String("https://github.com/ItsDeltin/Pathmap-editor\n"), Color(Blue)), Array(Custom String("  ☆ Credits ☆  "), Color(Rose)), Array(Custom String("Created by Deltin"), Color(Sky Blue)), Array(Custom String("with Overwatch Script To Workshop"), Color(White)), Array(Custom String("https://github.com/ItsDeltin/Overwatch-Script-To-Workshop\n"), Color(Blue)), Array(Custom String("Josbird"), Color(Orange)), Array(Custom String("- Cursor menu library\n- Noclip\n"), Color(White)), Array(Custom String("Zezombye"), Color(Yellow)), Array(Custom String("- Map symmetry data\n- overpy"), Color(White))));
         Call Subroutine(showMessage);
         Skip(325);
         Set Global Variable(pages, Array(Array(47, Last Of(Global Variable(func_group))), Array(48, Last Of(Global Variable(func_group))), Array(49, Last Of(Global Variable(func_group))), Array(50, Last Of(Global Variable(func_group))), Array(51, Last Of(Global Variable(func_group)))));

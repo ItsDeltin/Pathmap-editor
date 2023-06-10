@@ -356,6 +356,30 @@ if (!host.cm_isInMenu)
     connectingFromNode = -1;
 }
 
+rule: 'Editor: Move node'
+Event.OngoingPlayer
+if (button(Button.Reload))
+if (isHost)
+if (editorState == EditorState.Node)
+if (connectingFromNode != -1)
+if (SelectedNodeID == -1)
+if (!host.cm_isInMenu)
+{
+    // These expressions are stored in macros so that they are captured.
+    Number id: Nodes[connectingFromNode].Node.UniqueID;
+    Vector oldPos: Nodes[connectingFromNode].Node.Position;
+    Vector newPos: watchPoint;
+
+    Document({
+        Set: () => {
+            Nodes[NodeIndexFromID(id)].Node.Position = newPos;
+        },
+        Revert: () => {
+            Nodes[NodeIndexFromID(id)].Node.Position = oldPos;
+        }
+    });
+}
+
 rule: 'Editor: Place dummy'
 if (button(Button.PrimaryFire))
 if (editorState == EditorState.PlaceDummy)
@@ -412,9 +436,9 @@ rule: 'Editor: tutorial' 1000
         SelectedNodeIndex != -1
     );
     AddControlText(
-        'Pathfind to cursor',
+        connectingFromNode != -1 ? 'Move node' : 'Pathfind to cursor',
         Button.Reload,
-        AllPlayers().IsTrueForAny(p => p.dummySelected)
+        connectingFromNode != -1 || AllPlayers().IsTrueForAny(p => p.dummySelected)
     );
     AddControlText(
         'Destroy dummy bot',

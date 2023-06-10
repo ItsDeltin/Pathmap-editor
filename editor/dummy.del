@@ -57,6 +57,7 @@ if (button(Button.Melee))
 rule: 'Pathfind: Pathfind selected dummies'
 Event.OngoingPlayer
 if (isHost)
+if (connectingFromNode == -1)
 if (button(Button.Reload))
 if (selectedDummies.Length)
 if (!pathfinderActive)

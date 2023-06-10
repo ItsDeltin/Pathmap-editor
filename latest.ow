@@ -2280,6 +2280,35 @@ rule("Editor: Cancel link")
     }
 }
 
+rule("Editor: Move node")
+{
+
+    event
+    {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+
+    conditions
+    {
+        Is Button Held(Host Player, Button(Reload)) == True;
+        Host Player == Event Player;
+        Value In Array(Global Variable(_extendedGlobalCollection), 12) == 0;
+        Global Variable(connectingFromNode) != -1;
+        Global Variable(SelectedNodeID) == -1;
+        Not(Player Variable(Host Player, cm_isInMenu)) == True;
+    }
+
+    // Action count: 3
+    actions
+    {
+        Set Player Variable(Event Player, catalogItem_Set, Array(33, Null, Value In Array(Global Variable(Nodes_Node_UniqueID), Global Variable(connectingFromNode)), Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Null, False)));
+        Set Player Variable(Event Player, catalogItem_Revert, Array(34, Null, Value In Array(Global Variable(Nodes_Node_UniqueID), Global Variable(connectingFromNode)), Value In Array(Global Variable(Nodes_Node_Position), Global Variable(connectingFromNode))));
+        Call Subroutine(Document);
+    }
+}
+
 rule("Editor: Place dummy")
 {
 
@@ -2618,6 +2647,7 @@ rule("Pathfind: Pathfind selected dummies")
     conditions
     {
         Host Player == Event Player;
+        Global Variable(connectingFromNode) == -1;
         Is Button Held(Host Player, Button(Reload)) == True;
         Count Of(Filtered Array(All Players(All Teams), And(Is Dummy Bot(Current Array Element), Player Variable(Current Array Element, dummySelected)))) == True;
         Not(Value In Array(Global Variable(_extendedGlobalCollection), 14)) == True;
@@ -2840,8 +2870,8 @@ rule("CM: Delete action")
         End;
         Set Global Variable(actionsSelected, Empty Array);
         Set Player Variable At Index(Event Player, _extendedPlayerCollection, 27, Value In Array(Global Variable(_extendedGlobalCollection), 15));
-        Set Player Variable(Event Player, catalogItem_Set, Array(33, Null, Player Variable(Event Player, deleting_Data), Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 27), Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 26)));
-        Set Player Variable(Event Player, catalogItem_Revert, Array(34, Null, Player Variable(Event Player, deleting_Data), Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 27), Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 26)));
+        Set Player Variable(Event Player, catalogItem_Set, Array(35, Null, Player Variable(Event Player, deleting_Data), Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 27), Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 26)));
+        Set Player Variable(Event Player, catalogItem_Revert, Array(36, Null, Player Variable(Event Player, deleting_Data), Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 27), Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 26)));
         Call Subroutine(Document);
     }
 }
@@ -2913,8 +2943,8 @@ rule("CM: Create rule")
     actions
     {
         Set Global Variable At Index(_extendedGlobalCollection, 15, Count Of(Global Variable(Rules_Actions_Data)));
-        Set Player Variable(Event Player, catalogItem_Set, Array(35, Null));
-        Set Player Variable(Event Player, catalogItem_Revert, Array(36, Null));
+        Set Player Variable(Event Player, catalogItem_Set, Array(37, Null));
+        Set Player Variable(Event Player, catalogItem_Revert, Array(38, Null));
         Call Subroutine(Document);
     }
 }
@@ -2970,8 +3000,8 @@ rule("CM: Wait confirm")
     actions
     {
         Set Player Variable At Index(Event Player, _extendedPlayerCollection, 28, Value In Array(Global Variable(_extendedGlobalCollection), 15));
-        Set Player Variable(Event Player, catalogItem_Set, Array(37, Null, Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 28), Array(0, Value In Array(Global Variable(_extendedGlobalCollection), 25))));
-        Set Player Variable(Event Player, catalogItem_Revert, Array(38, Null, Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 28)));
+        Set Player Variable(Event Player, catalogItem_Set, Array(39, Null, Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 28), Array(0, Value In Array(Global Variable(_extendedGlobalCollection), 25))));
+        Set Player Variable(Event Player, catalogItem_Revert, Array(40, Null, Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 28)));
         Call Subroutine(Document);
         Set Global Variable(newState, 3);
         Call Subroutine(SetMenuState);
@@ -3078,7 +3108,7 @@ rule("Subroutine: Open Add Action menu")
         Set Global Variable At Index(_objectVariable_3, Value In Array(Global Variable(_extendedGlobalCollection), 59), Value In Array(Player Variable(Host Player, _extendedPlayerCollection), 8));
         Set Global Variable At Index(_objectVariable_2, Value In Array(Global Variable(_extendedGlobalCollection), 59), Mapped Array(Value In Array(Global Variable(_objectVariable_3), Value In Array(Global Variable(_extendedGlobalCollection), 59)), Color(White)));
         Set Global Variable At Index(_objectVariable_4, Value In Array(Global Variable(_extendedGlobalCollection), 59), Mapped Array(Value In Array(Global Variable(_objectVariable_3), Value In Array(Global Variable(_extendedGlobalCollection), 59)), -1));
-        Set Global Variable At Index(_objectVariable_9, Value In Array(Global Variable(_extendedGlobalCollection), 59), Array(39, Null));
+        Set Global Variable At Index(_objectVariable_9, Value In Array(Global Variable(_extendedGlobalCollection), 59), Array(41, Null));
         Set Global Variable At Index(_objectVariable_7, Value In Array(Global Variable(_extendedGlobalCollection), 59), 8);
         Set Global Variable(input, Array(Custom String("↑"), Array(18, Value In Array(Global Variable(_extendedGlobalCollection), 59), 1), Array(18, Value In Array(Global Variable(_extendedGlobalCollection), 59), 8), 0, 0.75, 0.2, 0.2, Color(White), Color(Blue), True, True));
         Call Subroutine(__createButtonSubroutine);
@@ -3319,7 +3349,7 @@ rule("CM: Pathfinder settings")
         Set Global Variable(input, Array(Custom String("←"), Array(9, Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 29)), Array(10, Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 29)), -0.1775, 0, 0.2, 0.2, Color(White), Color(Blue), True, True));
         Call Subroutine(__createButtonSubroutine);
         Set Global Variable At Index(_objectVariable_2, Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 29), Global Variable(returnValue___createButtonSubrou));
-        Set Global Variable At Index(_objectVariable_4, Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 29), Array(40, Null));
+        Set Global Variable At Index(_objectVariable_4, Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 29), Array(42, Null));
         Set Global Variable At Index(_extendedGlobalCollection, 28, Value In Array(Player Variable(Event Player, _extendedPlayerCollection), 29));
         Call Subroutine(UpdatePathfinderAttributeSelecto);
     }
@@ -4155,8 +4185,8 @@ rule("Subroutine: Document action move")
         If(Or(And(Value In Array(Global Variable(_extendedGlobalCollection), 60), First Of(Global Variable(actionsSelected))), And(Not(Value In Array(Global Variable(_extendedGlobalCollection), 60)), Value In Array(Global Variable(actionsSelected), Subtract(Count Of(Value In Array(Global Variable(Rules_Actions_Data), Value In Array(Global Variable(_extendedGlobalCollection), 15))), 1)))));
             Skip(4);
         End;
-        Set Player Variable(Event Player, catalogItem_Set, Array(41, Null, Global Variable(actionsSelected), Value In Array(Global Variable(_extendedGlobalCollection), 60), Value In Array(Global Variable(_extendedGlobalCollection), 15)));
-        Set Player Variable(Event Player, catalogItem_Revert, Array(42, Null, Global Variable(actionsSelected), Value In Array(Global Variable(_extendedGlobalCollection), 60), Value In Array(Global Variable(_extendedGlobalCollection), 15)));
+        Set Player Variable(Event Player, catalogItem_Set, Array(43, Null, Global Variable(actionsSelected), Value In Array(Global Variable(_extendedGlobalCollection), 60), Value In Array(Global Variable(_extendedGlobalCollection), 15)));
+        Set Player Variable(Event Player, catalogItem_Revert, Array(44, Null, Global Variable(actionsSelected), Value In Array(Global Variable(_extendedGlobalCollection), 60), Value In Array(Global Variable(_extendedGlobalCollection), 15)));
         Call Subroutine(Document);
     }
 }
@@ -4224,8 +4254,8 @@ rule("Subroutine: Delete rule")
     // Action count: 3
     actions
     {
-        Set Player Variable(Event Player, catalogItem_Set, Array(43, Null, Value In Array(Global Variable(_extendedGlobalCollection), 15)));
-        Set Player Variable(Event Player, catalogItem_Revert, Array(44, Null, Value In Array(Global Variable(_extendedGlobalCollection), 15), Value In Array(Global Variable(Rules_Actions_Data), Value In Array(Global Variable(_extendedGlobalCollection), 15)), Value In Array(Global Variable(Rules_ExecutesOnAttribute), Value In Array(Global Variable(_extendedGlobalCollection), 15)), Value In Array(Global Variable(Rules_EnabledHeroes), Value In Array(Global Variable(_extendedGlobalCollection), 15))));
+        Set Player Variable(Event Player, catalogItem_Set, Array(45, Null, Value In Array(Global Variable(_extendedGlobalCollection), 15)));
+        Set Player Variable(Event Player, catalogItem_Revert, Array(46, Null, Value In Array(Global Variable(_extendedGlobalCollection), 15), Value In Array(Global Variable(Rules_Actions_Data), Value In Array(Global Variable(_extendedGlobalCollection), 15)), Value In Array(Global Variable(Rules_ExecutesOnAttribute), Value In Array(Global Variable(_extendedGlobalCollection), 15)), Value In Array(Global Variable(Rules_EnabledHeroes), Value In Array(Global Variable(_extendedGlobalCollection), 15))));
         Call Subroutine(Document);
     }
 }
@@ -5948,8 +5978,8 @@ rule("Subroutine: Mirror map")
         Set Player Variable(Event Player, nodeLength, Count Of(Global Variable(Nodes_Node_UniqueID)));
         Set Player Variable(Event Player, segmentLength, Count Of(Global Variable(Segments_ID)));
         Set Player Variable(Event Player, attributeLength, Count Of(Global Variable(Attributes_Value)));
-        Set Player Variable(Event Player, catalogItem_Set, Array(45, Null, Player Variable(Event Player, nodeLength), Player Variable(Event Player, segmentLength), Player Variable(Event Player, attributeLength)));
-        Set Player Variable(Event Player, catalogItem_Revert, Array(46, Null, Player Variable(Event Player, nodeLength), Player Variable(Event Player, segmentLength), Player Variable(Event Player, attributeLength)));
+        Set Player Variable(Event Player, catalogItem_Set, Array(47, Null, Player Variable(Event Player, nodeLength), Player Variable(Event Player, segmentLength), Player Variable(Event Player, attributeLength)));
+        Set Player Variable(Event Player, catalogItem_Revert, Array(48, Null, Player Variable(Event Player, nodeLength), Player Variable(Event Player, segmentLength), Player Variable(Event Player, attributeLength)));
         Call Subroutine(Document);
     }
 }
@@ -6129,55 +6159,55 @@ rule("lambda")
         func_group;
     }
 
-    // Action count: 343
+    // Action count: 347
     actions
     {
-        Skip(Value In Array(Array(340, 0, 5, 10, 15, 18, 21, 33, 35, 37, 39, 42, 45, 58, 60, 68, 72, 75, 78, 81, 90, 93, 98, 102, 117, 133, 137, 142, 147, 151, 155, 161, 167, 171, 192, 209, 214, 221, 230, 245, 276, 278, 283, 288, 293, 298, 308, 319, 322, 325, 328, 331, 334, 337), Add(Index Of Array Value(Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53), First Of(Last Of(Global Variable(func_group)))), 1)));
+        Skip(Value In Array(Array(344, 0, 5, 10, 15, 18, 21, 33, 35, 37, 39, 42, 45, 58, 60, 68, 72, 75, 78, 81, 90, 93, 98, 102, 117, 133, 137, 142, 147, 151, 155, 161, 167, 171, 173, 175, 196, 213, 218, 225, 234, 249, 280, 282, 287, 292, 297, 302, 312, 323, 326, 329, 332, 335, 338, 341), Add(Index Of Array Value(Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55), First Of(Last Of(Global Variable(func_group)))), 1)));
         Set Global Variable(objectiveDescription, Value In Array(Last Of(Global Variable(func_group)), 2));
         Set Global Variable(lines_Type, Value In Array(Last Of(Global Variable(func_group)), 3));
         Set Global Variable(lines_Content, Value In Array(Last Of(Global Variable(func_group)), 4));
         Call Subroutine(showMessage);
-        Skip(335);
+        Skip(339);
         Set Global Variable(objectiveDescription, Null);
         Set Global Variable(lines_Type, Array(2, 1, 0));
         Set Global Variable(lines_Content, Array(Array(Custom String("Import code: hp2dg"), Color(Orange)), Array(Custom String("v1.0.2"), Color(Sky Blue)), Array(Custom String("Initial Release"), Color(White))));
         Call Subroutine(showMessage);
-        Skip(330);
+        Skip(334);
         Set Global Variable(objectiveDescription, Null);
         Set Global Variable(lines_Type, Array(1, 0, 2, 1, 0, 0, 1, 0, 1, 0));
         Set Global Variable(lines_Content, Array(Array(Custom String("Pathmap Editor v1.0.2"), Color(Lime Green)), Array(Custom String("https://github.com/ItsDeltin/Pathmap-editor\n"), Color(Blue)), Array(Custom String("  ☆ Credits ☆  "), Color(Rose)), Array(Custom String("Created by Deltin"), Color(Sky Blue)), Array(Custom String("with Overwatch Script To Workshop"), Color(White)), Array(Custom String("https://github.com/ItsDeltin/Overwatch-Script-To-Workshop\n"), Color(Blue)), Array(Custom String("Josbird"), Color(Orange)), Array(Custom String("- Cursor menu library\n- Noclip\n"), Color(White)), Array(Custom String("Zezombye"), Color(Yellow)), Array(Custom String("- Map symmetry data\n- overpy"), Color(White))));
         Call Subroutine(showMessage);
-        Skip(325);
-        Set Global Variable(pages, Array(Array(47, Last Of(Global Variable(func_group))), Array(48, Last Of(Global Variable(func_group))), Array(49, Last Of(Global Variable(func_group))), Array(50, Last Of(Global Variable(func_group))), Array(51, Last Of(Global Variable(func_group)))));
+        Skip(329);
+        Set Global Variable(pages, Array(Array(49, Last Of(Global Variable(func_group))), Array(50, Last Of(Global Variable(func_group))), Array(51, Last Of(Global Variable(func_group))), Array(52, Last Of(Global Variable(func_group))), Array(53, Last Of(Global Variable(func_group)))));
         Call Subroutine(showPagedMessage);
-        Skip(322);
+        Skip(326);
         Set Global Variable At Index(_extendedGlobalCollection, 5, Not(Value In Array(Global Variable(_extendedGlobalCollection), 5)));
         Call Subroutine(updateSegmentModeLabel);
-        Skip(319);
+        Skip(323);
         Set Global Variable(newState, 9);
         Call Subroutine(SetMenuState);
         Set Global Variable(input, Array(Custom String("Are you sure you want to mirror the map?\nPlease save your map before continuing.\nThis may take a minute."), 0, 0, 0, 0.15, 0.2, 0.2, Color(White), Color(Blue), False, True));
         Call Subroutine(__createButtonSubroutine);
         Modify Player Variable(Event Player, buttonCollectionMain, Append To Array, Global Variable(returnValue___createButtonSubrou));
-        Set Global Variable(input, Array(Custom String("no"), Array(35, Array(52, Last Of(Global Variable(func_group)))), Array(36, Array(52, Last Of(Global Variable(func_group)))), -0.4, -0.25, 0.2, 0.2, Color(Red), Color(Blue), True, True));
+        Set Global Variable(input, Array(Custom String("no"), Array(35, Array(54, Last Of(Global Variable(func_group)))), Array(36, Array(54, Last Of(Global Variable(func_group)))), -0.4, -0.25, 0.2, 0.2, Color(Red), Color(Blue), True, True));
         Call Subroutine(__createButtonSubroutine);
         Modify Player Variable(Event Player, buttonCollectionMain, Append To Array, Global Variable(returnValue___createButtonSubrou));
-        Set Global Variable(input, Array(Custom String("yes"), Array(35, Array(53, Last Of(Global Variable(func_group)))), Array(36, Array(53, Last Of(Global Variable(func_group)))), 0.4, -0.25, 0.2, 0.2, Color(Green), Color(Blue), True, True));
+        Set Global Variable(input, Array(Custom String("yes"), Array(35, Array(55, Last Of(Global Variable(func_group)))), Array(36, Array(55, Last Of(Global Variable(func_group)))), 0.4, -0.25, 0.2, 0.2, Color(Green), Color(Blue), True, True));
         Call Subroutine(__createButtonSubroutine);
         Modify Player Variable(Event Player, buttonCollectionMain, Append To Array, Global Variable(returnValue___createButtonSubrou));
-        Skip(307);
+        Skip(311);
         Set Global Variable At Index(_extendedGlobalCollection, 6, Last Of(Global Variable(lambdaParameter_0)));
-        Skip(305);
+        Skip(309);
         Call Subroutine(OpenActionSelectMenu);
-        Skip(303);
+        Skip(307);
         Set Global Variable At Index(Rules_ExecutesOnAttribute, Value In Array(Global Variable(_extendedGlobalCollection), 15), Last Of(Global Variable(lambdaParameter_0)));
-        Skip(301);
+        Skip(305);
         Set Global Variable At Index(_extendedGlobalCollection, 60, True);
         Call Subroutine(MoveSelectedActions);
-        Skip(298);
+        Skip(302);
         Set Global Variable At Index(_extendedGlobalCollection, 60, False);
         Call Subroutine(MoveSelectedActions);
-        Skip(295);
+        Skip(299);
         Modify Global Variable At Index(_extendedGlobalCollection, 66, Append To Array, Value In Array(All Heroes, Last Of(Global Variable(lambdaParameter_0))));
         "Is the hero already on the toggle list?"
         If(Array Contains(Array Slice(Value In Array(Global Variable(Rules_EnabledHeroes), Value In Array(Global Variable(_extendedGlobalCollection), 15)), 1, 1000), Last Of(Value In Array(Global Variable(_extendedGlobalCollection), 66))));
@@ -6196,9 +6226,9 @@ then we can save space by inverting the toggles."
         Set Player Variable At Index(Event Player, _extendedPlayerCollection, 11, Last Of(Global Variable(lambdaParameter_0)));
         Call Subroutine(updateHeroIcon);
         Modify Global Variable At Index(_extendedGlobalCollection, 66, Remove From Array By Index, Subtract(Count Of(Value In Array(Global Variable(_extendedGlobalCollection), 66)), 1));
-        Skip(282);
+        Skip(286);
         Call Subroutine(DeleteRule);
-        Skip(280);
+        Skip(284);
         Set Global Variable At Index(actionsSelected, Last Of(Global Variable(lambdaParameter_0)), Not(Value In Array(Global Variable(actionsSelected), Last Of(Global Variable(lambdaParameter_0)))));
         If(And(Compare(Last Of(Global Variable(lambdaParameter_0)), >=, Value In Array(Global Variable(_objectVariable_8), Value In Array(Global Variable(_extendedGlobalCollection), 23))), Compare(Last Of(Global Variable(lambdaParameter_0)), <, Add(Value In Array(Global Variable(_objectVariable_8), Value In Array(Global Variable(_extendedGlobalCollection), 23)), Value In Array(Global Variable(_objectVariable_7), Value In Array(Global Variable(_extendedGlobalCollection), 23))))));
             Set Player Variable At Index(Event Player, cm_buttons_DefaultColor, Index Of Array Value(Player Variable(Event Player, cm_buttons_ID), Value In Array(Value In Array(Global Variable(_objectVariable_4), Value In Array(Global Variable(_extendedGlobalCollection), 23)), Last Of(Global Variable(lambdaParameter_0)))), If-Then-Else(Value In Array(Global Variable(actionsSelected), Last Of(Global Variable(lambdaParameter_0))), Color(Green), Color(White)));
@@ -6206,20 +6236,20 @@ then we can save space by inverting the toggles."
         Set Global Variable(_arrayConstructor, Value In Array(Global Variable(_objectVariable_2), Value In Array(Global Variable(_extendedGlobalCollection), 23)));
         Set Global Variable At Index(_arrayConstructor, Last Of(Global Variable(lambdaParameter_0)), If-Then-Else(Value In Array(Global Variable(actionsSelected), Last Of(Global Variable(lambdaParameter_0))), Color(Green), Color(White)));
         Set Global Variable At Index(_objectVariable_2, Value In Array(Global Variable(_extendedGlobalCollection), 23), Global Variable(_arrayConstructor));
-        Skip(272);
+        Skip(276);
         Set Global Variable At Index(buildToggles, Value In Array(Last Of(Global Variable(func_group)), 2), Not(Value In Array(Global Variable(buildToggles), Value In Array(Last Of(Global Variable(func_group)), 2))));
         Set Player Variable At Index(Event Player, cm_buttons_Label, Index Of Array Value(Player Variable(Event Player, cm_buttons_ID), Value In Array(Last Of(Global Variable(func_group)), 3)), Custom String("{0}: {1}", Value In Array(Last Of(Global Variable(func_group)), 4), If-Then-Else(Value In Array(Global Variable(buildToggles), Value In Array(Last Of(Global Variable(func_group)), 2)), Custom String("on"), Custom String("off"))));
         Set Player Variable At Index(Event Player, cm_buttons_DefaultColor, Index Of Array Value(Player Variable(Event Player, cm_buttons_ID), Value In Array(Last Of(Global Variable(func_group)), 3)), If-Then-Else(Value In Array(Global Variable(buildToggles), Value In Array(Last Of(Global Variable(func_group)), 2)), Color(Lime Green), Custom Color(182, 57, 57, 255)));
-        Skip(268);
+        Skip(272);
         Set Global Variable(outputLanguage, 0);
         Call Subroutine(SetLanguageSelectLabels);
-        Skip(265);
+        Skip(269);
         Set Global Variable(outputLanguage, 1);
         Call Subroutine(SetLanguageSelectLabels);
-        Skip(262);
+        Skip(266);
         Set Global Variable(outputLanguage, 2);
         Call Subroutine(SetLanguageSelectLabels);
-        Skip(259);
+        Skip(263);
         "Do nothing if nothing is going to be exported."
         If(And(And(Not(First Of(Global Variable(buildToggles))), Not(Value In Array(Global Variable(buildToggles), 1))), Not(Value In Array(Global Variable(buildToggles), 2))));
             Set Global Variable(objectiveDescription, Custom String("Error"));
@@ -6229,19 +6259,19 @@ then we can save space by inverting the toggles."
         Else;
             Call Subroutine(Export);
         End;
-        Skip(250);
+        Skip(254);
         Set Global Variable At Index(_extendedGlobalCollection, 12, 1);
         Set Global Variable At Index(_extendedGlobalCollection, 13, Last Of(Global Variable(lambdaParameter_0)));
-        Skip(247);
+        Skip(251);
         Modify Global Variable(Nodes_Node_UniqueID, Append To Array, Value In Array(Last Of(Global Variable(func_group)), 3));
         Modify Global Variable(Nodes_Node_Position, Append To Array, Value In Array(Last Of(Global Variable(func_group)), 2));
         Modify Global Variable(Nodes_Selected, Append To Array, False);
         Call Subroutine(updateRenderingNodes);
-        Skip(242);
+        Skip(246);
         Set Global Variable(index, Index Of Array Value(Global Variable(Nodes_Node_UniqueID), Value In Array(Last Of(Global Variable(func_group)), 2)));
         Call Subroutine(RemoveNodeByIndex);
         Call Subroutine(updateRenderingNodes);
-        Skip(238);
+        Skip(242);
         Set Global Variable(SelectedNodeIndex, -1);
         Set Global Variable(SelectedNodeID, -1);
         "Delete segments"
@@ -6260,7 +6290,7 @@ then we can save space by inverting the toggles."
         "Refresh rending nodes"
         Call Subroutine(updateRenderingNodes);
         Call Subroutine(UpdateAttributeVisibility);
-        Skip(223);
+        Skip(227);
         "Insert deleted node"
         Set Global Variable(Nodes_Node_UniqueID, Append To Array(Append To Array(Array Slice(Global Variable(Nodes_Node_UniqueID), 0, Value In Array(Last Of(Global Variable(func_group)), 2)), Array(Value In Array(Last Of(Global Variable(func_group)), 3))), Array Slice(Global Variable(Nodes_Node_UniqueID), Value In Array(Last Of(Global Variable(func_group)), 2), 999)));
         Set Global Variable(Nodes_Node_Position, Append To Array(Append To Array(Array Slice(Global Variable(Nodes_Node_Position), 0, Value In Array(Last Of(Global Variable(func_group)), 2)), Array(Value In Array(Last Of(Global Variable(func_group)), 4))), Array Slice(Global Variable(Nodes_Node_Position), Value In Array(Last Of(Global Variable(func_group)), 2), 999)));
@@ -6279,44 +6309,48 @@ then we can save space by inverting the toggles."
             Set Global Variable(Attributes_Node2, Append To Array(Append To Array(Array Slice(Global Variable(Attributes_Node2), 0, First Of(Value In Array(Value In Array(Last Of(Global Variable(func_group)), 6), Global Variable(waitlessI)))), Array(Value In Array(Value In Array(Value In Array(Last Of(Global Variable(func_group)), 6), Global Variable(waitlessI)), 3))), Array Slice(Global Variable(Attributes_Node2), First Of(Value In Array(Value In Array(Last Of(Global Variable(func_group)), 6), Global Variable(waitlessI))), 999)));
         End;
         Call Subroutine(updateRenderingNodes);
-        Skip(207);
+        Skip(211);
         Set Global Variable(index_0, Index Of Array Value(Global Variable(Segments_ID), Value In Array(Last Of(Global Variable(func_group)), 2)));
         Call Subroutine(RemoveSegmentByIndex);
         Call Subroutine(updateRenderingSegments);
-        Skip(203);
+        Skip(207);
         Set Global Variable(Segments_ID, Append To Array(Append To Array(Array Slice(Global Variable(Segments_ID), 0, Value In Array(Last Of(Global Variable(func_group)), 2)), Array(Value In Array(Last Of(Global Variable(func_group)), 3))), Array Slice(Global Variable(Segments_ID), Value In Array(Last Of(Global Variable(func_group)), 2), 999)));
         Set Global Variable(Segments_Node1, Append To Array(Append To Array(Array Slice(Global Variable(Segments_Node1), 0, Value In Array(Last Of(Global Variable(func_group)), 2)), Array(Value In Array(Last Of(Global Variable(func_group)), 4))), Array Slice(Global Variable(Segments_Node1), Value In Array(Last Of(Global Variable(func_group)), 2), 999)));
         Set Global Variable(Segments_Node2, Append To Array(Append To Array(Array Slice(Global Variable(Segments_Node2), 0, Value In Array(Last Of(Global Variable(func_group)), 2)), Array(Value In Array(Last Of(Global Variable(func_group)), 5))), Array Slice(Global Variable(Segments_Node2), Value In Array(Last Of(Global Variable(func_group)), 2), 999)));
         Call Subroutine(updateRenderingSegments);
-        Skip(198);
+        Skip(202);
         Modify Global Variable(Segments_ID, Append To Array, Value In Array(Last Of(Global Variable(func_group)), 2));
         Modify Global Variable(Segments_Node1, Append To Array, Value In Array(Last Of(Global Variable(func_group)), 3));
         Modify Global Variable(Segments_Node2, Append To Array, Value In Array(Last Of(Global Variable(func_group)), 4));
         Call Subroutine(updateRenderingSegments);
-        Skip(193);
+        Skip(197);
         Set Global Variable(index_0, Index Of Array Value(Global Variable(Segments_ID), Value In Array(Last Of(Global Variable(func_group)), 2)));
         Call Subroutine(RemoveSegmentByIndex);
         Call Subroutine(updateRenderingSegments);
-        Skip(189);
+        Skip(193);
         Set Global Variable(index_1, Value In Array(Last Of(Global Variable(func_group)), 2));
         Call Subroutine(RemoveAttributeByIndex);
         Call Subroutine(UpdateAttributeVisibility);
-        Skip(185);
+        Skip(189);
         Set Global Variable(Attributes_Value, Append To Array(Append To Array(Array Slice(Global Variable(Attributes_Value), 0, Value In Array(Last Of(Global Variable(func_group)), 2)), Array(Value In Array(Last Of(Global Variable(func_group)), 3))), Array Slice(Global Variable(Attributes_Value), Value In Array(Last Of(Global Variable(func_group)), 2), 999)));
         Set Global Variable(Attributes_ID, Append To Array(Append To Array(Array Slice(Global Variable(Attributes_ID), 0, Value In Array(Last Of(Global Variable(func_group)), 2)), Array(Value In Array(Last Of(Global Variable(func_group)), 4))), Array Slice(Global Variable(Attributes_ID), Value In Array(Last Of(Global Variable(func_group)), 2), 999)));
         Set Global Variable(Attributes_Node1, Append To Array(Append To Array(Array Slice(Global Variable(Attributes_Node1), 0, Value In Array(Last Of(Global Variable(func_group)), 2)), Array(Value In Array(Last Of(Global Variable(func_group)), 5))), Array Slice(Global Variable(Attributes_Node1), Value In Array(Last Of(Global Variable(func_group)), 2), 999)));
         Set Global Variable(Attributes_Node2, Append To Array(Append To Array(Array Slice(Global Variable(Attributes_Node2), 0, Value In Array(Last Of(Global Variable(func_group)), 2)), Array(Value In Array(Last Of(Global Variable(func_group)), 6))), Array Slice(Global Variable(Attributes_Node2), Value In Array(Last Of(Global Variable(func_group)), 2), 999)));
         Call Subroutine(UpdateAttributeVisibility);
-        Skip(179);
+        Skip(183);
         Modify Global Variable(Attributes_Value, Append To Array, Value In Array(Last Of(Global Variable(func_group)), 2));
         Modify Global Variable(Attributes_ID, Append To Array, Value In Array(Last Of(Global Variable(func_group)), 3));
         Modify Global Variable(Attributes_Node1, Append To Array, Value In Array(Last Of(Global Variable(func_group)), 4));
         Modify Global Variable(Attributes_Node2, Append To Array, Value In Array(Last Of(Global Variable(func_group)), 5));
         Call Subroutine(UpdateAttributeVisibility);
-        Skip(173);
+        Skip(177);
         Set Global Variable(index_1, Index Of Array Value(Global Variable(Attributes_ID), Value In Array(Last Of(Global Variable(func_group)), 2)));
         Call Subroutine(RemoveAttributeByIndex);
         Call Subroutine(UpdateAttributeVisibility);
+        Skip(173);
+        Set Global Variable At Index(Nodes_Node_Position, Index Of Array Value(Global Variable(Nodes_Node_UniqueID), Value In Array(Last Of(Global Variable(func_group)), 2)), Value In Array(Last Of(Global Variable(func_group)), 3));
+        Skip(171);
+        Set Global Variable At Index(Nodes_Node_Position, Index Of Array Value(Global Variable(Nodes_Node_UniqueID), Value In Array(Last Of(Global Variable(func_group)), 2)), Value In Array(Last Of(Global Variable(func_group)), 3));
         Skip(169);
         Set Global Variable(_arrayConstructor, Value In Array(Global Variable(_extendedGlobalCollection), 67));
         Set Global Variable At Index(_arrayConstructor, Subtract(Count Of(Value In Array(Global Variable(_extendedGlobalCollection), 67)), 1), 0);
@@ -6416,8 +6450,8 @@ then we can save space by inverting the toggles."
             Modify Player Variable(Event Player, buttonCollectionMain, Append To Array, Value In Array(Global Variable(_extendedGlobalCollection), 26));
         Else;
             Set Global Variable At Index(_extendedGlobalCollection, 71, Value In Array(Global Variable(_extendedGlobalCollection), 15));
-            Set Player Variable(Event Player, catalogItem_Set, Array(37, Last Of(Global Variable(func_group)), Value In Array(Global Variable(_extendedGlobalCollection), 71), Array(Last Of(Global Variable(lambdaParameter_0)), Custom String(""))));
-            Set Player Variable(Event Player, catalogItem_Revert, Array(38, Last Of(Global Variable(func_group)), Value In Array(Global Variable(_extendedGlobalCollection), 71)));
+            Set Player Variable(Event Player, catalogItem_Set, Array(39, Last Of(Global Variable(func_group)), Value In Array(Global Variable(_extendedGlobalCollection), 71), Array(Last Of(Global Variable(lambdaParameter_0)), Custom String(""))));
+            Set Player Variable(Event Player, catalogItem_Revert, Array(40, Last Of(Global Variable(func_group)), Value In Array(Global Variable(_extendedGlobalCollection), 71)));
             Call Subroutine(Document);
             Set Global Variable(newState, 3);
             Call Subroutine(SetMenuState);
@@ -6523,7 +6557,7 @@ rule("Editor: tutorial")
         Create HUD Text(If-Then-Else(And(Not(Player Variable(Host Player, cm_isInMenu)), Compare(Global Variable(SelectedNodeIndex), !=, -1)), Host Player, Null), Null, Null, Custom String("{0}: {1}{2}{2}{2}{2}", Custom String("Destroy node"), Input Binding String(Button(Ultimate)), Custom String("                                                        ")), Right, Global Variable(controlTextOrder), Color(White), Color(White), Custom Color(255, 255, 255, 162.435), Visible To String and Color, Default Visibility);
         Modify Global Variable(controlTexts, Append To Array, Last Text ID);
         Modify Global Variable(controlTextOrder, Add, 1);
-        Create HUD Text(If-Then-Else(And(Not(Player Variable(Host Player, cm_isInMenu)), Is True For Any(All Players(All Teams), Player Variable(Current Array Element, dummySelected))), Host Player, Null), Null, Null, Custom String("{0}: {1}{2}{2}{2}{2}", Custom String("Pathfind to cursor"), Input Binding String(Button(Reload)), Custom String("                                                        ")), Right, Global Variable(controlTextOrder), Color(White), Color(White), Custom Color(255, 255, 255, 162.435), Visible To String and Color, Default Visibility);
+        Create HUD Text(If-Then-Else(And(Not(Player Variable(Host Player, cm_isInMenu)), Or(Compare(Global Variable(connectingFromNode), !=, -1), Is True For Any(All Players(All Teams), Player Variable(Current Array Element, dummySelected)))), Host Player, Null), Null, Null, Custom String("{0}: {1}{2}{2}{2}{2}", If-Then-Else(Compare(Global Variable(connectingFromNode), !=, -1), Custom String("Move node"), Custom String("Pathfind to cursor")), Input Binding String(Button(Reload)), Custom String("                                                        ")), Right, Global Variable(controlTextOrder), Color(White), Color(White), Custom Color(255, 255, 255, 162.435), Visible To String and Color, Default Visibility);
         Modify Global Variable(controlTexts, Append To Array, Last Text ID);
         Modify Global Variable(controlTextOrder, Add, 1);
         Create HUD Text(If-Then-Else(And(Not(Player Variable(Host Player, cm_isInMenu)), Is True For Any(All Players(All Teams), Player Variable(Current Array Element, dummySelected))), Host Player, Null), Null, Null, Custom String("{0}: {1}{2}{2}{2}{2}", Custom String("Destroy dummy bot"), Input Binding String(Button(Ultimate)), Custom String("                                                        ")), Right, Global Variable(controlTextOrder), Color(White), Color(White), Custom Color(255, 255, 255, 162.435), Visible To String and Color, Default Visibility);

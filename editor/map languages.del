@@ -20,7 +20,7 @@ if (HasSpawned(host))
 {
     host.langMaps = [
         langmap(Map.Ayutthaya, "Ayutthaya", "AYUTTHAYA"),
-        langmap(Map.Antarctic_Peninsula, "Antarctic_Peninsula", "ANTARCTIC_PENINSULA"),
+        // langmap(Map.Antarctic_Peninsula, "Antarctic_Peninsula", "ANTARCTIC_PENINSULA"),
         langmap(Map.Black_Forest, "Black_Forest", "BLACK_FOREST"),
         langmap(Map.Black_Forest_Winter, "Black_Forest_Winter", "BLACK_FOREST_WINTER"),
         langmap(Map.Blizzard_World, "Blizzard_World", "BLIZZ_WORLD"),

@@ -21,7 +21,7 @@ if (HasSpawned(host))
         'look at destination',
         'wait for ability 1',
         'wait for ability 2',
-        'wait for seconary fire'
+        'wait for secondary fire'
     ];
 }
 

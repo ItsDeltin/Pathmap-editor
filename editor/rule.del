@@ -145,7 +145,7 @@ void initiatePager() 'CM: Initiate pager'
         onClick: l => OpenActionSelectMenu(),
         clickWidth: 1.2,
         posY: 0.75,
-        posX: -1.75
+        posX: -1.5
     );
     pagerButtons += createButton(
         ' attribute',
@@ -234,7 +234,7 @@ void initiatePager() 'CM: Initiate pager'
 void loadActionScrollbar() '(Subroutine) CM: Load action scrollbar'
 {
     actionScrollBar = new Scrollbar(
-        -1.75,
+        -1.5,
         0.5,
         Rules[rulePage].Actions.Map(action => LabelFromAction(action)),
         6,

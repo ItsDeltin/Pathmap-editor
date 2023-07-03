@@ -1,0 +1,61 @@
+.App {
+  background-color: #282c34;
+  min-height: 100vh;
+}
+
+.App-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+  margin-bottom: 10px;
+}
+
+.Header-selector {
+  display: flex;
+}
+
+.Header-section {
+  color: white;
+  background-color: transparent;
+  float: left;
+  padding: 7px;
+  font-size: medium;
+  border: solid;
+  border-bottom: none;
+  border-width: 2px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-color: #ffffff6d;
+  margin-left: 7px;
+}
+
+.Header-selected {
+  background-color: white;
+  color: black;
+}
+
+.Header-section:hover {
+  background-color: #454c59;
+}
+
+.Header-selected:hover {
+  background-color: lightgray;
+}
+
+.Section-content {
+  background-color: white;
+  padding: 10px;
+  text-align: center;
+}
+
+.Error-button {
+  color: indianred;
+  padding: 10px;
+  margin: 10px;
+  border: 2px solid indianred;
+  border-radius: 4px;
+  display: inline-block;
+}

@@ -7,7 +7,7 @@ struct DbgEvent { public String name; public Number timeStamp; }
 
 Vector ray: RayCastHitPosition(EyePosition(HostPlayer()), EyePosition(HostPlayer()) + FacingDirectionOf(HostPlayer()) * 100, null, HostPlayer(), false);
 
-disabled rule: 'Debug▶ Disable Inspector'
+rule: 'Debug▶ Disable Inspector'
 {
     DisableInspectorRecording();
 }
@@ -28,8 +28,8 @@ if (IsButtonHeld(HostPlayer(), Button.Crouch))
 rule: 'Debug▶ Dummy: Set pathfinding attributes'
 Event.OngoingPlayer
 {
-    pfPlayerAttributes = [1];
-    DisableMovementCollisionWithPlayers(EventPlayer());
+    // pfPlayerAttributes = [1];
+    // DisableMovementCollisionWithPlayers(EventPlayer());
 }
 
 rule: 'Debug▶ Dummy: Follow the host on [Melee]'
@@ -50,8 +50,10 @@ if (HasSpawned(HostPlayer()))
     CreateHudText(AllPlayers(), Text: <'CAP: <0>, <1>, <2>\nPos: <5>\nTime: <3>\nOwner: <4>', ServerLoad(), ServerLoadAverage(), ServerLoadPeak(), TotalTimeElapsed(), pfExecOwner, PositionOf(HostPlayer())>, Location: Location.Top);
 }
 
+globalvar Boolean inspectorEnabled;
 playervar Player selectedPlayer;
 playervar Boolean isSlow;
+playervar Player[] lastSelected = [];
 globalvar Boolean pathfinderEnabled;
 
 rule: 'Debug▶ Create debugging entities'
@@ -62,7 +64,7 @@ if (HostPlayer() == EventPlayer())
     CreateHudText(
         selectedPlayer != null ? EventPlayer() : null,
         Header: selectedPlayer,
-        Text: <'Is Pathfinding: <0>\nCurrent node index: <1>', selectedPlayer.pfIsPathfinding, selectedPlayer.pfCurrentNodeIndex>,
+        Text: <'Is Pathfinding: <0>\nCurrent node index: <1>\npfActiveNode: <2>', selectedPlayer.pfIsPathfinding, selectedPlayer.pfCurrentNodeIndex, selectedPlayer.pfActiveNode>,
         SortOrder: 1,
         Reevaluation: HudTextRev.VisibleToAndString,
         Location: Location.Top);
@@ -121,18 +123,19 @@ if (IsButtonHeld(EventPlayer(), Button.PrimaryFire))
 {
     if (selectedPlayer) {
         StopForcingPlayerOutlines(selectedPlayer, EventPlayer());
+        lastSelected += selectedPlayer;
         selectedPlayer = null;
     }
 
     # Get selected entity
-    Player[] selected = AllPlayers().FilteredArray(p => p.IsDummy() &&
+    selectedPlayer = AllPlayers().FilteredArray(p => p.IsDummy() &&
         p.Position().DistanceTo(EyePosition() + FacingDirectionOf() * EyePosition().DistanceTo(p.Position()))
             < 2
-    ).SortedArray(p => 0 - p.DistanceTo(EyePosition()));
+    ).SortedArray(p => lastSelected.IndexOf(p)).First;
 
-    if (selected.Length) {
-        selectedPlayer = selected.First;
+    if (selectedPlayer) {
         StartForcingPlayerOutlines(selectedPlayer, EventPlayer(), true, Color.Green, OutlineType.Always);
+        lastSelected.ModRemoveByValue(selectedPlayer);
     }
 }
 
@@ -159,20 +162,31 @@ if (IsButtonHeld(EventPlayer(), Button.Ability1))
     }
 }
 
-rule: 'Debug▶ Host Control: [Secondary Fire] to view node info'
+rule: 'Debug▶ Host Control: [Secondary Fire] to toggle inspector'
 Event.OngoingPlayer
 if (HostPlayer() == EventPlayer())
 if (IsButtonHeld(EventPlayer(), Button.SecondaryFire))
 {
-    Vector r = ray;
-    Number n = pfLoadedMap.nodes.Map((n, i) => i).SortedArray(n => pfLoadedMap.nodes[n].DistanceTo(r)).First;
+    inspectorEnabled = !inspectorEnabled;
+    if (inspectorEnabled)
+    {
+        SmallMessage(AllPlayers(), 'inspector enabled');
+        EnableInspectorRecording();
+    }
+    else
+    {
+        DisableInspectorRecording();
+        SmallMessage(AllPlayers(), 'inspector disabled');
+    }
+    // Vector r = ray;
+    // Number n = pfLoadedMap.nodes.Map((n, i) => i).SortedArray(n => pfLoadedMap.nodes[n].DistanceTo(r)).First;
 
-    Any text = CreateInWorldText(EventPlayer(), <'Node: <0>', n>, pfLoadedMap.nodes[n], 1, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.Yellow, Spectators.VisibleNever);
+    // Any text = CreateInWorldText(EventPlayer(), <'Node: <0>', n>, pfLoadedMap.nodes[n], 1, Clipping.DoNotClip, InworldTextRev.VisibleTo, Color.Yellow, Spectators.VisibleNever);
 
-    WaitUntil(!IsButtonHeld(EventPlayer(), Button.SecondaryFire), 9999);
-    WaitUntil(IsButtonHeld(EventPlayer(), Button.SecondaryFire), 9999);
+    // WaitUntil(!IsButtonHeld(EventPlayer(), Button.SecondaryFire), 9999);
+    // WaitUntil(IsButtonHeld(EventPlayer(), Button.SecondaryFire), 9999);
 
-    DestroyInWorldText(text);
+    // DestroyInWorldText(text);
 }
 
 rule: 'Debug▶ Host Control: [Ability 2] to toggle pathfinding'

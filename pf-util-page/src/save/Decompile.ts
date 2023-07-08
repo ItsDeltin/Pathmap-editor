@@ -154,8 +154,8 @@ function saveFromPair(pair: MapPair): PathmapSave | undefined {
                         for (const segmentAttribute of segmentAttributes) {
                             attributes.push({
                                 id: currentAttributeId,
-                                node1: i + 1,
-                                node2: connectingNode,
+                                node1: connectingNode,
+                                node2: i + 1,
                                 value: segmentAttribute,
                             });
                             currentAttributeId++;

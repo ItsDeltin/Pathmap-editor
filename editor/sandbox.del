@@ -191,7 +191,7 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             onClick: l => {
                 showMessage(null, [
                     MessageLine.Header("Import code: hp2dg", Color.Orange),
-                    MessageLine.Separator("v1.0.2", Color.SkyBlue),
+                    MessageLine.Separator("v1.0.3", Color.SkyBlue),
                     MessageLine.Text("Initial Release")
                 ]);
             },
@@ -204,7 +204,7 @@ void SetMenuState(MenuState newState) '(Subroutine) CM: Update menu'
             'credits',
             onClick: l => {
                 showMessage(null, [
-                    MessageLine.Separator('Pathmap Editor v1.0.2', Color.LimeGreen),
+                    MessageLine.Separator('Pathmap Editor v1.0.3', Color.LimeGreen),
                     MessageLine.Text('https://github.com/ItsDeltin/Pathmap-editor\n', Color.Blue),
                     MessageLine.Header('  ☆ Credits ☆  ', Color.Rose),
                     MessageLine.Separator('Created by Deltin', Color.SkyBlue),

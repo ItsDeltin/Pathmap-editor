@@ -192,7 +192,7 @@ rule("【PF Core】Update & Execute")
             Event Player.open = Array(0);
             Event Player.checkedNode = Event Player.pfActiveNode;
             Event Player.iter = 0;
-            While(Count Of(Event Player.open));
+            While(Count Of(Event Player.open) || Event Player.iter > 30);
                 "The index of the current node in `scores`."
                 Event Player.current = First Of(Sorted Array(Event Player.open, Event Player.scores_fScore[Current Array Element]));
                 If(Event Player.checkedNode != Event Player.pfActiveNode);
@@ -253,13 +253,15 @@ If -1, the neighbor was not added to the score list yet."
                 End;
                 Event Player.iter += 1;
             End;
+            Global.pfExecOwner = Null;
         End;
-        Event Player.pfIsPathfinding = True;
-        Event Player.pfCurrentNodeIndex = First Of(Event Player.pfPath);
-        Event Player.pfWalkingToPosition = Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex];
-        Call Subroutine(pfUpdateNodeMeta);
-        Call Subroutine(pfWalkToDestination);
-        Global.pfExecOwner = Null;
+        If(Count Of(Event Player.pfPath));
+            Event Player.pfIsPathfinding = True;
+            Event Player.pfCurrentNodeIndex = First Of(Event Player.pfPath);
+            Event Player.pfWalkingToPosition = Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex];
+            Call Subroutine(pfUpdateNodeMeta);
+            Call Subroutine(pfWalkToDestination);
+        End;
         Event Player.pfWait = Null;
         Wait(2, Ignore Condition);
         Loop If Condition Is True;

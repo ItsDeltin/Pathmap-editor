@@ -126,7 +126,7 @@ rule "【PF Core】Update & Execute":
         eventPlayer.open = [0]
         eventPlayer.checkedNode = eventPlayer.pfActiveNode
         eventPlayer.iter = 0
-        while len(eventPlayer.open):
+        while len(eventPlayer.open) or eventPlayer.iter > 30:
             #The index of the current node in `scores`.
             eventPlayer.current = sorted(eventPlayer.open, lambda player: eventPlayer.scores_fScore[player])[0]
             if eventPlayer.checkedNode != eventPlayer.pfActiveNode:
@@ -178,12 +178,13 @@ rule "【PF Core】Update & Execute":
                 pfTick()
             eventPlayer.iter += 1
         lbl_0:
-    eventPlayer.pfIsPathfinding = true
-    eventPlayer.pfCurrentNodeIndex = eventPlayer.pfPath[0]
-    eventPlayer.pfWalkingToPosition = pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]
-    pfUpdateNodeMeta()
-    pfWalkToDestination()
-    pfExecOwner = null
+        pfExecOwner = null
+    if len(eventPlayer.pfPath):
+        eventPlayer.pfIsPathfinding = true
+        eventPlayer.pfCurrentNodeIndex = eventPlayer.pfPath[0]
+        eventPlayer.pfWalkingToPosition = pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]
+        pfUpdateNodeMeta()
+        pfWalkToDestination()
     eventPlayer.pfWait = null
     wait(2)
     if RULE_CONDITION:

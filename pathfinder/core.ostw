@@ -118,13 +118,15 @@ if (!pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5)
     pfSavedTarget = pfDestination;
     if (!pfWasBroadcasted) {
         aStar();
+        pfExecOwner = null;
     }
-    pfIsPathfinding = true;
-    pfCurrentNodeIndex = pfPath.First;
-    pfWalkingToPosition = pfLoadedMap.nodes[pfCurrentNodeIndex];
-    pfUpdateNodeMeta();
-    pfWalkToDestination();
-    pfExecOwner = null;
+    if (pfPath.Length) {
+        pfIsPathfinding = true;
+        pfCurrentNodeIndex = pfPath.First;
+        pfWalkingToPosition = pfLoadedMap.nodes[pfCurrentNodeIndex];
+        pfUpdateNodeMeta();
+        pfWalkToDestination();
+    }
     pfWait = null;
     Wait(2);
     LoopIfConditionIsTrue();
@@ -306,14 +308,14 @@ void aStar() {
     }
 
     Number heuristicWeight: 20;
-    const Number => Number h: n => (pfLoadedMap.nodes[n]).DistanceTo(pfLoadedMap.nodes[pfActiveNode]) * heuristicWeight;
+    const Number => Number h: n => pfLoadedMap.nodes[n].DistanceTo(pfLoadedMap.nodes[pfActiveNode]) * heuristicWeight;
 
     PfNode[] scores = [{ parent: -1, gScore: 0, fScore: 0, nodeIndex: goal }];
     Number[] open = [0];
     Number checkedNode = pfActiveNode;
 
     Number iter = 0;
-    while (open.Length) {
+    while (open.Length || iter > 30) {
         # The index of the current node in `scores`.
         Number current = open.SortedArray((o, i) => scores[o].fScore).First;
         # The index of the current node in `pfLoadedMap.nodes`.

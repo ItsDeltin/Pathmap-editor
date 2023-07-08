@@ -111,7 +111,9 @@ function mapNumber<T>(arr: T[], callbackFn: (value: T) => number) {
 }
 
 function nextIdFromIdArray(ids: number[]): number {
-    return ids.reduce((id1, id2) => Math.max(id1, id2)) + 1;
+    return ids.length === 0
+        ? 1
+        : ids.reduce((id1, id2) => Math.max(id1, id2)) + 1;
 }
 
 export interface PathmapSave {

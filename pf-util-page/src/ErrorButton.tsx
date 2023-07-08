@@ -1,9 +1,10 @@
 type ErrorButtonProps = {
-    text: string
+    text: string,
+    type: string
 };
 
-const ErrorButton: React.FC<ErrorButtonProps> = ({ text }) => {
-    return <div className="Error-button">
+const ErrorButton: React.FC<ErrorButtonProps> = ({ text, type }) => {
+    return <div className={"Diagnostic " + type}>
         Error: {text}
     </div>
 };

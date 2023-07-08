@@ -12,6 +12,24 @@ export function parseActionSet(text: string) {
     return parser.parse();
 }
 
+export function tryParseAssignment(
+    text: string
+): Assignment | undefined | Error {
+    const parser = new ActionSetParser(text);
+    try {
+        const result = parser.parseAssignment();
+        if (result === null) {
+            return undefined;
+        }
+        return result;
+    } catch (e: any) {
+        if (e instanceof Error) {
+            return e;
+        }
+        throw e;
+    }
+}
+
 class ActionSetParser {
     character: number = 0;
     text: string;
@@ -33,11 +51,15 @@ class ActionSetParser {
         }
         return null;
     }
-    matchKw(keyword: string) {
+    matchKw(keyword: string, caseSensitive: boolean = true) {
         for (let i = 0; i < keyword.length; i++) {
+            let character = this.text.at(i + this.character);
+
             if (
-                i + this.character >= this.text.length ||
-                this.text[i + this.character] !== keyword[i]
+                character === undefined ||
+                (caseSensitive && character !== keyword[i]) ||
+                (!caseSensitive &&
+                    character.toLowerCase() !== keyword[i].toLowerCase())
             )
                 return false;
         }
@@ -276,8 +298,11 @@ class ActionSetParser {
         this.expectSymbol("{");
         while (true) {
             const action = this.parseAssignment();
-            if (action) actions.push(action);
-            else break;
+            if (action) {
+                // End of statement
+                this.expectSymbol(";");
+                actions.push(action);
+            } else break;
         }
         this.expectSymbol("}");
 
@@ -285,7 +310,7 @@ class ActionSetParser {
     }
 
     parseAssignment(): Assignment | null {
-        const isGlobal = this.matchKw("Global");
+        const isGlobal = this.matchKw("Global", false);
         if (!isGlobal) return null;
 
         this.expectSymbol(".");
@@ -296,8 +321,6 @@ class ActionSetParser {
         this.expectSymbol("=");
         // Match expression.
         const expression = this.parseExpression();
-        // End of statement
-        this.expectSymbol(";");
 
         return { isGlobal, identifier: variable, value: expression };
     }

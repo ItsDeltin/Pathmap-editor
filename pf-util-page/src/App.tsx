@@ -16,7 +16,9 @@ function App() {
         useTextConverterSection(
             'Clean up and update save',
             <div>Fixes outdated saves and removes unused variables.<br /><br />
-                Saves copied from Overwatch may have a high element count or be outdated for current pathmap versions.</div>,
+
+                This will reduce the element count of your pathmap save so that larger maps can be loaded in the editor without
+                exceeding the element count cap of 32000.</div>,
             'Update',
             PF_WORKSHOP_SAVE_NAME,
             PF_WORKSHOP_SAVE_NAME,

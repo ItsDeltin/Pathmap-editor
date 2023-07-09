@@ -98,53 +98,46 @@ function loadFromWorkshop(
         "Rules_EnabledHeroes",
         undefined,
         false,
-        (ruleHeroes) => {
+        (heroList) => {
             // Make sure the rule hero list is an array.
-            if (ruleHeroes.type !== "array") {
+            if (heroList.type !== "array") {
                 loader.log(
-                    "Incorrect 'Rules_Actions_Data' format: Malformed action in rule's action list",
+                    "Incorrect 'Rules_EnabledHeroes' format: Hero list is not an array",
                     true
                 );
                 return;
             }
+
             let toggle = false;
             const heroes: string[] = [];
-            for (const heroList of ruleHeroes.elements) {
-                // The hero list is an array.
-                if (heroList.type !== "array") {
+
+            // The hero list has a toggle.
+            if (
+                heroList.elements.length === 0 ||
+                heroList.elements[0].type !== "boolean"
+            ) {
+                loader.log(
+                    "Incorrect 'Rules_EnabledHeroes' format: First item in hero list must be a toggle",
+                    true
+                );
+                return;
+            }
+
+            // Add hero values
+            for (const hero of heroList.elements.slice(1)) {
+                // Make sure this is a hero value.
+                if (hero.type !== "hero") {
                     loader.log(
-                        "Incorrect 'Rules_EnabledHeroes' format: Hero list is not an array",
+                        "Incorrect 'Rules_EnabledHeroes' format: Value in hero list is not a hero",
                         true
                     );
                     return;
                 }
-                // The hero list has a toggle.
-                if (
-                    heroList.elements.length === 0 ||
-                    heroList.elements[0].type !== "boolean"
-                ) {
-                    loader.log(
-                        "Incorrect 'Rules_EnabledHeroes' format: First item in hero list must be a toggle",
-                        true
-                    );
-                    return;
-                }
-                toggle = heroList.elements[0].value;
-                // Add hero values
-                for (const hero of heroList.elements.slice(1)) {
-                    // Make sure this is a hero value.
-                    if (hero.type !== "hero") {
-                        loader.log(
-                            "Incorrect 'Rules_EnabledHeroes' format: Value in hero list is not a hero",
-                            true
-                        );
-                        return;
-                    }
-                    if (hero.hero) {
-                        heroes.push();
-                    }
+                if (hero.hero) {
+                    heroes.push(hero.hero);
                 }
             }
+
             return { toggle, heroes };
         }
     );
@@ -273,6 +266,7 @@ class PathmapLoader {
                 if (!next) {
                     break;
                 }
+                result.push(next);
             }
 
             return result;
@@ -322,7 +316,7 @@ class PathmapLoader {
                 const itemCount = (this.get(group[item]) as ArrayValue).elements
                     .length;
                 if (
-                    group.every(
+                    !group.every(
                         (g) =>
                             (this.get(g) as ArrayValue).elements.length ===
                             itemCount

@@ -17,9 +17,8 @@ export function saveToWorkshop(save: PathmapSave): string {
     const nextAttributeId = nextIdFromIdArray(save.attributes.map((n) => n.id));
 
     const actions = [
-        // todo: version
         set("__loadPersist", boolean(true)),
-        set("version", number(-1)),
+        set("version", number(4)),
         set("NodeUniqueID", number(nextNodeId)),
         set("SegmentUniqueID", number(nextSegmentId)),
         set("AttributeUniqueID", number(nextAttributeId)),
@@ -97,7 +96,7 @@ export function saveToWorkshop(save: PathmapSave): string {
         actions.push(set("savedPlayerDirection", vector(save.playerDirection)));
     }
     if (save.isNoClipping) {
-        actions.push(set("IsNoClipping", boolean(save.isNoClipping)));
+        actions.push(set("IsNoclipping", boolean(save.isNoClipping)));
     }
     return exportActions(actions);
 }

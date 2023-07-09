@@ -10,13 +10,31 @@
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: white;
-  margin-bottom: 10px;
   padding-top: 10px;
+}
+
+.Github-link {
+  display: flex;
+  justify-content: center;
+}
+
+.Github-link-inner {
+  color: white;
+  width: fit-content;
+  margin-bottom: 5px;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.Github-link a {
+  color: deepskyblue
 }
 
 .App-content {
   display: flex;
   justify-content: center;
+  margin-bottom: 15px;
 }
 
 .App-content-inner {

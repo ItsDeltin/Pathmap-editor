@@ -77,11 +77,18 @@ function App() {
     return (
         <div className="App">
             <header className="App-header">Pathmap editor save tool</header>
+            <div className="Github-link"><div className='Github-link-inner'>
+                <a href='https://github.com/ItsDeltin/Pathmap-editor'>Github</a><br/>
+                <a href='https://workshop.codes/pathfinder'>Workshop Codes page</a>
+            </div></div>
             <div className='App-content'>
                 <div className='App-content-inner'>
                     <HeaderAndContent sections={SECTIONS} />
                 </div>
             </div>
+            <div className="Github-link"><div className='Github-link-inner'>
+                Created with <a href='https://github.com/ItsDeltin/Overwatch-Script-To-Workshop'>Overwatch Script To Workshop</a>
+            </div></div>
         </div>
     );
 }

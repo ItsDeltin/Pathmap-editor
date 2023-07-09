@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/pathmap-editor/static/css/main.2dbcb013.css",
+    "main.js": "/pathmap-editor/static/js/main.38d4b287.js",
+    "static/js/787.0f8a4ddc.chunk.js": "/pathmap-editor/static/js/787.0f8a4ddc.chunk.js",
+    "index.html": "/pathmap-editor/index.html",
+    "main.2dbcb013.css.map": "/pathmap-editor/static/css/main.2dbcb013.css.map",
+    "main.38d4b287.js.map": "/pathmap-editor/static/js/main.38d4b287.js.map",
+    "787.0f8a4ddc.chunk.js.map": "/pathmap-editor/static/js/787.0f8a4ddc.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.2dbcb013.css",
+    "static/js/main.38d4b287.js"
+  ]
+}

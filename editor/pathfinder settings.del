@@ -1,7 +1,7 @@
 import 'main.del';
 
 globalvar persist Number[] pathfinderAttributes = [];
-globalvar NumberSelector pathfinderAttributeSelector!;
+globalvar NumberSelector pathfinderAttributeSelector;
 globalvar Any pathfinderAttributesText!;
 globalvar Any pathfinderAttributesAddText!;
 

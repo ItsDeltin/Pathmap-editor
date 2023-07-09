@@ -3,14 +3,14 @@ import 'main.del';
 globalvar Any[] controlTexts;
 globalvar Number controlTextOrder = 1;
 globalvar Number connectingFromNode = -1;
-globalvar Boolean attributeMode!;
+globalvar Boolean attributeMode;
 globalvar Number attribute!;
 globalvar Any blueVisual!;
 globalvar Any redVisual!;
 globalvar Any attributeFloatText!;
 globalvar Any cursorMarkerEffect!;
 globalvar Any dummyBotHeroIcon!;
-globalvar EditorState editorState!;
+globalvar EditorState editorState;
 globalvar Hero placingDummyHero!;
 
 enum EditorState

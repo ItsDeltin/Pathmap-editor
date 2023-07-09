@@ -39,17 +39,17 @@ struct RuleAction
 
 globalvar persist Rule[] Rules = [];
 # The index of the currently visible rule page. To be used with `Rules[rulePage]`.
-globalvar Number rulePage!;
+globalvar Number rulePage;
 globalvar Any rulePageText!;
 globalvar Any previousRuleText!;
 globalvar Any nextRuleText!;
 globalvar Any deleteActionText!;
 globalvar Any moveActionsUpText!;
 globalvar Any moveActionsDownText!;
-globalvar NumberSelector ruleAttributeSelector!;
+globalvar NumberSelector ruleAttributeSelector;
 globalvar Number[] pagerButtons = [];
-globalvar Scrollbar actionScrollBar!;
-globalvar Scrollbar heroScrollBar!;
+globalvar Scrollbar actionScrollBar;
+globalvar Scrollbar heroScrollBar;
 globalvar Number waitTime!;
 globalvar Any waitTimeText!;
 # If this is true, it is assumed that `actionScrollBar` is not null.
@@ -551,15 +551,15 @@ void MoveSelectedActions(Boolean up!) 'Subroutine: Document action move'
 
     Document({
         Set: () => {
-            DoMove(selected, up, page);
+            DoMove(selected, up, page, false);
         },
         Revert: () => {
-            DoMove(selected, !up, page);
+            DoMove(selected, !up, page, true);
         }
     });
 }
 
-void DoMove(Boolean[] selected!, Boolean up!, Number page!) 'Subroutine: Execute action move'
+void DoMove(Boolean[] selected!, Boolean up!, Number page!, Boolean isUndo) 'Subroutine: Execute action move'
 {
     // The actions in the current page are about to be moved, so reset selected actions.
     if (isRulePageVisible(page))
@@ -568,24 +568,25 @@ void DoMove(Boolean[] selected!, Boolean up!, Number page!) 'Subroutine: Execute
     }
 
     // -1 moves the actions up the list, 1 moves them down.
-    Number direction! = up ? -1 : 1;
-    // Depending on the direction being moved, we will need to either go from zero to selected.Length
-    // or from selected.Length to zero.
-    for (Number i! = up ? 0 : selected.Length - 1;
+    Number direction = up ? -1 : 1;
+    Number step = isUndo ? -direction : 0;
+    // Depending on the direction being moved, we will need to either go from
+    // 0 to selected.Length or the opposite direction. This is so that later elements are not shifted.
+    for (Number i = up ? 0 : selected.Length - 1;
         up ? i < selected.Length : i >= 0;
         i -= direction) {
         if (selected[i]) {
             // Shuffle Actions[i] and Actions[i ± 1].
-            define action! = Rules[rulePage].Actions[i];
-            Rules[rulePage].Actions.ModRemoveByIndex(i);
-            Rules[rulePage].Actions = insert(Rules[rulePage].Actions, i + direction, action);
+            // If this is an undo, the selected item's real positions are shifted so add step to i.
+            define action! = Rules[rulePage].Actions[i + step];
+            Rules[rulePage].Actions.ModRemoveByIndex(i + step);
+            Rules[rulePage].Actions = insert(Rules[rulePage].Actions, i + step + direction, action);
 
-            if (isRulePageVisible(page))
-            {
-                actionScrollBar.Remove(i);
-                actionScrollBar.Insert(i + direction, LabelFromAction(action));
-                actionsSelected[i + direction] = true;
-                updateActionSelectColor(i + direction);
+            if (isRulePageVisible(page)) {
+                actionScrollBar.Remove(i + step);
+                actionScrollBar.Insert(i + step + direction, LabelFromAction(action));
+                actionsSelected[i + direction + step] = !isUndo;
+                updateActionSelectColor(i + step + direction);
             }
         }
     }

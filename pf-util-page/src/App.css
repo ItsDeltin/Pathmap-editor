@@ -1,0 +1,90 @@
+.App {
+  background-color: #282c34;
+  min-height: 100vh;
+}
+
+.App-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+  margin-bottom: 10px;
+  padding-top: 10px;
+}
+
+.App-content {
+  display: flex;
+  justify-content: center;
+}
+
+.App-content-inner {
+  width: 900px;
+}
+
+.Header-selector {
+  display: flex;
+}
+
+.Header-section {
+  color: white;
+  background-color: transparent;
+  float: left;
+  padding: 7px;
+  font-size: medium;
+  border: solid;
+  border-bottom: none;
+  border-width: 2px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-color: #ffffff6d;
+  margin-left: 7px;
+}
+
+.Header-selected {
+  background-color: white;
+  color: black;
+}
+
+.Header-section:hover {
+  background-color: #454c59;
+}
+
+.Header-selected:hover {
+  background-color: lightgray;
+}
+
+.Section-content {
+  background-color: white;
+  padding: 10px;
+  text-align: center;
+  border-radius: 2px;
+}
+
+.Diagnostic {
+  padding: 10px;
+  margin: 10px;
+  border: 2px solid white;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.error {
+  color: indianred;
+  border-color: indianred;
+}
+
+.warning {
+  color: goldenrod;
+  border-color: goldenrod;
+}
+
+.Section-description {
+  margin: 15px;
+  padding: 10px;
+  padding-left: 15px;
+  text-align: left;
+  border-left: 4px solid rgb(93, 93, 93);
+  background-color: rgb(229, 229, 229);
+}

@@ -541,7 +541,7 @@ rule("Initial Global")
         Set Global Variable(func_group, Empty Array);
         If(Not(Global Variable(__loadPersist)));
             Set Global Variable(__loadPersist, True);
-            Set Global Variable(version, 4);
+            Set Global Variable(version, 5);
             Set Global Variable(map, Current Map);
             Set Global Variable(Nodes_Node_UniqueID, Empty Array);
             Set Global Variable(Nodes_Node_Position, Empty Array);
@@ -6179,12 +6179,12 @@ rule("lambda")
         Skip(341);
         Set Global Variable(objectiveDescription, Null);
         Set Global Variable(lines_Type, Array(2, 1, 0));
-        Set Global Variable(lines_Content, Array(Array(Custom String("Import code: hp2dg"), Color(Orange)), Array(Custom String("v1.0.3"), Color(Sky Blue)), Array(Custom String("Initial Release"), Color(White))));
+        Set Global Variable(lines_Content, Array(Array(Custom String("Import code: hp2dg"), Color(Orange)), Array(Custom String("v1.0.4"), Color(Sky Blue)), Array(Custom String("Initial Release"), Color(White))));
         Call Subroutine(showMessage);
         Skip(336);
         Set Global Variable(objectiveDescription, Null);
         Set Global Variable(lines_Type, Array(1, 0, 2, 1, 0, 0, 1, 0, 1, 0));
-        Set Global Variable(lines_Content, Array(Array(Custom String("Pathmap Editor v1.0.3"), Color(Lime Green)), Array(Custom String("https://github.com/ItsDeltin/Pathmap-editor\n"), Color(Blue)), Array(Custom String("  ☆ Credits ☆  "), Color(Rose)), Array(Custom String("Created by Deltin"), Color(Sky Blue)), Array(Custom String("with Overwatch Script To Workshop"), Color(White)), Array(Custom String("https://github.com/ItsDeltin/Overwatch-Script-To-Workshop\n"), Color(Blue)), Array(Custom String("Josbird"), Color(Orange)), Array(Custom String("- Cursor menu library\n- Noclip\n"), Color(White)), Array(Custom String("Zezombye"), Color(Yellow)), Array(Custom String("- Map symmetry data\n- overpy"), Color(White))));
+        Set Global Variable(lines_Content, Array(Array(Custom String("Pathmap Editor v1.0.4"), Color(Lime Green)), Array(Custom String("https://github.com/ItsDeltin/Pathmap-editor\n"), Color(Blue)), Array(Custom String("  ☆ Credits ☆  "), Color(Rose)), Array(Custom String("Created by Deltin"), Color(Sky Blue)), Array(Custom String("with Overwatch Script To Workshop"), Color(White)), Array(Custom String("https://github.com/ItsDeltin/Overwatch-Script-To-Workshop\n"), Color(Blue)), Array(Custom String("Josbird"), Color(Orange)), Array(Custom String("- Cursor menu library\n- Noclip\n"), Color(White)), Array(Custom String("Zezombye"), Color(Yellow)), Array(Custom String("- Map symmetry data\n- overpy"), Color(White))));
         Call Subroutine(showMessage);
         Skip(331);
         Set Global Variable(pages, Array(Array(49, Last Of(Global Variable(func_group))), Array(50, Last Of(Global Variable(func_group))), Array(51, Last Of(Global Variable(func_group))), Array(52, Last Of(Global Variable(func_group))), Array(53, Last Of(Global Variable(func_group)))));

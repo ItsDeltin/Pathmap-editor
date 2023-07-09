@@ -18,7 +18,7 @@ import 'settings.lobby';
 # The current version of the pathmap editor. This is a number for easy comparison.
 # If we wanted semantic versioning we could make a table mapping version numbers to
 # version strings.
-Number currentVersion: 4;
+Number currentVersion: 5;
 
 # This is the `currentVersion` value saved to a persistent global variable.
 # This is used to track the version of a loaded map. If this value differs from

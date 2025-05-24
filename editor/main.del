@@ -48,6 +48,9 @@ rule: 'Setup: Inspector, Performance HUD, and Settings'
         Text: <"cap: <0> <1> <2>\nposition: <3>\n<4>",
         ServerLoad(), ServerLoadAverage(), ServerLoadPeak(),
         PositionOf(host), SelectedNodeIndex == -1 ? '' : <'Selected node index: <0>', SelectedNodeIndex>>);
+    CreateHudText(AllPlayers(),
+        Text: <"<0> Remember to save often!", IconString(Icon.Warning)>,
+        TextColor: Color.Yellow);
     SetObjectiveDescription(AllPlayers(), '', HudTextRev.VisibleTo);
     // Settings
     maxHistoryLength = WorkshopSettingInteger("Pathmap Editor", "Undo history length", 20, 0, 100);

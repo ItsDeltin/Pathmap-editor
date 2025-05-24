@@ -471,13 +471,3 @@ void AddControlText(in String text, in Button button, in Boolean condition = tru
     );
     controlTextOrder++;
 }
-
-void DestroyControlTexts() 'Destroy control texts'
-{
-    while (controlTexts.Length)
-    {
-        DestroyHudText(controlTexts.First);
-        controlTexts.ModRemoveByIndex(0);
-    }
-    controlTextOrder = 1;
-}

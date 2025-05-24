@@ -6,14 +6,18 @@ Boolean CanRedo: historyPage < historyItems.Length;
 playervar Number historyPage;
 playervar HistoryCatalog[] historyItems = [];
 
-void Document(HistoryCatalog catalogItem) playervar '(Subroutine) Document Undoable Action'
+subroutines {
+    0: Docment
+}
+
+void Document(HistoryCatalog catalogItem) playervar '(Subroutine) Doc Undoable Action': 'Docment'
 {
     // If we went back in time and something is documented, the future states are now stale so we can remove them.
     while (historyItems.Length > historyPage)
         historyItems.ModRemoveByIndex(historyPage);
 
     catalogItem.Set();
-    historyItems += [catalogItem]; // TODO: catalogItem should not be surrounded by [], ostw should handle it natively
+    historyItems += [catalogItem];
 
     // If above the maximum allowed items, remove oldest item.
     if (historyPage == maxHistoryLength) {

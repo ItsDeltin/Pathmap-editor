@@ -51,7 +51,6 @@ subroutines
 
 rule("【PF Core】Prepare loaded map")
 {
-
     event
     {
         Ongoing - Global;
@@ -68,7 +67,6 @@ rule("【PF Core】Prepare loaded map")
 
 rule("【PF Core】Select next pathfinder")
 {
-
     event
     {
         Ongoing - Global;
@@ -90,7 +88,6 @@ rule("【PF Core】Select next pathfinder")
 
 rule("【PF Core Subroutine】☞ Tick")
 {
-
     event
     {
         Subroutine;
@@ -111,7 +108,6 @@ rule("【PF Core Subroutine】☞ Tick")
 
 rule("【PF Core Subroutine】☞ Update node meta")
 {
-
     event
     {
         Subroutine;
@@ -134,7 +130,6 @@ rule("【PF Core Subroutine】☞ Update node meta")
 
 rule("☆【PF Core Subroutine】☞ Walk to destination")
 {
-
     event
     {
         Subroutine;
@@ -149,7 +144,6 @@ rule("☆【PF Core Subroutine】☞ Walk to destination")
 
 rule("【PF Core】Update & Execute")
 {
-
     event
     {
         Ongoing - Each Player;
@@ -239,7 +233,7 @@ If -1, the neighbor was not added to the score list yet."
                             Modify Player Variable(Event Player, scores_fScore, Append To Array, Event Player.score + Distance Between(Global.pfLoadedMap_nodes[Event Player.neighborI], Global.pfLoadedMap_nodes[Event Player.pfActiveNode]) * 20);
                             Modify Player Variable(Event Player, scores_parent, Append To Array, Event Player.current);
                             Modify Player Variable(Event Player, scores_nodeIndex, Append To Array, Event Player.neighborI);
-                            Else If(Event Player.score < Event Player.scores_gScore[Event Player.scoreIndex]);
+                        Else If(Event Player.score < Event Player.scores_gScore[Event Player.scoreIndex]);
                             Event Player.scores_gScore[Event Player.scoreIndex] = Event Player.score;
                             Event Player.scores_fScore[Event Player.scoreIndex] = Event Player.score + Distance Between(Global.pfLoadedMap_nodes[Event Player.neighborI], Global.pfLoadedMap_nodes[Event Player.pfActiveNode]) * 20;
                             Event Player.scores_parent[Event Player.scoreIndex] = Event Player.current;
@@ -270,7 +264,6 @@ If -1, the neighbor was not added to the score list yet."
 
 rule("【PF Core Subroutine】☞ Progress event player")
 {
-
     event
     {
         Subroutine;
@@ -301,7 +294,6 @@ rule("【PF Core Subroutine】☞ Progress event player")
 
 rule("【PF Core】Node reached")
 {
-
     event
     {
         Ongoing - Each Player;
@@ -313,7 +305,11 @@ rule("【PF Core】Node reached")
     {
         Event Player.pfIsPathfinding == True;
         Event Player.pfWalkingToPosition == True;
+        "Horizontal distance to current position is less than 0.4."
+
         Distance Between(Position Of(Event Player) * Vector(1, Empty Array, 1), Event Player.pfWalkingToPosition * Vector(1, Empty Array, 1)) <= 0.4;
+        "Vertical distance to current position is less than 1.5."
+
         Absolute Value(Y Component Of(Position Of(Event Player)) - Y Component Of(Event Player.pfWalkingToPosition)) <= 1.5;
         Count Of(Event Player.pfPath) > 0;
         Event Player.pfCurrentNodeIndex != -1;
@@ -329,7 +325,6 @@ rule("【PF Core】Node reached")
 
 rule("【PF Core】Stop throttle when pfDestination is reset")
 {
-
     event
     {
         Ongoing - Each Player;
@@ -353,7 +348,6 @@ rule("【PF Core】Stop throttle when pfDestination is reset")
 
 rule("【PF Core Subroutine】☞ Recalibrate")
 {
-
     event
     {
         Subroutine;
@@ -372,7 +366,6 @@ rule("【PF Core Subroutine】☞ Recalibrate")
 
 rule("【PF Core】Insurance")
 {
-
     event
     {
         Ongoing - Each Player;
@@ -391,22 +384,22 @@ rule("【PF Core】Insurance")
         "Recalibrate"
         If(Distance Between((Event Player.pfWalkingFromPosition + Event Player.pfWalkingToPosition) / 2, Event Player) > (Distance Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) + 2) * 1.2);
             Call Subroutine(pfRecalibrate);
-            "Smooth step"
-            Else If(Count Of(Event Player.pfPath) == 2 && Distance Between(Event Player, Event Player.pfSavedTarget) < Distance Between(Event Player.pfWalkingToPosition, Event Player.pfSavedTarget) && Is In Line Of Sight(Position Of(Event Player) + Vector(0, 0.25, 0), Event Player.pfSavedTarget + Vector(0, 0.25, 0), Barriers Do Not Block LOS));
+        "Smooth step"
+        Else If(Count Of(Event Player.pfPath) == 2 && Distance Between(Event Player, Event Player.pfSavedTarget) < Distance Between(Event Player.pfWalkingToPosition, Event Player.pfSavedTarget) && Is In Line Of Sight(Position Of(Event Player) + Vector(0, 0.25, 0), Event Player.pfSavedTarget + Vector(0, 0.25, 0), Barriers Do Not Block LOS));
             Call Subroutine(pfProgressEventPlayer);
-            "Recovery"
-            Else If(Distance Between(Event Player, Event Player.pfWalkingToPosition) > 0.25 && Event Player.pfIsStuck || Distance Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) - 4.95 * (Total Time Elapsed - Event Player.pfStartTime) < 0 && !Has Status(Event Player, Rooted) && !Has Status(Event Player, Frozen) && !Has Status(Event Player, Asleep) && !Has Status(Event Player, Knocked Down) && !Has Status(Event Player, Stunned));
+        "Recovery"
+        Else If(Distance Between(Event Player, Event Player.pfWalkingToPosition) > 0.25 && Event Player.pfIsStuck || Distance Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) - 4.95 * (Total Time Elapsed - Event Player.pfStartTime) < 0 && !Has Status(Event Player, Rooted) && !Has Status(Event Player, Frozen) && !Has Status(Event Player, Asleep) && !Has Status(Event Player, Knocked Down) && !Has Status(Event Player, Stunned));
             If(Event Player.pfCurrentNodeIndex == -1);
                 Event Player.pfWalkingToPosition = Null;
-                Else If(Event Player.pfStuckOnNode - 2 == Event Player.pfCurrentNodeIndex);
+            Else If(Event Player.pfStuckOnNode - 2 == Event Player.pfCurrentNodeIndex);
                 Log To Inspector(Custom String("Pathfinder {0} struggled to reach node {1} at {2}. Try adjusting your map in the editor.", Event Player, Event Player.pfCurrentNodeIndex, Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex]));
                 Teleport(Event Player, Event Player.pfWalkingToPosition);
             Else;
                 Event Player.pfStuckOnNode = Event Player.pfCurrentNodeIndex + 2;
                 Call Subroutine(pfRecalibrate);
             End;
-            "Shift destination"
-            Else If(Event Player.pfWalkingToPosition != Event Player.pfDestination && Event Player.pfCurrentNodeIndex == -1 && Distance Between(Event Player.pfSavedTarget, Event Player.pfDestination) < 5 && Is In Line Of Sight(Event Player.pfSavedTarget + Up, Event Player.pfDestination + Up, Barriers Do Not Block LOS));
+        "Shift destination"
+        Else If(Event Player.pfWalkingToPosition != Event Player.pfDestination && Event Player.pfCurrentNodeIndex == -1 && Distance Between(Event Player.pfSavedTarget, Event Player.pfDestination) < 5 && Is In Line Of Sight(Event Player.pfSavedTarget + Up, Event Player.pfDestination + Up, Barriers Do Not Block LOS));
             Event Player.pfWalkingToPosition = Event Player.pfDestination;
         End;
         Wait(2, Ignore Condition);
@@ -416,7 +409,6 @@ rule("【PF Core】Insurance")
 
 rule("【PF Core】Check throttle")
 {
-
     event
     {
         Ongoing - Each Player;
@@ -441,7 +433,6 @@ rule("【PF Core】Check throttle")
 
 rule("☆【PF Core Subroutine】☞ Look at destination")
 {
-
     event
     {
         Subroutine;

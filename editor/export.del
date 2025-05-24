@@ -18,7 +18,8 @@ globalvar persist Number outputLanguage;
 # `[0]`: The map itself. (default: true)
 # `[1]`: The custom rules. (default: true)
 # `[2]`: The core pathfinding code. (default: false)
-globalvar Boolean[] buildToggles = [true, true, false];
+# `[3]`: A compressed map. (default: true)
+globalvar Boolean[] buildToggles = [true, true, false, true];
 
 globalvar Number selectWorkshopButton!;
 globalvar Number selectOstwButton!;
@@ -49,8 +50,9 @@ void ExportMenu() 'EXPORT: create export menu'
         interactable: false
     );
     CreateToggle(0, 'Export Map', posX: -1.25, posY: .3);
-    CreateToggle(1, 'Export Custom Rules', posX: -1.25, posY: .0);
-    CreateToggle(2, 'Core Pathfinding Code', posX: -1.25, posY: -.3);
+    CreateToggle(1, 'Export Custom Rules', posX: -1.25, posY: .1);
+    CreateToggle(2, 'Core Pathfinding Code', posX: -1.25, posY: -.1);
+    CreateToggle(3, 'Compress map', posX: -1.25, posY: -.3);
     
     createHelpButton(posX: 1.5, posY: .8,
         'Pathmaps can be compiled into several workshop languages.   ', [
@@ -152,7 +154,7 @@ void CreateToggle(in Number index, in String label, in Number posX, in Number po
         defaultColor: ExportBuildColor(index),
         posX: posX,
         posY: posY,
-        clickWidth: 1.5,
+        clickWidth: 2,
         onClick: left => {
             buildToggles[index] = !buildToggles[index];
             SetLabel(bid, ExportBuildLabel(label, index));
@@ -452,31 +454,42 @@ void ExportRules() playervar 'EXPORT: Export'
 
 void ExportMapToWorkshop()
 {
-    ExportNodes();
-    ExportNeighbors();
-}
-
-void ExportNodes()
-{
-    ExportMapBlock('nodes', () => {
-        # Set loadedMap_segments
-        LogToInspector('*/     global.pfLoadedMap_nodes = Array( /*');
-        # For each attribute
-        ExportArray(Nodes, 10, (node, isLast) => <'Vector<0><1>', node.Node.Position, isLast ? '' : ', '>);
-        # End pathfinder segments
-        LogToInspector('*/ ); /*');
-    });
-}
-
-void ExportNeighbors()
-{
-    ExportMapBlock('neighbors', () => {
-        # Set loadedMap_neighors
-        LogToInspector('*/     global.pfLoadedMap_neighbors = Array( /*');
-        ExportNeighborsPattern('Array(', ')', 'Empty Array');
-        # End array
-        LogToInspector('*/ ); /*');
-    });
+    # Compressed
+    if (buildToggles[3]) {
+        ExportMapBlock('compressed map', () => {
+            # Set pfDecompress
+            LogToInspector('*/     global.pfDecompress = Array(Array( /*');
+            LoadCompressionTable();
+            # Export nodes
+            PrintCompressedNodes();
+            # End nodes data array, start neighbors data array
+            LogToInspector('*/ ), Array( /*');
+            # Print compressed neighbors.
+            PrintCompressedNeighbors();
+            UnloadCompressionTable();
+            # End array
+            LogToInspector('*/ )); /*');
+        });
+    }
+    # Uncompressed
+    else 
+    {
+        ExportMapBlock('nodes', () => {
+            # Set loadedMap_segments
+            LogToInspector('*/     global.pfLoadedMap_nodes = Array( /*');
+            # For each attribute
+            ExportArray(Nodes, 10, (node, isLast) => <'Vector<0><1>', node.Node.Position, isLast ? '' : ', '>);
+            # End pathfinder segments
+            LogToInspector('*/ ); /*');
+        });
+        ExportMapBlock('neighbors', () => {
+            # Set loadedMap_neighors
+            LogToInspector('*/     global.pfLoadedMap_neighbors = Array( /*');
+            ExportNeighborsPattern('Array(', ')', 'Empty Array');
+            # End array
+            LogToInspector('*/ ); /*');
+        });
+    }
 }
 
 void ExportMapToOstw()
@@ -536,17 +549,13 @@ void ExportNeighborsPattern(String beginArray, String endArray, String emptyArra
     for (Number n = 0; Nodes.Length; 1)
     {
         # Get connected segments.
-        Number[] connected = Segments
-            .Map((s, i) => i)
-            .FilteredArray(i => Segments[i].Node1 == Nodes[n].Node.UniqueID || Segments[i].Node2 == Nodes[n].Node.UniqueID);
+        Number[] connected = GetConnectedSegments(n);
         String neighborString: StringJoin(connected, ',', si =>
         {
             # Find the attributes from node A to node B.
             # The core pathfinding code travels from the goal to the player's position,
             # so attr.Node1 and attr.Node2 are flipped here.
-            Number[] attributes = Attributes
-                .FilteredArray(attr => Nodes[n].Node.UniqueID == attr.Node2 && (attr.Node1 == Segments[si].Node1 || attr.Node1 == Segments[si].Node2))
-                .Map(attr => attr.Value);
+            Number[] attributes = GetConnectedAttributesReversed(n, si);
             
             # If there are no attributes, use the empty array term.
             String attrString = emptyArray;
@@ -556,7 +565,7 @@ void ExportNeighborsPattern(String beginArray, String endArray, String emptyArra
 
             return <'<0><1>, <2><3>',
                 beginArray,
-                NodeIndexFromID(Segments[si].Node1 == Nodes[n].Node.UniqueID ? Segments[si].Node2 : Segments[si].Node1),
+                GetConnectedNodeIndex(Nodes[n], Segments[si]),
                 attrString,
                 endArray>;
         });
@@ -568,9 +577,21 @@ void ExportNeighborsPattern(String beginArray, String endArray, String emptyArra
     EnableInspectorRecording();
 }
 
-playervar String exportArrayStub;
-playervar Number exportArrayNumA;
-playervar Number exportArrayNumB;
+# Finds all the segments connected to a node.
+Number[] GetConnectedSegments(Number nodeIndex): Segments
+    .Map((s, i) => i)
+    .FilteredArray(i => Segments[i].Node1 == Nodes[nodeIndex].Node.UniqueID || Segments[i].Node2 == Nodes[nodeIndex].Node.UniqueID);
+
+# Finds all the attributes of a node and a neighbor.
+Number[] GetConnectedAttributesReversed(Number nodeIndex, Number segmentIndex): Attributes
+    .FilteredArray(attr => Nodes[nodeIndex].Node.UniqueID == attr.Node2 && (attr.Node1 == Segments[segmentIndex].Node1 || attr.Node1 == Segments[segmentIndex].Node2))
+    .Map(attr => attr.Value);
+
+Number GetConnectedNodeIndex(WorldNode node, WorldSegment segment): NodeIndexFromID(segment.Node1 == node.Node.UniqueID ? segment.Node2 : segment.Node1);
+
+playervar String exportArrayStub!;
+playervar Number exportArrayNumA!;
+playervar Number exportArrayNumB!;
 void ExportArray<T>(in T[] array, in Number step, const (T, Boolean) => String valueToString)
 {
     for (exportArrayNumA = 0; array.Length; step) {
@@ -633,3 +654,116 @@ void ExportAction(in OutputLanguage language, in String workshop, in String delt
 }
 
 String mapCondition: '*/     Current Map == Map({0}); /*'.Format([CurrentMap()]);
+
+playervar String compressionTable;
+void LoadCompressionTable() 'Load compression table'
+{
+    host.compressionTable =
+        " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz|~ ¡¢£" +
+        "¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģ" +
+        "ĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƗƘƙƚƛƜƝƞƟƠơƢƣ" +
+        "ƤƥƦƧƨƩƪƫƬƭƮƯưƱƲƳƴƵƶƷƸƹƺƻƼƽƾƿǀǁǂǃǄǅǆǇǈǉǊǋǌǍǎǏǐǑǒǓǔǕǖǗǘǙǚǛǜǝǞǟǠǡǢǣǤǥǦǧǨǩǪǫǬǭǮǯǰǱǲǳǴǵǶǷǸǹǺǻǼǽǾǿȀȁȂȃȄȅȆȇȈȉȊȋȌȍȎȏȐȑȒȓȔȕȖȗȘșȚțȜȝȞȟȠȡȢȣ" +
+        "ȤȥȦȧȨȩȪȫȬȭȮȯȰȱȲȳȴȵȶȷȸȹȺȻȼȽȾȿɀɁɂɃɄɅɆɇɈɉɊɋɌɍɎɏɐɑɒɓɔɕɖɗɘəɚɛɜɝɞɟɠɡɢɣɤɥɦɧɨɩɪɫɬɭɮɯɰɱɲɳɴɵɶɷɸɹɺɻɼɽɾɿʀʁʂʃʄʅʆʇʈʉʊʋʌʍʎʏʐʑʒʓʔʕʖʗʘʙʚʛʜʝʞʟʠʡʢʣ" +
+        "ʤʥʦʧʨʩʪʫʬʭʮʯʰʱʲʳʴʵʶʷʸʹʺʻʼʽʾʿˀˁ˂˃˄˅ˆˇˈˉˊˋˌˍˎˏːˑ˒˓˔˕˖˗˘˙˚˛˜˝˞˟ˠˡˢˣˤ˥˦˧˨˩˪˫ˬ˭ˮ˯˰˱˲˳˴˵˶˷˸˹˺˻˼˽˾˿̡̢̛̖̗̘̙̜̝̞̟̠̣̀́̂̃̄̅̆̇̈̉̊̋̌̍̎̏̐̑̒̓̔̕̚" +
+        "̴̵̶̷̸̧̨̤̥̦̩̪̫̬̭̮̯̰̱̲̳̹̺̻̼͇͈͉͍͎̽̾̿̀́͂̓̈́͆͊͋͌ͅ͏͓͔͕͖͙͚͐͑͒͗͛ͣͤͥͦͧͨͩͪͫͬͭͮͯ͘͜͟͢͝͞͠͡ͰͱͲͳʹ͵Ͷͷ͸͹ͺͻͼͽ;Ϳ΀΁΂΃΄΅Ά·ΈΉΊ΋Ό΍ΎΏΐΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡ΢Σ" +
+        "ΤΥΦΧΨΩΪΫάέήίΰαβγδεζηθικλμνξοπρςστυφχψωϊϋόύώϏϐϑϒϓϔϕϖϗϘϙϚϛϜϝϞϟϠϡϢϣϤϥϦϧϨϩϪϫϬϭϮϯϰϱϲϳϴϵ϶ϷϸϹϺϻϼϽϾϿЀЁЂЃЄЅІЇЈЉЊЋЌЍЎЏАБВГДЕЖЗИЙКЛМНОПРСТУ" +
+        "ФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяѐёђѓєѕіїјљњћќѝўџѠѡѢѣѤѥѦѧѨѩѪѫѬѭѮѯѰѱѲѳѴѵѶѷѸѹѺѻѼѽѾѿҀҁ҂҃҄҅҆҇҈҉ҊҋҌҍҎҏҐґҒғҔҕҖҗҘҙҚқҜҝҞҟҠҡҢң" +
+        "ҤҥҦҧҨҩҪҫҬҭҮүҰұҲҳҴҵҶҷҸҹҺһҼҽҾҿӀӁӂӃӄӅӆӇӈӉӊӋӌӍӎӏӐӑӒӓӔӕӖӗӘәӚӛӜӝӞӟӠӡӢӣӤӥӦӧӨөӪӫӬӭӮӯӰӱӲӳӴӵӶӷӸӹӺӻӼӽӾӿԀԁԂԃԄԅԆԇԈԉԊԋԌԍԎԏԐԑԒԓԔԕԖԗԘԙԚԛԜԝԞԟԠԡԢԣ" +
+        "ԤԥԦԧԨԩԪԫԬԭԮԯ԰ԱԲԳԴԵԶԷԸԹԺԻԼԽԾԿՀՁՂՃՄՅՆՇՈՉՊՋՌՍՎՏՐՑՒՓՔՕՖ՗՘ՙ՚՛՜՝՞՟ՠաբգդեզէըթժիլխծկհձղճմյնշոչպջռսվտրցւփքօֆևֈ։֊֋֌֍֎֏֐֑֖֛֢֣֚֒֓֔֕֗֘֙֜֝֞֟֠֡" +
+        "ְֱֲֳִֵֶַָֹֺֻּֽ֤֥֦֧֪֭֮֨֩֫֬֯־ֿ׀ׁׂ׃ׅׄ׆ׇ׈׉׊׋׌׍׎׏אבגדהוזחטיךכלםמןנסעףפץצקרשת׫׬׭׮ׯװױײ׳״׵׶׷׸׹׺׻׼׽׾׿؀؁؂؃؄؅؆؇؈؉؊؋،؍؎؏ؘؙؚؐؑؒؓؔؕؖؗ؛؜؝؞؟ؠءآأ" +
+        "ؤإئابةتثجحخدذرزسشصضطظعغػؼؽؾؿـفقكلمنهوىيًٌٍَُِّْٕٖٜٟٓٔٗ٘ٙٚٛٝٞ٠١٢٣٤٥٦٧٨٩٪٫٬٭ٮٯٰٱٲٳٴٵٶٷٸٹٺٻټٽپٿڀځڂڃڄڅچڇڈډڊڋڌڍڎڏڐڑڒړڔڕږڗژڙښڛڜڝڞڟڠڡڢڣ" +
+        "ڤڥڦڧڨکڪګڬڭڮگڰڱڲڳڴڵڶڷڸڹںڻڼڽھڿۀہۂۃۄۅۆۇۈۉۊۋیۍێۏېۑےۓ۔ەۖۗۘۙۚۛۜ۝۞ۣ۟۠ۡۢۤۥۦۧۨ۩۪ۭ۫۬ۮۯ۰۱۲۳۴۵۶۷۸۹ۺۻۼ۽۾ۿ܀܁܂܃܄܅܆܇܈܉܊܋܌܍܎܏ܐܑܒܓܔܕܖܗܘܙܚܛܜܝܞܟܠܡܢܣ" +
+        "ܤܥܦܧܨܩܪܫܬܭܮܯܱܴܷܸܹܻܼܾ݂݄݆݈ܰܲܳܵܶܺܽܿ݀݁݃݅݇݉݊݋݌ݍݎݏݐݑݒݓݔݕݖݗݘݙݚݛݜݝݞݟݠݡݢݣݤݥݦݧݨݩݪݫݬݭݮݯݰݱݲݳݴݵݶݷݸݹݺݻݼݽݾݿހށނރބޅކއވމފދތލގޏސޑޒޓޔޕޖޗޘޙޚޛޜޝޞޟޠޡޢޣ" +
+        "ޤޥަާިީުޫެޭޮޯްޱ޲޳޴޵޶޷޸޹޺޻޼޽޾޿߀߁߂߃߄߅߆߇߈߉ߊߋߌߍߎߏߐߑߒߓߔߕߖߗߘߙߚߛߜߝߞߟߠߡߢߣߤߥߦߧߨߩߪ߲߫߬߭߮߯߰߱߳ߴߵ߶߷߸߹ߺ߻߼߽߾߿ࠀࠁࠂࠃࠄࠅࠆࠇࠈࠉࠊࠋࠌࠍࠎࠏࠐࠑࠒࠓࠔࠕࠖࠗ࠘࠙ࠚࠛࠜࠝࠞࠟࠠࠡࠢࠣ" +
+        "ࠤࠥࠦࠧࠨࠩࠪࠫࠬ࠭࠮࠯࠰࠱࠲࠳࠴࠵࠶࠷࠸࠹࠺࠻࠼࠽࠾࠿ࡀࡁࡂࡃࡄࡅࡆࡇࡈࡉࡊࡋࡌࡍࡎࡏࡐࡑࡒࡓࡔࡕࡖࡗࡘ࡙࡚࡛࡜࡝࡞࡟ࡠࡡࡢࡣࡤࡥࡦࡧࡨࡩࡪ࡫࡬࡭࡮࡯ࡰࡱࡲࡳࡴࡵࡶࡷࡸࡹࡺࡻࡼࡽࡾࡿࢀࢁࢂࢃࢄࢅࢆࢇ࢈ࢉࢊࢋࢌࢍࢎ࢏࢐࢑࢒࢓࢔࢕࢖࢙࢚࢛ࢗ࢘࢜࢝࢞࢟ࢠࢡࢢࢣ" +
+        "ࢤࢥࢦࢧࢨࢩࢪࢫࢬࢭࢮࢯࢰࢱࢲࢳࢴࢵࢶࢷࢸࢹࢺࢻࢼࢽࢾࢿࣀࣁࣂࣃࣄࣅࣆࣇࣈࣉ࣏࣐࣑࣒࣓࣊࣋࣌࣍࣎ࣔࣕࣖࣗࣘࣙࣚࣛࣜࣝࣞࣟ࣠࣡࣢ࣰࣱࣲࣣࣦࣩ࣭࣮࣯ࣶࣹࣺࣤࣥࣧࣨ࣪࣫࣬ࣳࣴࣵࣷࣸࣻࣼࣽࣾࣿऀँंःऄअआइईउऊऋऌऍऎएऐऑऒओऔकखगघङचछजझञटठडढण" +
+        "तथदधनऩपफबभमयरऱलळऴवशषसहऺऻ़ऽािीुूृॄॅॆेैॉॊोौ्ॎॏॐ॒॑॓॔ॕॖॗक़ख़ग़ज़ड़ढ़फ़य़ॠॡॢॣ।॥०१२३४५६७८९॰ॱॲॳॴॵॶॷॸॹॺॻॼॽॾॿঀঁংঃ঄অআইঈউঊঋঌ঍঎এঐ঑঒ওঔকখগঘঙচছজঝঞটঠডঢণ" +
+        "তথদধন঩পফবভমযর঱ল঳঴঵শষসহ঺঻়ঽািীুূৃৄ৅৆েৈ৉৊োৌ্ৎ৏৐৑৒৓৔৕৖ৗ৘৙৚৛ড়ঢ়৞য়ৠৡৢৣ৤৥০১২৩৪৫৬৭৮৯ৰৱ৲৳৴৵৶৷৸৹৺৻ৼ৽৾৿਀ਁਂਃ਄ਅਆਇਈਉਊ਋਌਍਎ਏਐ਑਒ਓਔਕਖਗਘਙਚਛਜਝਞਟਠਡਢਣ" +
+        "ਤਥਦਧਨ਩ਪਫਬਭਮਯਰ਱ਲਲ਼਴ਵਸ਼਷ਸਹ਺਻਼਽ਾਿੀੁੂ੃੄੅੆ੇੈ੉੊ੋੌ੍੎੏੐ੑ੒੓੔੕੖੗੘ਖ਼ਗ਼ਜ਼ੜ੝ਫ਼੟੠੡੢੣੤੥੦੧੨੩੪੫੬੭੮੯ੰੱੲੳੴੵ੶੷੸੹੺੻੼੽੾੿઀ઁંઃ઄અઆઇઈઉઊઋઌઍ઎એઐઑ઒ઓઔકખગઘઙચછજઝઞટઠડઢણ" +
+        "તથદધન઩પફબભમયર઱લળ઴વશષસહ઺઻઼ઽાિીુૂૃૄૅ૆ેૈૉ૊ોૌ્૎૏ૐ૑૒૓૔૕૖૗૘૙૚૛૜૝૞૟ૠૡૢૣ૤૥૦૧૨૩૪૫૬૭૮૯૰૱૲૳૴૵૶૷૸ૹૺૻૼ૽૾૿଀ଁଂଃ଄ଅଆଇଈଉଊଋଌ଍଎ଏଐ଑଒ଓଔକଖଗଘଙଚଛଜଝଞଟଠଡଢଣ" +
+        "ତଥଦଧନ଩ପଫବଭମଯର଱ଲଳ଴ଵଶଷସହ଺଻଼ଽାିୀୁୂୃୄ୅୆େୈ୉୊ୋୌ୍୎୏୐୑୒୓୔୕ୖୗ୘୙୚୛ଡ଼ଢ଼୞ୟୠୡୢୣ୤୥୦୧୨୩୪୫୬୭୮୯୰ୱ୲୳୴୵୶୷୸୹୺୻୼୽୾୿஀஁ஂஃ஄அஆஇஈஉஊ஋஌஍எஏஐ஑ஒஓஔக஖஗஘ஙச஛ஜ஝ஞட஠஡஢ண" +
+        "த஥஦஧நனப஫஬஭மயரறலளழவஶஷஸஹ஺஻஼஽ாிீுூ௃௄௅ெேை௉ொோௌ்௎௏ௐ௑௒௓௔௕௖ௗ௘௙௚௛௜௝௞௟௠௡௢௣௤௥௦௧௨௩௪௫௬௭௮௯௰௱௲௳௴௵௶௷௸௹௺௻௼௽௾௿ఀఁంఃఄఅఆఇఈఉఊఋఌ఍ఎఏఐ఑ఒఓఔకఖగఘఙచఛజఝఞటఠడఢణ" +
+        "తథదధన఩పఫబభమయరఱలళఴవశషసహ఺఻఼ఽాిీుూృౄ౅ెేై౉ొోౌ్౎౏౐౑౒౓౔ౕౖ౗ౘౙౚ౛౜ౝ౞౟ౠౡౢౣ౤౥౦౧౨౩౪౫౬౭౮౯౰౱౲౳౴౵౶౷౸౹౺౻౼౽౾౿ಀಁಂಃ಄ಅಆಇಈಉಊಋಌ಍ಎಏಐ಑ಒಓಔಕಖಗಘಙಚಛಜಝಞಟಠಡಢಣ" +
+        "ತಥದಧನ಩ಪಫಬಭಮಯರಱಲಳ಴ವಶಷಸಹ಺಻಼ಽಾಿೀುೂೃೄ೅ೆೇೈ೉ೊೋೌ್೎೏೐೑೒೓೔ೕೖ೗೘೙೚೛೜ೝೞ೟ೠೡೢೣ೤೥೦೧೨೩೪೫೬೭೮೯೰ೱೲೳ೴೵೶೷೸೹೺೻೼೽೾೿ഀഁംഃഄഅആഇഈഉഊഋഌ഍എഏഐ഑ഒഓഔകഖഗഘങചഛജഝഞടഠഡഢണ" +
+        "തഥദധനഩപഫബഭമയരറലളഴവശഷസഹഺ഻഼ഽാിീുൂൃൄ൅െേൈ൉ൊോൌ്ൎ൏൐൑൒൓ൔൕൖൗ൘൙൚൛൜൝൞ൟൠൡൢൣ൤൥൦൧൨൩൪൫൬൭൮൯൰൱൲൳൴൵൶൷൸൹ൺൻർൽൾൿ඀ඁංඃ඄අආඇඈඉඊඋඌඍඎඏඐඑඒඓඔඕඖ඗඘඙කඛගඝඞඟචඡජඣ" +
+        "ඤඥඦටඨඩඪණඬතථදධන඲ඳපඵබභමඹයර඼ල඾඿වශෂසහළෆ෇෈෉්෋෌෍෎ාැෑිීු෕ූ෗ෘෙේෛොෝෞෟ෠෡෢෣෤෥෦෧෨෩෪෫෬෭෮෯෰෱ෲෳ෴෵෶෷෸෹෺෻෼෽෾෿฀กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยร" +
+        "ฤลฦวศษสหฬอฮฯะัาำิีึืฺุู฻฼฽฾฿เแโใไๅๆ็่้๊๋์ํ๎๏๐๑๒๓๔๕๖๗๘๙๚๛๜๝๞๟๠๡๢๣๤๥๦๧๨๩๪๫๬๭๮๯๰๱๲๳๴๵๶๷๸๹๺๻๼๽๾๿຀ກຂ຃ຄ຅ຆງຈຉຊ຋ຌຍຎຏຐຑຒຓດຕຖທຘນບປຜຝພຟຠມຢຣ" +
+        "຤ລ຦ວຨຩສຫຬອຮຯະັາຳິີຶື຺ຸູົຼຽ຾຿ເແໂໃໄ໅ໆ໇່້໊໋໌ໍ໎໏໐໑໒໓໔໕໖໗໘໙໚໛ໜໝໞໟ໠໡໢໣໤໥໦໧໨໩໪໫໬໭໮໯໰໱໲໳໴໵໶໷໸໹໺໻໼໽໾໿ༀ༁༂༃༄༅༆༇༈༉༊་༌།༎༏༐༑༒༓༔༕༖༗༘༙༚༛༜༝༞༟༠༡༢༣" +
+        "༤༥༦༧༨༩༪༫༬༭༮༯༰༱༲༳༴༵༶༷༸༹༺༻༼༽༾༿ཀཁགགྷངཅཆཇ཈ཉཊཋཌཌྷཎཏཐདདྷནཔཕབབྷམཙཚཛཛྷཝཞཟའཡརལཤཥསཧཨཀྵཪཫཬ཭཮཯཰ཱཱཱིིུུྲྀཷླྀཹེཻོཽཾཿ྄ཱྀྀྂྃ྅྆྇ྈྉྊྋྌྍྎྏྐྑྒྒྷྔྕྖྗ྘ྙྚྛྜྜྷྞྟྠྡྡྷྣ" +
+        "ྤྥྦྦྷྨྩྪྫྫྷྭྮྯྰྱྲླྴྵྶྷྸྐྵྺྻྼ྽྾྿࿀࿁࿂࿃࿄࿅࿆࿇࿈࿉࿊࿋࿌࿍࿎࿏࿐࿑࿒࿓࿔࿕࿖࿗࿘࿙࿚࿛࿜࿝࿞࿟࿠࿡࿢࿣࿤࿥࿦࿧࿨࿩࿪࿫࿬࿭࿮࿯࿰࿱࿲࿳࿴࿵࿶࿷࿸࿹࿺࿻࿼࿽࿾࿿ကခဂဃငစဆဇဈဉညဋဌဍဎဏတထဒဓနပဖဗဘမယရလဝသဟဠအဢဣ";
+}
+void UnloadCompressionTable()
+{
+    host.compressionTable = null;
+}
+
+String Compress(in Number value): compressionTable.CharAt(value);
+
+void PrintCompressedNodes() 'Print compressed nodes' {
+    PrintCompressedData(42, Nodes, node => '{0}{1}{2}'.Format([
+        Compress((node.Node.Position.X * 10 + 4096) / 2),
+        Compress((node.Node.Position.Y * 10 + 4096) / 2),
+        Compress((node.Node.Position.Z * 10 + 4096) / 2)
+    ]));
+}
+
+playervar String printCompressedDataCurrentString;
+playervar Number printCompressedDataIndex;
+void PrintCompressedData<T>(in Number splitCount, in T[] array, const T => String appendItem) {
+    printCompressedDataCurrentString = '';
+    for (printCompressedDataIndex = 0; array.Length; 1) {
+        printCompressedDataCurrentString = printCompressedDataCurrentString + appendItem(array[printCompressedDataIndex]);
+
+        if ((printCompressedDataIndex && printCompressedDataIndex % splitCount == 0) || printCompressedDataIndex == array.Length - 1) {
+            LogToInspector($'*/ "{printCompressedDataCurrentString}"{printCompressedDataIndex == array.Length - 1 ? '' : ', '} /*');
+
+            // Start a new string.
+            printCompressedDataCurrentString = '';
+        }
+        MinWait();
+    }
+}
+
+void PrintCompressedNeighbors() 'Print compressed neighbors' {
+    printCompressedDataCurrentString = '';
+
+    # For each node
+    for (Number n = 0; Nodes.Length; 1)
+    {
+        # Get the segments connected to the current node.
+        Number[] connected = GetConnectedSegments(n);
+        
+        # For each connection
+        for (Number s = 0; connected.Length; 1) {
+            # Add the neighbor ID to the compressed data.
+            AddToCompressedNeighborData(Compress(1 + GetConnectedNodeIndex(
+                Nodes[n],
+                Segments[connected[s]])));
+
+            # Get attributes
+            Number[] attributes = GetConnectedAttributesReversed(n, connected[s]);
+            for (Number a = 0; attributes.Length; 1) {
+                AddToCompressedNeighborData(Compress(1 + attributes[a]));
+            }
+
+            # End segment
+            AddToCompressedNeighborData(Compress(0));
+        }
+        # End node
+        AddToCompressedNeighborData(Compress(0), n == Nodes.Length - 1);
+    }
+    AddToCompressedNeighborData(null, true);
+}
+
+void AddToCompressedNeighborData(String value, Boolean isFinalItem = false) 'Add to compressed neighbor data' {
+    if (!value || printCompressedDataCurrentString.Length >= 128)
+    {
+        LogToInspector($'*/ "{printCompressedDataCurrentString}"{isFinalItem ? '' : ', '} /*');
+        printCompressedDataCurrentString = value;
+    }
+    else
+    {
+        printCompressedDataCurrentString = printCompressedDataCurrentString + value;
+    }
+    MinWait();
+}

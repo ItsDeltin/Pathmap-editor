@@ -63,14 +63,14 @@ rule "【PF Core】Select next pathfinder":
     
     pfExecOwner = sorted([player for player in getAllPlayers() if player.pfWait], lambda i_: i_.pfWait)[0]
     wait()
-    if RULE_CONDITION:
-        goto RULE_START
+    if ruleCondition:
+        loop()
 
 
 def pfTick():
     @Name "【PF Core Subroutine】☞ Tick"
     
-    pfIterationsThisTick -= 1
+    pfIterationsThisTick--
     if pfIterationsThisTick <= 0:
         wait()
         waitUntil(max(getAverageServerLoad(), getServerLoad()) < 255, 0.25)
@@ -93,7 +93,7 @@ def pfUpdateNodeMeta():
 def pfWalkToDestination():
     @Name "☆【PF Core Subroutine】☞ Walk to destination"
     
-    eventPlayer.startThrottleInDirection(directionTowards(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition), eventPlayer.pfWalkingToPosition and (eventPlayer.pfCurrentNodeIndex != -1 or distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) > 0.4), Relativity.TO_WORLD, Throttle.REPLACE_EXISTING, ThrottleReeval.DIRECTION_AND_MAGNITUDE)
+    eventPlayer.startThrottleInDirection(directionTowards(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition), eventPlayer.pfWalkingToPosition and (eventPlayer.pfCurrentNodeIndex != -1 or distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) > 0.4), Relativity.TO_WORLD)
 
 
 rule "【PF Core】Update & Execute":
@@ -104,7 +104,7 @@ rule "【PF Core】Update & Execute":
     
     #Ensure that a map is loaded.
     if not pfLoadedMap_nodes:
-        printLog("Error: Attempted to pathfind player {0} without a loaded map.".format(eventPlayer))
+        logToInspector("Error: Attempted to pathfind player {0} without a loaded map.".format(eventPlayer))
         return
     eventPlayer.pfWait = getTotalTimeElapsed()
     eventPlayer.pfWasBroadcasted = false
@@ -112,12 +112,12 @@ rule "【PF Core】Update & Execute":
     #Update saved destination
     eventPlayer.pfSavedTarget = eventPlayer.pfDestination
     if not eventPlayer.pfWasBroadcasted:
-        eventPlayer.goal = floor(((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.pfSavedTarget)).slice(0, 5), lambda i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.pfSavedTarget + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)) * 1000) % 1000)
+        eventPlayer.goal = floor(((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.pfSavedTarget)).slice(0, 5), lambda i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.pfSavedTarget + vect(0, 2, 0))))[0]).y)) * 1000) % 1000)
         pfTick()
         if eventPlayer.pfIsPathfinding and eventPlayer.pfCurrentNodeIndex != -1:
             eventPlayer.pfActiveNode = eventPlayer.pfCurrentNodeIndex
         else:
-            eventPlayer.pfActiveNode = floor(((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.getPosition())).slice(0, 5), lambda i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.getPosition() + vect(0, 2, 0), BarrierLos.PASS_THROUGH_BARRIERS)))[0]).y)) * 1000) % 1000)
+            eventPlayer.pfActiveNode = floor(((abs(((sorted(sorted(pfLoadedMap_nodes, lambda player: distance(player, eventPlayer.getPosition())).slice(0, 5), lambda i_: not isInLoS(i_ + vect(0, 2, 0), eventPlayer.getPosition() + vect(0, 2, 0))))[0]).y)) * 1000) % 1000)
             pfTick()
         eventPlayer.scores_gScore = [0]
         eventPlayer.scores_fScore = [0]
@@ -147,7 +147,7 @@ rule "【PF Core】Update & Execute":
                     eventPlayer.pfPath.append(eventPlayer.scores_nodeIndex[eventPlayer.current])
                     eventPlayer.current = eventPlayer.scores_parent[eventPlayer.current]
                 eventPlayer.pfPath.append([-1])
-                eventPlayer.broadcastTo = [player for player in getPlayersInRadius(eventPlayer.getPosition() + Vector.UP, 4, Team.ALL, LosCheck.OFF) if player != eventPlayer and player.pfWait and distance(player.pfDestination, eventPlayer.pfDestination) < 4 and player.pfPlayerAttributes == eventPlayer.pfPlayerAttributes]
+                eventPlayer.broadcastTo = [player for player in getPlayersInRadius(eventPlayer.getPosition() + Vector.UP, 4, Team.ALL) if player != eventPlayer and player.pfWait and distance(player.pfDestination, eventPlayer.pfDestination) < 4 and player.pfPlayerAttributes == eventPlayer.pfPlayerAttributes]
                 eventPlayer.broadcastTo.pfPath = eventPlayer.pfPath
                 eventPlayer.broadcastTo.pfWasBroadcasted = true
                 goto lbl_0
@@ -176,7 +176,7 @@ rule "【PF Core】Update & Execute":
                         if not eventPlayer.scoreIndex in eventPlayer.open:
                             eventPlayer.open.append(eventPlayer.scoreIndex)
                 pfTick()
-            eventPlayer.iter += 1
+            eventPlayer.iter++
         lbl_0:
         pfExecOwner = null
     if len(eventPlayer.pfPath):
@@ -187,8 +187,8 @@ rule "【PF Core】Update & Execute":
         pfWalkToDestination()
     eventPlayer.pfWait = null
     wait(2)
-    if RULE_CONDITION:
-        goto RULE_START
+    if ruleCondition:
+        loop()
 
 
 def pfProgressEventPlayer():
@@ -216,15 +216,17 @@ rule "【PF Core】Node reached":
     @Event eachPlayer
     @Condition eventPlayer.pfIsPathfinding == true
     @Condition eventPlayer.pfWalkingToPosition == true
+    #Horizontal distance to current position is less than 0.4.
     @Condition distance(eventPlayer.getPosition() * vect(1, [], 1), eventPlayer.pfWalkingToPosition * vect(1, [], 1)) <= 0.4
+    #Vertical distance to current position is less than 1.5.
     @Condition abs(eventPlayer.getPosition().y - eventPlayer.pfWalkingToPosition.y) <= 1.5
     @Condition len(eventPlayer.pfPath) > 0
     @Condition eventPlayer.pfCurrentNodeIndex != -1
     
     pfProgressEventPlayer()
     wait(0.2)
-    if RULE_CONDITION:
-        goto RULE_START
+    if ruleCondition:
+        loop()
 
 
 rule "【PF Core】Stop throttle when pfDestination is reset":
@@ -256,24 +258,24 @@ rule "【PF Core】Insurance":
     if distance((eventPlayer.pfWalkingFromPosition + eventPlayer.pfWalkingToPosition) / 2, eventPlayer) > (distance(eventPlayer.pfWalkingFromPosition, eventPlayer.pfWalkingToPosition) + 2) * 1.2:
         pfRecalibrate()
         #Smooth step
-    elif len(eventPlayer.pfPath) == 2 and distance(eventPlayer, eventPlayer.pfSavedTarget) < distance(eventPlayer.pfWalkingToPosition, eventPlayer.pfSavedTarget) and isInLoS(eventPlayer.getPosition() + vect(0, 0.25, 0), eventPlayer.pfSavedTarget + vect(0, 0.25, 0), BarrierLos.PASS_THROUGH_BARRIERS):
+    elif len(eventPlayer.pfPath) == 2 and distance(eventPlayer, eventPlayer.pfSavedTarget) < distance(eventPlayer.pfWalkingToPosition, eventPlayer.pfSavedTarget) and isInLoS(eventPlayer.getPosition() + vect(0, 0.25, 0), eventPlayer.pfSavedTarget + vect(0, 0.25, 0)):
         pfProgressEventPlayer()
         #Recovery
-    elif distance(eventPlayer, eventPlayer.pfWalkingToPosition) > 0.25 and eventPlayer.pfIsStuck or distance(eventPlayer.pfWalkingFromPosition, eventPlayer.pfWalkingToPosition) - (4.95 * (getTotalTimeElapsed() - eventPlayer.pfStartTime)) < 0 and not eventPlayer.hasStatusEffect(Status.ROOTED) and not eventPlayer.hasStatusEffect(Status.FROZEN) and not eventPlayer.hasStatusEffect(Status.ASLEEP) and not eventPlayer.hasStatusEffect(Status.KNOCKED_DOWN) and not eventPlayer.hasStatusEffect(Status.STUNNED):
+    elif distance(eventPlayer, eventPlayer.pfWalkingToPosition) > 0.25 and eventPlayer.pfIsStuck or distance(eventPlayer.pfWalkingFromPosition, eventPlayer.pfWalkingToPosition) - (4.95 * (getTotalTimeElapsed() - eventPlayer.pfStartTime)) < 0 and not eventPlayer.hasStatus(Status.ROOTED) and not eventPlayer.hasStatus(Status.FROZEN) and not eventPlayer.hasStatus(Status.ASLEEP) and not eventPlayer.hasStatus(Status.KNOCKED_DOWN) and not eventPlayer.hasStatus(Status.STUNNED):
         if eventPlayer.pfCurrentNodeIndex == -1:
             eventPlayer.pfWalkingToPosition = null
         elif eventPlayer.pfStuckOnNode - 2 == eventPlayer.pfCurrentNodeIndex:
-            printLog("Pathfinder {0} struggled to reach node {1} at {2}. Try adjusting your map in the editor.".format(eventPlayer, eventPlayer.pfCurrentNodeIndex, pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]))
+            logToInspector("Pathfinder {0} struggled to reach node {1} at {2}. Try adjusting your map in the editor.".format(eventPlayer, eventPlayer.pfCurrentNodeIndex, pfLoadedMap_nodes[eventPlayer.pfCurrentNodeIndex]))
             eventPlayer.teleport(eventPlayer.pfWalkingToPosition)
         else:
             eventPlayer.pfStuckOnNode = eventPlayer.pfCurrentNodeIndex + 2
             pfRecalibrate()
         #Shift destination
-    elif eventPlayer.pfWalkingToPosition != eventPlayer.pfDestination and eventPlayer.pfCurrentNodeIndex == -1 and distance(eventPlayer.pfSavedTarget, eventPlayer.pfDestination) < 5 and isInLoS(eventPlayer.pfSavedTarget + Vector.UP, eventPlayer.pfDestination + Vector.UP, BarrierLos.PASS_THROUGH_BARRIERS):
+    elif eventPlayer.pfWalkingToPosition != eventPlayer.pfDestination and eventPlayer.pfCurrentNodeIndex == -1 and distance(eventPlayer.pfSavedTarget, eventPlayer.pfDestination) < 5 and isInLoS(eventPlayer.pfSavedTarget + Vector.UP, eventPlayer.pfDestination + Vector.UP):
         eventPlayer.pfWalkingToPosition = eventPlayer.pfDestination
     wait(2)
-    if RULE_CONDITION:
-        goto RULE_START
+    if ruleCondition:
+        loop()
 
 
 rule "【PF Core】Check throttle":
@@ -291,6 +293,6 @@ def pfLookAtDestination():
     @Name "☆【PF Core Subroutine】☞ Look at destination"
     
     #Calling this subroutine will make the player look to the point they are walking towards.
-    eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition() * (vect(1, [], 1) if distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1)), (eventPlayer.pfWalkingToPosition + vect(0, 1.5, 0)) * (vect(1, [], 1) if distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1))), 500, Relativity.TO_WORLD, FacingReeval.DIRECTION_AND_TURN_RATE)
+    eventPlayer.startFacing(directionTowards(eventPlayer.getEyePosition() * (vect(1, [], 1) if distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1)), (eventPlayer.pfWalkingToPosition + vect(0, 1.5, 0)) * (vect(1, [], 1) if distance(eventPlayer.getPosition(), eventPlayer.pfWalkingToPosition) < 3 else vect(1, 1, 1))), 500)
 
 

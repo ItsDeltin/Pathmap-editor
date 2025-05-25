@@ -18,8 +18,8 @@ globalvar persist Number outputLanguage;
 # `[0]`: The map itself. (default: true)
 # `[1]`: The custom rules. (default: true)
 # `[2]`: The core pathfinding code. (default: false)
-# `[3]`: A compressed map. (default: true)
-globalvar Boolean[] buildToggles = [true, true, false, true];
+# `[3]`: A compressed map. (default: false)
+globalvar Boolean[] buildToggles = [true, true, false, false];
 
 globalvar Number selectWorkshopButton!;
 globalvar Number selectOstwButton!;
@@ -501,14 +501,28 @@ void ExportMapToOstw()
     # Introduction message
     LogToInspector(<'Place the following text into a file named \"<0>.jsonc\":', CurrentMap()> + sep + '\n/*');
 
-    # Export Ostw nodes
-    LogToInspector('*/ { "nodes": [ /*');
-    ExportArray(Nodes, 10, (wn, isLast) => ExportJsonVector(wn.Node.Position, isLast));
-    # Export Ostw segments
-    LogToInspector('*/ ], "neighbors": [ /*');
-    ExportNeighborsPattern('[', ']', '[]');
-    # Conclude JSON
-    LogToInspector('*/ ] }' + sep);
+    
+    if (buildToggles[3])
+    {
+        LogToInspector('*/ [[ /*');
+        LoadCompressionTable();
+        PrintCompressedNodes();
+        LogToInspector('*/ ], [ /*');
+        PrintCompressedNeighbors();
+        UnloadCompressionTable();
+        LogToInspector('*/ ]] /*' + sep);
+    }
+    else
+    {
+        # Export Ostw nodes
+        LogToInspector('*/ { "nodes": [ /*');
+        ExportArray(Nodes, 10, (wn, isLast) => ExportJsonVector(wn.Node.Position, isLast));
+        # Export Ostw segments
+        LogToInspector('*/ ], "neighbors": [ /*');
+        ExportNeighborsPattern('[', ']', '[]');
+        # Conclude JSON
+        LogToInspector('*/ ] }' + sep);
+    }
 }
 
 void ExportMapToOverpy()
@@ -589,9 +603,9 @@ Number[] GetConnectedAttributesReversed(Number nodeIndex, Number segmentIndex): 
 
 Number GetConnectedNodeIndex(WorldNode node, WorldSegment segment): NodeIndexFromID(segment.Node1 == node.Node.UniqueID ? segment.Node2 : segment.Node1);
 
-playervar String exportArrayStub!;
-playervar Number exportArrayNumA!;
-playervar Number exportArrayNumB!;
+playervar String exportArrayStub;
+playervar Number exportArrayNumA;
+playervar Number exportArrayNumB;
 void ExportArray<T>(in T[] array, in Number step, const (T, Boolean) => String valueToString)
 {
     for (exportArrayNumA = 0; array.Length; step) {
@@ -642,6 +656,11 @@ String ExportOstwDataSet(in String setName)
         <'if (CurrentMap() == Map.<0>) {\n', mapNameToOstwName(CurrentMap())> +
         <'    pfLoadedMap.<1> = import("<0>.jsonc").<1>;\n}', CurrentMap(), setName>;
 }
+
+String ExportOstwDataSetCompressed():
+    <'\nrule: "【Map】<0> (compressed)"\n', CurrentMap()> +
+    <'if (CurrentMap() == Map.<0>) {\n', mapNameToOstwName(CurrentMap())> +
+    <'    pfDecompress = import("<0>.jsonc");\n}', CurrentMap()>;
 
 void ExportStatement(in OutputLanguage language, in String workshop, in String deltinscript, in String overpy)
 {

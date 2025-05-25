@@ -1,9 +1,13 @@
 struct PfMap {
     # The points in the map.
     public Vector[] nodes;
-    # `[node][i][0]` = neighbor index,
-    # `[node][i][1][j]` = attributes
-    public Any[][][] neighbors;
+    # `[node][i]`: neighbors `i` to `node`.
+    public PfPath[][] neighbors;
+}
+
+single struct PfPath {
+    public Number neighbor;
+    public Number[] attributes;
 }
 
 struct PfNode {
@@ -55,8 +59,10 @@ playervar Boolean pfWasBroadcasted;
 # Is the player failing to walk?
 playervar Boolean pfIsStuck;
 
-rule: '【PF Core】Prepare loaded map' {
-    WaitUntil(<Boolean>pfLoadedMap.nodes, 9999);
+rule: '【PF Core】Prepare loaded map'
+if (pfLoadedMap.nodes)
+if (pfIterationsThisTick != -99)
+{
     for (Number i = 0; pfLoadedMap.nodes.Length; 1) {
         pfLoadedMap.nodes[i] = Vector(
             pfLoadedMap.nodes[i].X,
@@ -240,7 +246,7 @@ void pfProgressEventPlayer() playervar '【PF Core Subroutine】☞ Progress eve
     # Update the current pathfind attributes.
     if (pfPath.Length && pfPath.First != -1) {
         # Any rules watching these with the matching condition will activate.
-        pfAttributes = pfLoadedMap.neighbors[pfPath.First].FilteredArray(segment => segment[0] == pfCurrentNodeIndex).First.Last;
+        pfAttributes = pfLoadedMap.neighbors[pfPath.First].FilteredArray(segment => segment[0] == pfCurrentNodeIndex).First.attributes;
     } else {
         pfAttributes = [];
     }
@@ -343,13 +349,12 @@ void aStar() {
         open.ModRemoveByValue(current);
 
         # Check each neighbor to the current node.
-        foreach (Any[] neighbor in pfLoadedMap.neighbors[currentNodeIndex]) {
+        foreach (PfPath neighbor in pfLoadedMap.neighbors[currentNodeIndex]) {
             # The neighbor index to be used like `pfLoadedMap.nodes[neighborI]`.
-            Number neighborI = neighbor[0];
+            Number neighborI = neighbor.neighbor;
             Number scoreIndex = scores.Map(s => s.nodeIndex).IndexOf(neighborI);
-            Number[] neighborAttributes: <Number[]>neighbor[1];
             # Ensure that the path to the neighbor is enabled.
-            if (neighborAttributes.Length == 0 || neighborAttributes.IsTrueForAny(a => pfPlayerAttributes.Contains(a))) {
+            if (neighbor.attributes.Length == 0 || neighbor.attributes.IsTrueForAny(a => pfPlayerAttributes.Contains(a))) {
                 Number score = scores[current].gScore + pfLoadedMap.nodes[currentNodeIndex].DistanceTo(pfLoadedMap.nodes[neighborI]);
 
                 # Get neighbor index in scores.

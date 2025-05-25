@@ -56,9 +56,14 @@ rule("【PF Core】Prepare loaded map")
         Ongoing - Global;
     }
 
+    conditions
+    {
+        Global.pfLoadedMap_nodes == True;
+        Global.pfIterationsThisTick != -99;
+    }
+
     actions
     {
-        Wait Until(Global.pfLoadedMap_nodes, 9999);
         For Global Variable(i, 0, Count Of(Global.pfLoadedMap_nodes), 1);
             Global.pfLoadedMap_nodes[Global.i] = Vector(X Component Of(Global.pfLoadedMap_nodes[Global.i]), Round To Integer(Y Component Of(Global.pfLoadedMap_nodes[Global.i]), Down) + Global.i / 1000 * (Y Component Of(Global.pfLoadedMap_nodes[Global.i]) < 0 ? -1 : 1), Z Component Of(Global.pfLoadedMap_nodes[Global.i]));
         End;
@@ -280,7 +285,7 @@ rule("【PF Core Subroutine】☞ Progress event player")
         "Update the current pathfind attributes."
         If(Count Of(Event Player.pfPath) && First Of(Event Player.pfPath) != -1);
             "Any rules watching these with the matching condition will activate."
-            Event Player.pfAttributes = Last Of(First Of(Filtered Array(Global.pfLoadedMap_neighbors[First Of(Event Player.pfPath)], First Of(Current Array Element) == Event Player.pfCurrentNodeIndex)));
+            Event Player.pfAttributes = First Of(Filtered Array(Global.pfLoadedMap_neighbors[First Of(Event Player.pfPath)], First Of(Current Array Element) == Event Player.pfCurrentNodeIndex))[1];
         Else;
             Event Player.pfAttributes = Empty Array;
         End;

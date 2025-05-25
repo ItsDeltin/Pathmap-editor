@@ -307,7 +307,7 @@ if (!host.cm_isInMenu)
             if (existingAttributeIndex.Length)
             {
                 Number index: existingAttributeIndex.First;
-                Attribute deleting = Attributes[index];
+                Single<Attribute> deleting = Single<Attribute>.New(Attributes[index]);
 
                 Document({
                     Set: () => {
@@ -315,7 +315,7 @@ if (!host.cm_isInMenu)
                         UpdateAttributeVisibility();
                     },
                     Revert: () => {
-                        Attributes = insert(Attributes, index, deleting);
+                        Attributes = insert(Attributes, index, deleting.value);
                         UpdateAttributeVisibility();
                     }
                 });

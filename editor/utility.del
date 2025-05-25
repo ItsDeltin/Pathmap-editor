@@ -16,4 +16,10 @@ T[] insert<T>(in T[] array, in Number index, in T value)
     return array.Slice(0, index).Append([value]).Append(array.Slice(index, 999));
 }
 
+single struct Single<T> {
+    public T value;
+
+    public static Single<T> New(T value): { value: value };
+}
+
 globalvar Number waitlessI;

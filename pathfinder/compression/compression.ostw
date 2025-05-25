@@ -1,23 +1,12 @@
-struct PfMap {
-    # The points in the map.
-    public Vector[] nodes;
-    # [node][i]: each connected path
-    public PfPath[][] neighbors;
-}
-
-single struct PfPath {
-    public Number neighbor;
-    public Number[] attributes;
-}
-
-# The currently loaded map
-globalvar PfMap pfLoadedMap;
+import '../core.ostw';
 
 globalvar String[][] pfDecompress;
 
 rule: '【PF Decompress】Decompress map'
 if (pfDecompress)
 {
+    # Lock pathfinder until compression is completed.
+    pfIterationsThisTick = -99;
     define compressionTable =
         " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz|~ ¡¢£" +
         "¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģ" +
@@ -53,8 +42,12 @@ if (pfDecompress)
         "ྤྥྦྦྷྨྩྪྫྫྷྭྮྯྰྱྲླྴྵྶྷྸྐྵྺྻྼ྽྾྿࿀࿁࿂࿃࿄࿅࿆࿇࿈࿉࿊࿋࿌࿍࿎࿏࿐࿑࿒࿓࿔࿕࿖࿗࿘࿙࿚࿛࿜࿝࿞࿟࿠࿡࿢࿣࿤࿥࿦࿧࿨࿩࿪࿫࿬࿭࿮࿯࿰࿱࿲࿳࿴࿵࿶࿷࿸࿹࿺࿻࿼࿽࿾࿿ကခဂဃငစဆဇဈဉညဋဌဍဎဏတထဒဓနပဖဗဘမယရလဝသဟဠအဢဣ";
     
     const (String, Number) => Number d = (str, index) => compressionTable.IndexOf(str.CharAt(index));
+    const Number => Number unwrap = value => (value * 2 - 4096) / 10;
 
-    pfLoadedMap.nodes = [];
+    pfLoadedMap = {
+        nodes: [],
+        neighbors: []
+    };
 
     Number i1;
     Number i2;
@@ -64,9 +57,9 @@ if (pfDecompress)
         String nodeString: pfDecompress[0][i1];
         for (i2 = 0; nodeString.Length; 3) {
             pfLoadedMap.nodes += Vector(
-                d(nodeString, i2),
-                d(nodeString, i2 + 1),
-                d(nodeString, i2 + 2)
+                unwrap(d(nodeString, i2)),
+                unwrap(d(nodeString, i2 + 1)),
+                unwrap(d(nodeString, i2 + 2))
             );
             MinWait();
         }
@@ -112,8 +105,11 @@ if (pfDecompress)
                     };
                 }
             }
-            MinWait();
+            if (!(i2 % 20))
+                MinWait();
         }
+        MinWait();
     }
     compressionTable = null;
+    pfIterationsThisTick = 0;
 }

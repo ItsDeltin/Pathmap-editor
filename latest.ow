@@ -137,14 +137,15 @@ variables
         93: step
         94: i_2
         95: action_Data
-        96: n
-        97: connected
-        98: s
-        99: value
-        100: isFinalItem
-        101: attributes
-        102: a
-        103: pages
+        96: isFinalItem
+        97: n
+        98: connected
+        99: s
+        100: value
+        101: isFinalItem_0
+        102: attributes
+        103: a
+        104: pages
     player:
         0: renderingNodes
         1: renderingSegments
@@ -437,12 +438,13 @@ subroutines
     46: ExportRules
     47: LoadCompressionTable
     48: PrintCompressedNodes
-    49: PrintCompressedNeighbors
-    50: AddToCompressedNeighborData
-    51: ExportNeighborsPattern
-    52: mirrorMap
-    53: executeMapMirror
-    54: showPagedMessage
+    49: LogCurrentStub
+    50: PrintCompressedNeighbors
+    51: AddToCompressedNeighborData
+    52: ExportNeighborsPattern
+    53: mirrorMap
+    54: executeMapMirror
+    55: showPagedMessage
 }
 
 // Rule Element Count: 1
@@ -5968,7 +5970,23 @@ rule("Load compression table")
     }
 }
 
-// Rule Element Count: 137
+// Rule Element Count: 44
+rule("LogCurrentStub")
+{
+    event
+    {
+        Subroutine;
+        LogCurrentStub;
+    }
+
+    // Element Count: 43, Action Count: 1
+    actions
+    {
+        Log To Inspector(Custom String("{0}{1}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("*/ "), If-Then-Else(Not(Global Variable(outputLanguage)), Custom String("Custom String("), Custom String("")), Custom String("\"")), Player Variable(Event Player, printCompressedDataCurrentString), Custom String("\"")), If-Then-Else(Not(Global Variable(outputLanguage)), Custom String(")"), Custom String("")), If-Then-Else(Global Variable(isFinalItem), Custom String(""), Custom String(", "))), Custom String(" /*")));
+    }
+}
+
+// Rule Element Count: 120
 rule("Print compressed nodes")
 {
     event
@@ -5977,7 +5995,7 @@ rule("Print compressed nodes")
         PrintCompressedNodes;
     }
 
-    // Element Count: 136, Action Count: 9
+    // Element Count: 119, Action Count: 10
     // Largest Action Index: 2 using 68 Elements
     actions
     {
@@ -5985,7 +6003,8 @@ rule("Print compressed nodes")
         For Player Variable(Event Player, printCompressedDataIndex, 0, Count Of(Global Variable(Nodes_Node_UniqueID)), 1);
             Set Player Variable(Event Player, printCompressedDataCurrentString, Custom String("{0}{1}", Player Variable(Event Player, printCompressedDataCurrentString), Custom String("{0}{1}{2}", Char In String(Player Variable(Event Player, compressionTable), Divide(Add(Multiply(X Component Of(Value In Array(Global Variable(Nodes_Node_Position), Player Variable(Event Player, printCompressedDataIndex))), 10), 4096), 2)), Char In String(Player Variable(Event Player, compressionTable), Divide(Add(Multiply(Y Component Of(Value In Array(Global Variable(Nodes_Node_Position), Player Variable(Event Player, printCompressedDataIndex))), 10), 4096), 2)), Char In String(Player Variable(Event Player, compressionTable), Divide(Add(Multiply(Z Component Of(Value In Array(Global Variable(Nodes_Node_Position), Player Variable(Event Player, printCompressedDataIndex))), 10), 4096), 2)))));
             If(Or(And(Player Variable(Event Player, printCompressedDataIndex), Compare(Modulo(Player Variable(Event Player, printCompressedDataIndex), 42), ==, 0)), Compare(Player Variable(Event Player, printCompressedDataIndex), ==, Subtract(Count Of(Global Variable(Nodes_Node_UniqueID)), 1))));
-                Log To Inspector(Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("*/ \""), Player Variable(Event Player, printCompressedDataCurrentString), Custom String("\"")), If-Then-Else(Compare(Player Variable(Event Player, printCompressedDataIndex), ==, Subtract(Count Of(Global Variable(Nodes_Node_UniqueID)), 1)), Custom String(""), Custom String(", ")), Custom String(" /*")));
+                Set Global Variable(isFinalItem, Compare(Player Variable(Event Player, printCompressedDataIndex), ==, Subtract(Count Of(Global Variable(Nodes_Node_UniqueID)), 1)));
+                Call Subroutine(LogCurrentStub);
                 Set Player Variable(Event Player, printCompressedDataCurrentString, Custom String(""));
             End;
             Wait(0.016, Ignore Condition);
@@ -5993,7 +6012,7 @@ rule("Print compressed nodes")
     }
 }
 
-// Rule Element Count: 47
+// Rule Element Count: 30
 rule("Add to compressed neighbor data")
 {
     event
@@ -6002,12 +6021,13 @@ rule("Add to compressed neighbor data")
         AddToCompressedNeighborData;
     }
 
-    // Element Count: 46, Action Count: 7
-    // Largest Action Index: 1 using 20 Elements
+    // Element Count: 29, Action Count: 8
+    // Largest Action Index: 0 using 12 Elements
     actions
     {
         If(Or(Not(Global Variable(value)), Compare(String Length(Player Variable(Event Player, printCompressedDataCurrentString)), >=, 128)));
-            Log To Inspector(Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("*/ \""), Player Variable(Event Player, printCompressedDataCurrentString), Custom String("\"")), If-Then-Else(Global Variable(isFinalItem), Custom String(""), Custom String(", ")), Custom String(" /*")));
+            Set Global Variable(isFinalItem, Global Variable(isFinalItem_0));
+            Call Subroutine(LogCurrentStub);
             Set Player Variable(Event Player, printCompressedDataCurrentString, Global Variable(value));
         Else;
             Set Player Variable(Event Player, printCompressedDataCurrentString, Custom String("{0}{1}", Player Variable(Event Player, printCompressedDataCurrentString), Global Variable(value)));
@@ -6038,27 +6058,27 @@ rule("Print compressed neighbors")
             For Global Variable(s, 0, Count Of(Global Variable(connected)), 1);
                 "Add the neighbor ID to the compressed data."
                 Set Global Variable(value, Char In String(Player Variable(Event Player, compressionTable), Add(1, Index Of Array Value(Global Variable(Nodes_Node_UniqueID), If-Then-Else(Compare(Value In Array(Global Variable(Segments_Node1), Value In Array(Global Variable(connected), Global Variable(s))), ==, Value In Array(Global Variable(Nodes_Node_UniqueID), Global Variable(n))), Value In Array(Global Variable(Segments_Node2), Value In Array(Global Variable(connected), Global Variable(s))), Value In Array(Global Variable(Segments_Node1), Value In Array(Global Variable(connected), Global Variable(s))))))));
-                Set Global Variable(isFinalItem, False);
+                Set Global Variable(isFinalItem_0, False);
                 Call Subroutine(AddToCompressedNeighborData);
                 "Get attributes"
                 Set Global Variable(attributes, Mapped Array(Filtered Array(Mapped Array(Global Variable(Attributes_Value), Current Array Index), And(Compare(Value In Array(Global Variable(Nodes_Node_UniqueID), Global Variable(n)), ==, Value In Array(Global Variable(Attributes_Node2), Current Array Element)), Or(Compare(Value In Array(Global Variable(Attributes_Node1), Current Array Element), ==, Value In Array(Global Variable(Segments_Node1), Value In Array(Global Variable(connected), Global Variable(s)))), Compare(Value In Array(Global Variable(Attributes_Node1), Current Array Element), ==, Value In Array(Global Variable(Segments_Node2), Value In Array(Global Variable(connected), Global Variable(s))))))), Value In Array(Global Variable(Attributes_Value), Current Array Element)));
                 For Global Variable(a, 0, Count Of(Global Variable(attributes)), 1);
                     Set Global Variable(value, Char In String(Player Variable(Event Player, compressionTable), Add(1, Value In Array(Global Variable(attributes), Global Variable(a)))));
-                    Set Global Variable(isFinalItem, False);
+                    Set Global Variable(isFinalItem_0, False);
                     Call Subroutine(AddToCompressedNeighborData);
                 End;
                 "End segment"
                 Set Global Variable(value, Char In String(Player Variable(Event Player, compressionTable), 0));
-                Set Global Variable(isFinalItem, False);
+                Set Global Variable(isFinalItem_0, False);
                 Call Subroutine(AddToCompressedNeighborData);
             End;
             "End node"
             Set Global Variable(value, Char In String(Player Variable(Event Player, compressionTable), 0));
-            Set Global Variable(isFinalItem, Compare(Global Variable(n), ==, Subtract(Count Of(Global Variable(Nodes_Node_UniqueID)), 1)));
+            Set Global Variable(isFinalItem_0, Compare(Global Variable(n), ==, Subtract(Count Of(Global Variable(Nodes_Node_UniqueID)), 1)));
             Call Subroutine(AddToCompressedNeighborData);
         End;
         Set Global Variable(value, Null);
-        Set Global Variable(isFinalItem, True);
+        Set Global Variable(isFinalItem_0, True);
         Call Subroutine(AddToCompressedNeighborData);
     }
 }
@@ -6113,7 +6133,7 @@ so attr.Node1 and attr.Node2 are flipped here."
     }
 }
 
-// Rule Element Count: 571
+// Rule Element Count: 645
 rule("Subroutine: Generate map code.")
 {
     event
@@ -6122,8 +6142,8 @@ rule("Subroutine: Generate map code.")
         Export;
     }
 
-    // Element Count: 570, Action Count: 116
-    // Largest Action Index: 70 using 50 Elements
+    // Element Count: 644, Action Count: 130
+    // Largest Action Index: 74 using 50 Elements
     actions
     {
         Set Global Variable(message, Custom String("Exporting, please wait..."));
@@ -6147,7 +6167,7 @@ rule("Subroutine: Generate map code.")
                 "Compressed"
                 If(Value In Array(Global Variable(buildToggles), 3));
                     "Attributes rule"
-                    Log To Inspector(Custom String("*/ rule(\"【Map】{0} ({1})\") { event { Ongoing - Global; } /*", Current Map, Custom String("compressed map")));
+                    Log To Inspector(Custom String("*/ rule(\"【Map】{0} ({1})\") { event { Ongoing - Global; } /*", Current Map, Custom String("compressed")));
                     "Conditions"
                     Log To Inspector(Custom String("*/ conditions { /*"));
                     "Make sure this is the correct map"
@@ -6215,8 +6235,12 @@ rule("Subroutine: Generate map code.")
             "Export map to ostw."
             Else If(Compare(Global Variable(outputLanguage), ==, 1));
                 "This exported code should be placed in the ostw file."
-                Log To Inspector(Custom String("{0}{1}{2}", Custom String("*/"), Custom String("{0}{1}{2}", Custom String("\nrule: \"【Map】{0} ({1})\"\n", Current Map, Custom String("nodes")), Custom String("if (CurrentMap() == Map.{0}) {\n", Value In Array(Player Variable(Host Player, langMaps_ostwName), Index Of Array Value(Player Variable(Host Player, langMaps_map), Current Map))), Custom String("    pfLoadedMap.{0} = import(\"{1}.jsonc\").{0};\n}", Custom String("nodes"), Current Map)), Custom String("/*")));
-                Log To Inspector(Custom String("{0}{1}{2}", Custom String("*/"), Custom String("{0}{1}{2}", Custom String("\nrule: \"【Map】{0} ({1})\"\n", Current Map, Custom String("neighbors")), Custom String("if (CurrentMap() == Map.{0}) {\n", Value In Array(Player Variable(Host Player, langMaps_ostwName), Index Of Array Value(Player Variable(Host Player, langMaps_map), Current Map))), Custom String("    pfLoadedMap.{0} = import(\"{1}.jsonc\").{0};\n}", Custom String("neighbors"), Current Map)), Custom String("/*")));
+                If(Value In Array(Global Variable(buildToggles), 3));
+                    Log To Inspector(Custom String("{0}{1}{2}", Custom String("*/"), Custom String("{0}{1}{2}", Custom String("\nrule: \"【Map】{0} ({1})\"\n", Current Map, Custom String("compressed")), Custom String("if (CurrentMap() == Map.{0}) {\n", Value In Array(Player Variable(Host Player, langMaps_ostwName), Index Of Array Value(Player Variable(Host Player, langMaps_map), Current Map))), Custom String("    {0} = import(\"{1}.jsonc\"){2};\n}", Custom String("pfDecompress"), Current Map, Custom String(""))), Custom String("/*")));
+                Else;
+                    Log To Inspector(Custom String("{0}{1}{2}", Custom String("*/"), Custom String("{0}{1}{2}", Custom String("\nrule: \"【Map】{0} ({1})\"\n", Current Map, Custom String("nodes")), Custom String("if (CurrentMap() == Map.{0}) {\n", Value In Array(Player Variable(Host Player, langMaps_ostwName), Index Of Array Value(Player Variable(Host Player, langMaps_map), Current Map))), Custom String("    {0} = import(\"{1}.jsonc\"){2};\n}", Custom String("pfLoadedMap.nodes"), Current Map, Custom String(".nodes"))), Custom String("/*")));
+                    Log To Inspector(Custom String("{0}{1}{2}", Custom String("*/"), Custom String("{0}{1}{2}", Custom String("\nrule: \"【Map】{0} ({1})\"\n", Current Map, Custom String("neighbors")), Custom String("if (CurrentMap() == Map.{0}) {\n", Value In Array(Player Variable(Host Player, langMaps_ostwName), Index Of Array Value(Player Variable(Host Player, langMaps_map), Current Map))), Custom String("    {0} = import(\"{1}.jsonc\"){2};\n}", Custom String("pfLoadedMap.neighbors"), Current Map, Custom String(".neighbors"))), Custom String("/*")));
+                End;
                 "Introduction message"
                 Log To Inspector(Custom String("{0}{1}{2}", Custom String("Place the following text into a file named \"{0}.jsonc\":", Current Map), Custom String("\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"), Custom String("\n/*")));
                 If(Value In Array(Global Variable(buildToggles), 3));
@@ -6226,7 +6250,7 @@ rule("Subroutine: Generate map code.")
                     Log To Inspector(Custom String("*/ ], [ /*"));
                     Call Subroutine(PrintCompressedNeighbors);
                     Set Player Variable(Host Player, compressionTable, Null);
-                    Log To Inspector(Custom String("{0}{1}", Custom String("*/ ]] /*"), Custom String("\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯")));
+                    Log To Inspector(Custom String("{0}{1}", Custom String("*/ ]]"), Custom String("\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯")));
                 Else;
                     "Export Ostw nodes"
                     Log To Inspector(Custom String("*/ { \"nodes\": [ /*"));
@@ -6249,6 +6273,18 @@ rule("Subroutine: Generate map code.")
                 End;
             "Export map to overpy."
             Else If(Compare(Global Variable(outputLanguage), ==, 2));
+                If(Value In Array(Global Variable(buildToggles), 3));
+                    Log To Inspector(Custom String("*/\nrule \"【Map】{0} (compressed)\":
+    @Condition getCurrentMap() == Map.{1}
+    pfDecompress = [[", Current Map, Value In Array(Player Variable(Host Player, langMaps_overpyName), Index Of Array Value(Player Variable(Host Player, langMaps_map), Current Map))));
+                    Call Subroutine(LoadCompressionTable);
+                    Call Subroutine(PrintCompressedNodes);
+                    Log To Inspector(Custom String("*/ ], [ /*"));
+                    Call Subroutine(PrintCompressedNeighbors);
+                    Set Player Variable(Host Player, compressionTable, Null);
+                    Log To Inspector(Custom String("{0}{1}", Custom String("*/ ]]"), Custom String("\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯")));
+                    Skip(24);
+                End;
                 "This exported code should be placed in the overpy file."
                 Log To Inspector(Custom String("*/\n#!define loadMap() __script__(\"{0}.js\")\nloadMap(){1}", Current Map, Custom String("\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯")));
                 "Introduction message"
@@ -6768,16 +6804,16 @@ then we can save space by inverting the toggles."
             Set Global Variable(newState, 5);
             Call Subroutine(SetMenuState);
             Set Global Variable At Index(_extendedGlobalCollection, 19, 0.016);
-            Set Global Variable(input, Array(Custom String("{0}{1}{2}", Custom String("wait time: "), Value In Array(Global Variable(_extendedGlobalCollection), 19), Custom String(" seconds")), 0, 0, 0, 0, 0.2, 0.2, Color(Yellow), Color(Blue), False, True));
+            Set Global Variable(input, Array(Custom String("{0}{1}{2}", Custom String("wait time: "), Value In Array(Global Variable(_extendedGlobalCollection), 19), Custom String(" seconds")), 0, 0, 0, 0.2, 0.2, 0.2, Color(Yellow), Color(Blue), False, True));
             Call Subroutine(__createButtonSubroutine);
             Set Global Variable At Index(_extendedGlobalCollection, 20, Global Variable(returnValue___createButtonSubrou));
-            Set Global Variable(input, Array(Custom String("←"), 22, 24, -0.6, 0, 0.2, 0.2, Color(White), Color(Blue), True, True));
+            Set Global Variable(input, Array(Custom String("←"), 22, 24, -0.3, 0, 0.2, 0.2, Color(White), Color(Blue), True, True));
             Call Subroutine(__createButtonSubroutine);
             Modify Player Variable(Event Player, buttonCollectionMain, Append To Array, Global Variable(returnValue___createButtonSubrou));
-            Set Global Variable(input, Array(Custom String("→"), 21, 23, 0.6, 0, 0.2, 0.2, Color(White), Color(Blue), True, True));
+            Set Global Variable(input, Array(Custom String("→"), 21, 23, 0.3, 0, 0.2, 0.2, Color(White), Color(Blue), True, True));
             Call Subroutine(__createButtonSubroutine);
             Modify Player Variable(Event Player, buttonCollectionMain, Append To Array, Global Variable(returnValue___createButtonSubrou));
-            Set Global Variable(input, Array(Custom String("Add action"), 25, 0, 0, -0.15, 0.2, 0.2, Color(Green), Color(Blue), True, True));
+            Set Global Variable(input, Array(Custom String("Add action"), 25, 0, 0, -0.2, 1.5, 0.2, Color(Green), Color(Blue), True, True));
             Call Subroutine(__createButtonSubroutine);
             Modify Player Variable(Event Player, buttonCollectionMain, Append To Array, Global Variable(returnValue___createButtonSubrou));
             Modify Player Variable(Event Player, buttonCollectionMain, Append To Array, Value In Array(Global Variable(_extendedGlobalCollection), 20));

@@ -111,5 +111,6 @@ if (pfDecompress)
         MinWait();
     }
     compressionTable = null;
+    # Unlock pathfinder
     pfIterationsThisTick = 0;
 }

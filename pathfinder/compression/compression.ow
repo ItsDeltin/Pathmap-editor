@@ -119,6 +119,7 @@ rule("【PF Decompress】Decompress map")
             Wait(0.016, Ignore Condition);
         End;
         Global.compressionTable = Null;
+        "Unlock pathfinder"
         Global.pfIterationsThisTick = 0;
     }
 }

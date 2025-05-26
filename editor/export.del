@@ -456,7 +456,7 @@ void ExportMapToWorkshop()
 {
     # Compressed
     if (buildToggles[3]) {
-        ExportMapBlock('compressed map', () => {
+        ExportMapBlock('compressed', () => {
             # Set pfDecompress
             LogToInspector('*/     global.pfDecompress = Array(Array( /*');
             LoadCompressionTable();
@@ -495,13 +495,20 @@ void ExportMapToWorkshop()
 void ExportMapToOstw()
 {
     # This exported code should be placed in the ostw file.
-    LogToInspector('*/' + ExportOstwDataSet("nodes") + '/*');
-    LogToInspector('*/' + ExportOstwDataSet("neighbors") + '/*');
-    
+    if (buildToggles[3])
+    {
+        LogToInspector('*/' + ExportOstwDataSet("compressed", "pfDecompress", "") + '/*');
+    }
+    else
+    {
+        LogToInspector('*/' + ExportOstwDataSet("nodes", "pfLoadedMap.nodes", ".nodes") + '/*');
+        LogToInspector('*/' + ExportOstwDataSet("neighbors", "pfLoadedMap.neighbors", ".neighbors") + '/*');
+    }
+
     # Introduction message
     LogToInspector(<'Place the following text into a file named \"<0>.jsonc\":', CurrentMap()> + sep + '\n/*');
 
-    
+
     if (buildToggles[3])
     {
         LogToInspector('*/ [[ /*');
@@ -510,7 +517,7 @@ void ExportMapToOstw()
         LogToInspector('*/ ], [ /*');
         PrintCompressedNeighbors();
         UnloadCompressionTable();
-        LogToInspector('*/ ]] /*' + sep);
+        LogToInspector('*/ ]]' + sep);
     }
     else
     {
@@ -527,6 +534,19 @@ void ExportMapToOstw()
 
 void ExportMapToOverpy()
 {
+    if (buildToggles[3]) {
+        LogToInspector(<'*/\nrule "【Map】<0> (compressed)":
+    @Condition getCurrentMap() == Map.<1>
+    pfDecompress = [[', CurrentMap(), mapNameToOverpyName(CurrentMap())>);
+        LoadCompressionTable();
+        PrintCompressedNodes();
+        LogToInspector(<'*/ ], [ /*'>);
+        PrintCompressedNeighbors();
+        UnloadCompressionTable();
+        LogToInspector('*/ ]]' + sep);
+        return;
+    }
+
     # This exported code should be placed in the overpy file.
     LogToInspector(<'*/\n#!define loadMap() __script__("<0>.js")\nloadMap()<1>', CurrentMap(), sep>);
 
@@ -650,17 +670,12 @@ String ExportJsonVector(in Vector vector, in Boolean isLast)
     return <'{"x":<0>, "y":<1>, "z":<2>}<3>', vector.X, vector.Y, vector.Z, isLast ? '' : ', '>;
 }
 
-String ExportOstwDataSet(in String setName)
+String ExportOstwDataSet(in String setName, in String variable, in String path)
 {
     return <'\nrule: "【Map】<0> (<1>)"\n', CurrentMap(), setName> +
         <'if (CurrentMap() == Map.<0>) {\n', mapNameToOstwName(CurrentMap())> +
-        <'    pfLoadedMap.<1> = import("<0>.jsonc").<1>;\n}', CurrentMap(), setName>;
+        <'    <0> = import("<1>.jsonc")<2>;\n}', variable, CurrentMap(), path>;
 }
-
-String ExportOstwDataSetCompressed():
-    <'\nrule: "【Map】<0> (compressed)"\n', CurrentMap()> +
-    <'if (CurrentMap() == Map.<0>) {\n', mapNameToOstwName(CurrentMap())> +
-    <'    pfDecompress = import("<0>.jsonc");\n}', CurrentMap()>;
 
 void ExportStatement(in OutputLanguage language, in String workshop, in String deltinscript, in String overpy)
 {
@@ -734,7 +749,7 @@ void PrintCompressedData<T>(in Number splitCount, in T[] array, const T => Strin
         printCompressedDataCurrentString = printCompressedDataCurrentString + appendItem(array[printCompressedDataIndex]);
 
         if ((printCompressedDataIndex && printCompressedDataIndex % splitCount == 0) || printCompressedDataIndex == array.Length - 1) {
-            LogToInspector($'*/ "{printCompressedDataCurrentString}"{printCompressedDataIndex == array.Length - 1 ? '' : ', '} /*');
+            LogCurrentStub(printCompressedDataIndex == array.Length - 1);
 
             // Start a new string.
             printCompressedDataCurrentString = '';
@@ -777,7 +792,8 @@ void PrintCompressedNeighbors() 'Print compressed neighbors' {
 void AddToCompressedNeighborData(String value, Boolean isFinalItem = false) 'Add to compressed neighbor data' {
     if (!value || printCompressedDataCurrentString.Length >= 128)
     {
-        LogToInspector($'*/ "{printCompressedDataCurrentString}"{isFinalItem ? '' : ', '} /*');
+        Boolean isOwExport: !outputLanguage;
+        LogCurrentStub(isFinalItem);
         printCompressedDataCurrentString = value;
     }
     else
@@ -785,4 +801,10 @@ void AddToCompressedNeighborData(String value, Boolean isFinalItem = false) 'Add
         printCompressedDataCurrentString = printCompressedDataCurrentString + value;
     }
     MinWait();
+}
+
+void LogCurrentStub(Boolean isFinalItem) 'LogCurrentStub'
+{
+    Boolean isOwExport: !outputLanguage;
+    LogToInspector($'*/ {isOwExport ? "Custom String(" : ""}"{printCompressedDataCurrentString}"{isOwExport ? ")" : ""}{isFinalItem ? '' : ', '} /*');
 }

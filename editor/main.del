@@ -13,6 +13,7 @@ import 'cursor menu.del';
 import 'export.del';
 import 'mirror.del';
 import 'message.del';
+import 'compression.del';
 import 'settings.lobby';
 
 # The current version of the pathmap editor. This is a number for easy comparison.

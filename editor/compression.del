@@ -1,0 +1,95 @@
+globalvar String[][] pfDecompress;
+
+rule: 'Decompress map'
+if (pfDecompress)
+if (host)
+{
+    if (Nodes.Length) return;
+
+    longRunningTask++;
+    LoadCompressionTable();
+    
+    const (String, Number) => Number d = (str, index) => host.compressionTable.IndexOf(str.CharAt(index));
+    const Number => Number unwrap = value => (value * 2 - 4096) / 10;
+
+    Number i1;
+    Number i2;
+
+    # Decompress nodes
+    for (i1 = 0; pfDecompress[0].Length; 1) {
+        String nodeString: pfDecompress[0][i1];
+        for (i2 = 0; nodeString.Length; 3) {
+            Nodes += {
+                Node: {
+                    UniqueID: Nodes.Length,
+                    Position: Vector(
+                        unwrap(d(nodeString, i2)),
+                        unwrap(d(nodeString, i2 + 1)),
+                        unwrap(d(nodeString, i2 + 2))
+                    )
+                },
+                Selected: false
+            };
+            MinWait();
+        }
+    }
+
+    # Decompress neighbors
+    Number decompressionState;
+    Number currentNode = 0;
+    Number currentNeighbor;
+
+    for (i1 = 0; pfDecompress[1].Length; 1) {
+        String neighborString: pfDecompress[1][i1];
+        for (i2 = 0; neighborString.Length; 1) {
+            Number next = d(neighborString, i2);
+
+            # Next is the neighbor.
+            if (decompressionState == 0) {
+                # Current node is terminated.
+                if (!next) {
+                    currentNode++;
+                }
+                # Next neighbor found.
+                else {
+                    decompressionState = 1;
+                    currentNeighbor = next - 1;
+                    # In the compressed data, each node points to the relevant neighbor.
+                    # The editor is bi-directional so do not add neighbors of earlier nodes
+                    # to prevent duplicate paths.
+                    if (currentNode < currentNeighbor)
+                        Segments += {
+                            Node1: currentNode,
+                            Node2: currentNeighbor,
+                            ID: Segments.Length
+                        };
+                }
+            }
+            # Looking for attributes.
+            else if (decompressionState == 1) {
+                # Current neighbor is terminated
+                if (!next) {
+                    decompressionState = 0;
+                }
+                # Next attribute located
+                else {
+                    Attributes += {
+                        Node1: currentNode,
+                        Node2: currentNeighbor,
+                        ID: Attributes.Length,
+                        Value: next - 1
+                    };
+                }
+            }
+            if (!(i2 % 20))
+                MinWait();
+        }
+        MinWait();
+    }
+    UnloadCompressionTable();
+
+    NodeUniqueID = Nodes.Length;
+    SegmentUniqueID = Segments.Length;
+    AttributeUniqueID = Attributes.Length;
+    longRunningTask--;
+}

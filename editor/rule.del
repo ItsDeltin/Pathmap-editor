@@ -603,11 +603,11 @@ void OpenActionSelectMenu() 'Subroutine: Open Add Action menu'
         {
             SetMenuState(MenuState.ChooseWaitLength);
             waitTime = 0.016;
-            waitTimeText = createButton('wait time: ' + waitTime + ' seconds', scale: 1.5, defaultColor: Color.Yellow, interactable: false);
+            waitTimeText = createButton('wait time: ' + waitTime + ' seconds', posY: 0.2, scale: 1.5, defaultColor: Color.Yellow, interactable: false);
             
-            buttonCollectionMain += createButton('←', primaryAction: MenuAction.WaitTimeDown, secondaryAction: MenuAction.WaitTimeDownBig, posX: -0.6, scale: 4);
-            buttonCollectionMain += createButton('→', primaryAction: MenuAction.WaitTimeUp, secondaryAction: MenuAction.WaitTimeUpBig, posX: 0.6, scale: 4);
-            buttonCollectionMain += createButton('Add action', primaryAction: MenuAction.WaitConfirm, posY: -0.15, scale: 2, defaultColor: Color.Green);
+            buttonCollectionMain += createButton('←', primaryAction: MenuAction.WaitTimeDown, secondaryAction: MenuAction.WaitTimeDownBig, posX: -0.3, scale: 4);
+            buttonCollectionMain += createButton('→', primaryAction: MenuAction.WaitTimeUp, secondaryAction: MenuAction.WaitTimeUpBig, posX: 0.3, scale: 4);
+            buttonCollectionMain += createButton('Add action', primaryAction: MenuAction.WaitConfirm, posY: -0.2, scale: 2, clickWidth: 1.5, defaultColor: Color.Green);
             buttonCollectionMain += waitTimeText;
         }
         else

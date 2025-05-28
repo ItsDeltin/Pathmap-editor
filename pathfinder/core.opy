@@ -52,7 +52,9 @@ subroutine pfLookAtDestination
 
 
 rule "【PF Core】Prepare loaded map":
-    waitUntil(pfLoadedMap_nodes, 9999)
+    @Condition pfLoadedMap_nodes == true
+    @Condition pfIterationsThisTick != -99
+    
     for i in range(len(pfLoadedMap_nodes)):
         pfLoadedMap_nodes[i] = vect(pfLoadedMap_nodes[i].x, floor(pfLoadedMap_nodes[i].y) + (i / 1000 * (-1 if pfLoadedMap_nodes[i].y < 0 else 1)), pfLoadedMap_nodes[i].z)
 
@@ -201,7 +203,7 @@ def pfProgressEventPlayer():
     #Update the current pathfind attributes.
     if len(eventPlayer.pfPath) and eventPlayer.pfPath[0] != -1:
         #Any rules watching these with the matching condition will activate.
-        eventPlayer.pfAttributes = (([i_ for i_ in pfLoadedMap_neighbors[eventPlayer.pfPath[0]] if i_[0] == eventPlayer.pfCurrentNodeIndex])[0]).last()
+        eventPlayer.pfAttributes = (([i_ for i_ in pfLoadedMap_neighbors[eventPlayer.pfPath[0]] if i_[0] == eventPlayer.pfCurrentNodeIndex])[0])[1]
     else:
         eventPlayer.pfAttributes = []
     #Go to the next node in the path.

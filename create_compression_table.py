@@ -14,10 +14,15 @@ for i in range(length):
     if len(segments) == 0 or len(segments[-1]) >= split:
         segments.append('')
 
-    while chr(i + offset) in banned_characters:
-        offset += 1
+    char: str
+    while (True):
+        char = chr(i + offset)
+        if char in banned_characters or char.isalnum():
+            offset += 1
+            continue
+        break
 
-    segments[-1] += chr(i + offset)
+    segments[-1] += char
 
 with open('compression-table.json', 'w', encoding='utf8') as json_file:
     json.dump(segments, json_file, ensure_ascii=False, indent=2)

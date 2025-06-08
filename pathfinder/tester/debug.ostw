@@ -1,5 +1,5 @@
 
-import '../pathfinder/core.ostw';
+import '../core.ostw';
 import 'settings.lobby';
 
 playervar DbgEvent[] dbgEvents = [];
@@ -7,7 +7,7 @@ struct DbgEvent { public String name; public Number timeStamp; }
 
 Vector ray: RayCastHitPosition(EyePosition(HostPlayer()), EyePosition(HostPlayer()) + FacingDirectionOf(HostPlayer()) * 100, null, HostPlayer(), false);
 
-rule: 'Debug▶ Disable Inspector'
+disabled rule: 'Debug▶ Disable Inspector'
 {
     DisableInspectorRecording();
 }
@@ -64,10 +64,15 @@ if (HostPlayer() == EventPlayer())
     CreateHudText(
         selectedPlayer != null ? EventPlayer() : null,
         Header: selectedPlayer,
-        Text: <'Is Pathfinding: <0>\nCurrent node index: <1>\npfActiveNode: <2>', selectedPlayer.pfIsPathfinding, selectedPlayer.pfCurrentNodeIndex, selectedPlayer.pfActiveNode>,
+        Text: $'pfIsPathfinding: {selectedPlayer.pfIsPathfinding}
+pfCurrentNodeIndex: {selectedPlayer.pfCurrentNodeIndex}
+pfActiveNode: {selectedPlayer.pfActiveNode}
+pfDestination: {selectedPlayer.pfDestination}
+pfIsStuck: {selectedPlayer.pfIsStuck}
+pfWalkingToPosition: {selectedPlayer.pfWalkingToPosition}',
         SortOrder: 1,
         Reevaluation: HudTextRev.VisibleToAndString,
-        Location: Location.Top);
+        Location: Location.Left);
     # Events
     for (Number i = 0; 10; 1) {
         CreateHudText(
@@ -113,7 +118,7 @@ if (HostPlayer() == EventPlayer())
             Reevaluation: HudTextRev.VisibleToAndString);
     }
     # pfWalkingToPosition
-    CreateIcon(selectedPlayer != null ? EventPlayer() : null, selectedPlayer.pfWalkingToPosition, Icon.Halo, IconRev.VisibleToAndPosition, Color.Green, true);
+    CreateIcon(selectedPlayer ? EventPlayer() : null, selectedPlayer.pfWalkingToPosition, Icon.Halo, IconRev.VisibleToAndPosition, Color.Green, true);
 }
 
 rule: 'Debug▶ Host Control: [Primary Fire] to inspect bot'

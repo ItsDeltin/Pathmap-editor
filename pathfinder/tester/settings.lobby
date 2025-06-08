@@ -12,12 +12,6 @@
         }
     },
     "Modes": {
-        "Skirmish": {
-            "Enabled": true,
-            "Enabled Maps": [
-                "Hanamura"
-            ]
-        },
         "All": {
             "Respawn Time Scalar": 0
         }

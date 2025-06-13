@@ -452,7 +452,7 @@ rule: 'Editor: tutorial' 1000
     );
     AddControlText(
         AllPlayers().IsTrueForAny(p => p.IsDummy() && p.dummySelected) ? 'Unselect all bots' : 'Select all bots',
-        Button.Ability1,
+        Button.Ability2,
         AllPlayers().IsTrueForAny(p => p.IsDummy())
     );
     AddControlText('menu', Button.Interact, true);

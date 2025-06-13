@@ -539,7 +539,7 @@ void DestroyScrollbar()
     }
 }
 
-void MoveSelectedActions(Boolean up!) 'Subroutine: Document action move'
+void MoveSelectedActions(Boolean up!) 'Subroutine: Doc_ment action move'
 {
     // Bounds reached
     if ((up && actionsSelected.First) || (!up && actionsSelected[Rules[rulePage].Actions.Length - 1]))

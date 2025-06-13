@@ -22,6 +22,9 @@ if (dummyOutlineState != dummySavedOutlineState)
 {
     dummySavedOutlineState = dummyOutlineState;
 
+    Kill(eventPlayer);
+    Wait(0.03);
+
     if (dummySavedOutlineState == 0)
         StopForcingPlayerOutlines(eventPlayer, host);
     else if (dummySavedOutlineState == 1)
@@ -30,6 +33,16 @@ if (dummyOutlineState != dummySavedOutlineState)
         StartForcingPlayerOutlines(eventPlayer, host, true, Color.Green, OutlineType.Always);
     else if (dummySavedOutlineState == 3)
         StartForcingPlayerOutlines(eventPlayer, host, true, Color.Turquoise, OutlineType.Always);
+
+    
+    Resurrect(eventPlayer);
+}
+
+rule: 'Dummy: setup'
+Event.OngoingPlayer
+if (IsDummyBot())
+{
+    StartModifyingHeroVoiceLines(eventPlayer, -1000, false);
 }
 
 rule: 'Dummy: destroy'

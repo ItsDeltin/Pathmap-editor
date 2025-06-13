@@ -147,6 +147,7 @@ if (!IsDummyBot())
     DisallowButton(eventPlayer, Button.Ability1);
     DisallowButton(eventPlayer, Button.Ability2);
     DisallowButton(eventPlayer, Button.Melee);
+    DisableKillFeed(eventPlayer);
     // DisableGameModeHud(eventPlayer);
 }
 

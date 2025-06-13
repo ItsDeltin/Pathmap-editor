@@ -16,29 +16,23 @@ globalvar Hero placingDummyHero!;
 enum EditorState
 {
     Node,
-    PlaceDummy
+    PlaceDummy,
+    MirrorMap
 }
 
-rule: 'Editor: node mode edit'
-if (editorState != EditorState.Node)
-{
-    DestroyEffect(cursorMarkerEffect);
-}
-
-rule: 'Editor: dummy mode exit'
-if (editorState != EditorState.PlaceDummy)
-{
+void DestroyCursor() {
     DestroyEffect(cursorMarkerEffect);
     DestroyInWorldText(dummyBotHeroIcon);
 }
 
 rule: 'Editor: node mode enter'
-if (editorState == EditorState.Node)
+if (editorState == EditorState.Node || editorState == EditorState.MirrorMap)
 {
+    DestroyCursor();
     cursorMarkerEffect = CreateEffect(
         AllPlayers().FilteredArray(p => SelectedNodeID == -1 && !host.cm_isInMenu),
         Effect.Sphere,
-        Color.Orange,
+        editorState == EditorState.Node ? Color.Orange : Color.Purple,
         UpdateEveryFrame(watchPoint),
         0.2,
         EffectRev.VisibleToPositionRadiusAndColor);
@@ -47,6 +41,7 @@ if (editorState == EditorState.Node)
 rule: 'Editor: dummy mode enter'
 if (editorState == EditorState.PlaceDummy)
 {
+    DestroyCursor();
     cursorMarkerEffect = CreateEffect(
         !host.cm_isInMenu && SelectedPlayer == null && SelectedNodeID == -1 ? AllPlayers() : null,
         Effect.Ring,
@@ -65,25 +60,29 @@ if (editorState == EditorState.PlaceDummy)
     );
 }
 
+void DestroyConnectionBeams() 'Subroutine: Destroy connection beams' {
+    DestroyEffect(blueVisual);
+    DestroyEffect(redVisual);
+    DestroyInWorldText(attributeFloatText);
+}
+
 rule: 'Editor: path mode exit'
 if (attributeMode || editorState != EditorState.Node)
 {
-    DestroyEffect(blueVisual);
-    DestroyEffect(redVisual);
+    DestroyConnectionBeams();
 }
 
 rule: 'Editor: attribute mode exit'
 if (!attributeMode || editorState != EditorState.Node)
 {
-    DestroyEffect(blueVisual);
-    DestroyEffect(redVisual);
-    DestroyInWorldText(attributeFloatText);
+    DestroyConnectionBeams();
 }
 
 rule: 'Editor: path mode enter'
 if (!attributeMode)
 if (editorState == EditorState.Node)
 {
+    DestroyConnectionBeams();
     MakeVisualBeams(BeamType.TorbjornTurretSightBeam, SelectedSegment == -1);
 }
 
@@ -91,6 +90,7 @@ rule: 'Editor: attribute mode enter'
 if (attributeMode)
 if (editorState == EditorState.Node)
 {
+    DestroyConnectionBeams();
     MakeVisualBeams(BeamType.SymmetraTurretBeam, true);
     attributeFloatText = CreateInWorldText(
         VisibleTo: connectingFromNode != -1 && connectingFromNode != SelectedNodeIndex ? AllPlayers() : null,
@@ -408,6 +408,45 @@ if (!host.cm_isInMenu)
     SelectedPlayer.dummySelected = !SelectedPlayer.dummySelected;
 }
 
+rule: 'Editor: Create mirror reflection line'
+Event.OngoingPlayer
+if (isHost)
+if (button(Button.PrimaryFire))
+if (editorState == EditorState.MirrorMap)
+if (!host.cm_isInMenu)
+if (!host.releasePrimary)
+{
+    if (!mirrorLineStart) {
+        # Start mirror line
+        mirrorLineStart = watchPoint;
+    } else if (!mirrorLineEnd) {
+        # End mirror line
+        mirrorLineEnd = watchPoint;
+    } else {
+        editorState = EditorState.Node;
+        # Complete
+        mirrorMap();
+    }
+}
+
+rule: 'Editor: Cancel mirror reflection line'
+if (button(Button.SecondaryFire))
+if (editorState == EditorState.MirrorMap)
+if (!host.cm_isInMenu)
+if (!host.releasePrimary)
+{
+    if (mirrorLineEnd) {
+        mirrorLineEnd = null;
+    }
+    else if (mirrorLineStart) {
+        mirrorLineStart = null;
+    }
+    else {
+        // stop mirroring
+        editorState = EditorState.Node;
+    }
+}
+
 rule: 'Editor: tutorial' 1000
 {
     CreateHudText(
@@ -419,6 +458,7 @@ rule: 'Editor: tutorial' 1000
     );
     AddControlText(
         editorState == EditorState.PlaceDummy ? 'Place dummy' :
+            editorState == EditorState.MirrorMap ? (mirrorLineEnd ? 'Mirror map with drawn line' : mirrorLineStart ? 'Draw end of reflected line' : 'Draw start of reflection line') :
             SelectedPlayer != null ? (SelectedPlayer.dummySelected ? 'Unselect player' : 'Select player') :
             SelectedSegment != -1 ? (attributeMode ? 'Connect attribute' : 'Delete path') :
             connectingFromNode != -1 && SelectedNodeID != -1 ? (connectingFromNode == SelectedNodeIndex ? (attributeMode ? 'Cancel attribute' : 'Cancel path') : (attributeMode ? 'Connect Attribute' : 'Link path')) :
@@ -426,14 +466,17 @@ rule: 'Editor: tutorial' 1000
         Button.PrimaryFire
     );
     AddControlText(
-        editorState == EditorState.Node ? (attributeMode ? 'Cancel attribute' : 'Cancel path') : 'Cancel',
+        editorState == EditorState.Node ? (attributeMode ? 'Cancel attribute' : 'Cancel path')
+            : editorState == EditorState.MirrorMap ? (mirrorLineStart ? 'undo line' : 'cancel') :
+            // Cancel dummy creation
+            'Cancel',
         Button.SecondaryFire,
-        (editorState == EditorState.Node && connectingFromNode != -1 && SelectedNodeID == -1) || editorState == EditorState.PlaceDummy
+        (editorState == EditorState.Node && connectingFromNode != -1 && SelectedNodeID == -1) || editorState == EditorState.PlaceDummy || editorState == EditorState.MirrorMap
     );
     AddControlText(
         'Destroy node',
         Button.Ultimate,
-        SelectedNodeIndex != -1
+        editorState == EditorState.Node && SelectedNodeIndex != -1
     );
     AddControlText(
         connectingFromNode != -1 ? 'Move node' : 'Pathfind to cursor',

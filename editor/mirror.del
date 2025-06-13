@@ -1,63 +1,37 @@
 import 'main.del';
 
-struct MirrorMeta
-{
-    public Map Map;
-    # If `X` is false, this is the slope of the plane.
-    # Otherwise, if `X` is true, then this is the x offset to the symmetry line in the map.
-    public Number A;
-    # The intercept of the plane with the z-axis. Ignore if X is true.
-    public Number B;
-    public Boolean X;
+globalvar Vector mirrorLineStart!;
+globalvar Vector mirrorLineEnd!;
+globalvar Number mirrorLineEffectA!;
+globalvar Number mirrorLineEffectB!;
+
+void enterMirroringMode() {
+    cm_isInMenu = false;
+    editorState = EditorState.MirrorMap;
+
+    mirrorLineEffectA = CreateBeamEffect(
+        mirrorLineStart && !mirrorLineEnd ? host : null,
+        BeamType.MoiraOrbHealBeam,
+        mirrorLineStart + Up() * .5,
+        watchPoint + Up() * .5,
+        Team.Team2,
+        EffectRev.VisibleToPositionRadiusAndColor);
+
+    mirrorLineEffectB = CreateBeamEffect(
+        mirrorLineEnd ? host : null,
+        BeamType.MoiraOrbHealBeam,
+        mirrorLineStart + Up() * .5,
+        mirrorLineEnd + Up() * .5,
+        Team.Team1,
+        EffectRev.VisibleToPositionRadiusAndColor);
 }
 
-MirrorMeta m_x(Map map, Number x): {
-    Map: map,
-    X: true,
-    A: x,
-    B: 0,
-};
-MirrorMeta m_ab(Map map, Number a, Number b): {
-    Map: map,
-    X: false,
-    A: a,
-    B: b
-};
-
-// Provided by Zezombye
-// https://github.com/Zezombye/overpy/blob/master/src/data/maps.js
-MirrorMeta[] mirrorMeta: [
-    m_ab(Map.Ayutthaya, 0, -7),
-    m_ab(Map.Black_Forest, 0, 5),
-    m_ab(Map.Black_Forest_Winter, 0, 5),
-    m_x(Map.Busan_Downtown_Lunar, 51.9),
-    m_x(Map.Busan_Sanctuary_Lunar, 51.9),
-    m_ab(Map.Castillo, -0.19009, 38.79879),
-    m_ab(Map.Ecopoint_Antarctica, 0, 0),
-    m_ab(Map.Ecopoint_Antarctica_Winter, 0, 0),
-    m_ab(Map.Ilios_Lighthouse, -0.41437, 96.86593),
-    m_x(Map.Ilios_Ruins, 28.6),
-    m_ab(Map.Ilios_Well, 1.00409, 192.85907),
-    m_x(Map.Lijiang_Control_Center, 0),
-    m_x(Map.Lijiang_Control_Center_Lunar, 0),
-    m_x(Map.Lijiang_Garden, 0),
-    m_x(Map.Lijiang_Garden_Lunar, 0),
-    m_x(Map.Lijiang_Night_Market, 0),
-    m_x(Map.Lijiang_Night_Market_Lunar, 0),
-    m_ab(Map.Necropolis, 0, 0),
-    m_ab(Map.Nepal_Sanctum, 0, 0),
-    m_ab(Map.Nepal_Shrine, 0, 0),
-    m_ab(Map.Nepal_Village, 0, 0),
-    m_ab(Map.Oasis_City_Center, 1.00002, 103.99783),
-    m_ab(Map.Oasis_Gardens, -1.00042, -106.1637),
-    m_ab(Map.Oasis_University, 0, 0),
-    m_ab(Map.Workshop_Chamber, 0, 0),
-    m_ab(Map.Workshop_Expanse, 0, 0),
-    m_ab(Map.Workshop_Expanse_Night, 0, 0),
-    m_ab(Map.Workshop_Island, 0, 0),
-    m_ab(Map.Workshop_Island_Night, 0, 0)
-];
-// Push maps are flipped on the X axis
+rule: 'Editor: Exit mirror editing mode'
+if (editorState != EditorState.MirrorMap)
+{
+    DestroyEffect(mirrorLineEffectA);
+    DestroyEffect(mirrorLineEffectB);
+}
 
 // Show mirror preview
 void mirrorMap() playervar 'Subroutine: Mirror map'
@@ -65,11 +39,13 @@ void mirrorMap() playervar 'Subroutine: Mirror map'
     Number nodeLength = Nodes.Length;
     Number segmentLength = Segments.Length;
     Number attributeLength = Attributes.Length;
+    Vector start: mirrorLineStart;
+    Vector end: mirrorLineEnd;
 
     Document({
         Set: () => {
             StartLongRunningTask('Mirroring, please wait...');
-            executeMapMirror(nodeLength, segmentLength, attributeLength);
+            executeMapMirror(nodeLength, segmentLength, attributeLength, start, end);
             EndLongRunningTask();
         },
         Revert: () => {
@@ -78,8 +54,16 @@ void mirrorMap() playervar 'Subroutine: Mirror map'
             Attributes = Attributes.Slice(0, attributeLength);
         }
     });
+
+    mirrorLineStart = null;
+    mirrorLineEnd = null;
 }
-void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeLength!) playervar 'Subroutine: Execute map mirror'
+void executeMapMirror(
+    Number nodeLength,
+    Number segmentLength,
+    Number attributeLength,
+    Vector mirrorStart,
+    Vector mirrorEnd) playervar 'Subroutine: Execute map mirror'
 {
     Number iterI = 0;
     # 0 = nodes, 1 = segments, 2 = attributes
@@ -100,17 +84,11 @@ void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeL
         Reevaluation: ProgressBarHudEvaluation.VisibleToAndValues
     );
 
-    # Get map mirror data.
-    Number mapId = mirrorMeta.Map(m => m.Map).IndexOf(CurrentMap());
-    Number a = 0;
-    Number b = 0;
-    Boolean justFlipXAxis = true;
-    if (mapId != -1)
-    {
-        a = mirrorMeta[mapId].A;
-        b = mirrorMeta[mapId].B;
-        justFlipXAxis = mirrorMeta[mapId].X;
-    }
+    Vector center = (mirrorStart + mirrorEnd) / 2;
+    Vector flip = (mirrorStart.DirectionTowards(mirrorEnd) * Vector(1, 0, 1))
+        .Normalize()
+        .CrossProduct(Up())
+        .Normalize();
 
     # The distance where a mirrored node will be ignored.
     Number mergeRadius: 2;
@@ -124,11 +102,8 @@ void executeMapMirror(Number nodeLength, Number segmentLength, Number attributeL
             MinWait();
         }
 
-        Vector pos;
-        if (justFlipXAxis)
-            pos = Nodes[iterI].Node.Position * Vector(-1, 1, 1) + Vector(a, 0, 0);
-        else
-            pos = mirror(Nodes[iterI].Node.Position, a, b);
+        Vector currentNodePos: Nodes[iterI].Node.Position - center;
+        Vector pos = center + (currentNodePos - 2 * currentNodePos.DotProduct(flip) * flip);
 
         // Do not mirror if the mirrored node is too close.
         if (pos.DistanceTo(Nodes[iterI].Node.Position) < mergeRadius) {
@@ -282,7 +257,7 @@ void openMirrorConfirmationScreen()
         defaultColor: Color.Green,
         onClick: _ => {
             SetMenuState(MenuState.Main);
-            async! mirrorMap();
+            enterMirroringMode();
         }
     );
 }

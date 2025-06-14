@@ -1,3 +1,4 @@
 compile_miscellaneous_comments = false
 out_file = 'core.ow'
 c_style_workshop_output = true
+variable_prefix = "pf"

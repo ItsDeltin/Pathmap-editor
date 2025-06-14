@@ -5,6 +5,7 @@ struct PfMap {
     public PfPath[][] neighbors;
 }
 
+# Connections between paths
 single struct PfPath {
     public Number neighbor;
     public Number[] attributes;
@@ -58,6 +59,8 @@ playervar Number pfStuckOnNode;
 playervar Boolean pfWasBroadcasted;
 # Is the player failing to walk?
 playervar Boolean pfIsStuck;
+# Does the pathfinder need to refresh due to destination moving too far from saved target?
+Boolean destinationNeedsUpdate: !pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5;
 
 rule: '【PF Core】Prepare loaded map'
 if (pfLoadedMap.nodes)
@@ -73,13 +76,8 @@ if (pfIterationsThisTick != -99)
 }
 
 void pfEvent(in String text) {
-    // dbgEvents += {
-    //     name: text,
-    //     timeStamp: TotalTimeElapsed()
-    // };
-    // while (dbgEvents.Length > 10) {
-    //     dbgEvents.ModRemoveByIndex(0);
-    // }
+    // dbgEvents += { name: text, timeStamp: TotalTimeElapsed() };
+    // while (dbgEvents.Length > 10) dbgEvents.ModRemoveByIndex(0);
 }
 
 void pfTick() '【PF Core Subroutine】☞ Tick'
@@ -101,8 +99,6 @@ if (AllPlayers().IsTrueForAny(p => p.pfWait))
     MinWait();
     LoopIfConditionIsTrue();
 }
-
-Boolean destinationNeedsUpdate: !pfSavedTarget || pfDestination.DistanceTo(pfSavedTarget) > 5;
 
 rule: '【PF Core】Update & Execute'
 Event.OngoingPlayer
@@ -400,4 +396,119 @@ void reconstructPath(in PfNode[] scores, ref Number current, in Number currentIn
     
     broadcastTo.pfPath = pfPath;
     broadcastTo.pfWasBroadcasted = true;
+}
+
+globalvar String[][] pfDecompress;
+
+rule: '【PF Decompress】Decompress map'
+if (pfDecompress)
+{
+    # Lock pathfinder until compression is completed.
+    pfIterationsThisTick = -99;
+    define compressionTable =
+        " !#$%&'()*+,-./:;<=>?@[]^_`|~ ¡¢£¤¥¦§¨©«¬­®¯°±´¶·¸»¿×÷˂˃˄˅˒˓˔˕˖˗˘˙˚˛˜˝˞˟˥˦˧˨˩˪˫˭˯˰˱˲˳˴˵˶˷˸˹˺˻˼˽" +
+        "˾˿̴̵̶̷̸̡̢̧̨̛̖̗̘̙̜̝̞̟̠̣̤̥̦̩̪̫̬̭̮̯̰̱̲̳̹̺̻̼͇͈͉͍͎̀́̂̃̄̅̆̇̈̉̊̋̌̍̎̏̐̑̒̓̔̽̾̿̀́͂̓̈́͆͊͋͌̕̚ͅ͏͓͔͕͖͙͚͐͑͒͗͛ͣͤͥͦͧͨͩͪͫͬͭͮͯ͘͜͟͢͝͞͠͡͵͸͹;΀΁΂΃΄΅·΋΍΢" +
+        "϶҂҃҄҅҆҇҈҉԰՗՘՚՛՜՝՞՟։֊֋֌֍֎֏֐ְֱֲֳִֵֶַָֹֺֻּֽ֑֖֛֢֣֤֥֦֧֪֚֭֮֒֓֔֕֗֘֙֜֝֞֟֠֡֨֩֫֬֯־ֿ׀ׁׂ׃ׅׄ׆ׇ׈׉׊׋׌׍׎׏׫׬׭׮׳״׵׶׷׸׹׺׻׼׽׾׿؀؁؂؃؄؅؆؇؈؉؊؋،؍؎؏ؐؑؒؓؔؕ" +
+        "ؘؙؚؖؗ؛؜؝؞؟ًٌٍَُِّْٕٖٜٟٓٔٗ٘ٙٚٛٝٞ٪٫٬٭ٰ۔ۖۗۘۙۚۛۜ۝۞ۣ۟۠ۡۢۤۧۨ۩۪ۭ۫۬۽۾܀܁܂܃܄܅܆܇܈܉܊܋܌܍܎܏ܑܱܴܷܸܹܻܼܾ݂݄݆݈ܰܲܳܵܶܺܽܿ݀݁݃݅݇݉݊݋݌ަާިީުޫެޭޮޯް޲޳޴޵޶޷޸޹޺޻" +
+        "޼޽޾޿߲߫߬߭߮߯߰߱߳߶߷߸߹߻߼߽߾߿ࠖࠗ࠘࠙ࠛࠜࠝࠞࠟࠠࠡࠢࠣࠥࠦࠧࠩࠪࠫࠬ࠭࠮࠯࠰࠱࠲࠳࠴࠵࠶࠷࠸࠹࠺࠻࠼࠽࠾࠿࡙࡚࡛࡜࡝࡞࡟࡫࡬࡭࡮࡯ࡰࡱࡲࡳࡴࡵࡶࡷࡸࡹࡺࡻࡼࡽࡾࡿࢀࢁࢂࢃࢄࢅࢆࢇ࢈ࢉࢊࢋࢌࢍࢎ࢏࢐࢑࢒࢓࢔࢕࢖࢙࢚࢛ࢗ࢘࢜࢝࢞࢟ࢵࣈࣉ࣊࣋࣌࣍" +
+        "࣏࣐࣑࣒࣓࣎ࣔࣕࣖࣗࣘࣙࣚࣛࣜࣝࣞࣟ࣠࣡࣢ࣰࣱࣲࣣࣦࣩ࣭࣮࣯ࣶࣹࣺࣤࣥࣧࣨ࣪࣫࣬ࣳࣴࣵࣷࣸࣻࣼࣽࣾࣿऀँंःऺऻ़ािीुूृॄॅॆेैॉॊोौ्ॎॏ॒॑॓॔ॕॖॗॢॣ।॥॰ঁংঃ঄঍঎঑঒঩঱঳঴঵঺঻়ািীুূৃৄ৅৆েৈ৉৊োৌ্৏৐৑৒৓৔৕৖ৗ" +
+        "৘৙৚৛৞ৢৣ৤৥৲৳৺৻৽৾৿਀ਁਂਃ਄਋਌਍਎਑਒਩਱਴਷਺਻਼਽ਾਿੀੁੂ੃੄੅੆ੇੈ੉੊ੋੌ੍੎੏੐ੑ੒੓੔੕੖੗੘੝੟੠੡੢੣੤੥ੰੱੵ੶੷੸੹੺੻੼੽੾੿઀ઁંઃ઄઎઒઩઱઴઺઻઼ાિીુૂૃૄૅ૆ેૈૉ૊ોૌ્૎૏૑૒૓૔૕૖૗૘૙૚૛૜૝૞" +
+        "૟ૢૣ૤૥૰૱૲૳૴૵૶૷૸ૺૻૼ૽૾૿଀ଁଂଃ଄଍଎଑଒଩଱଴଺଻଼ାିୀୁୂୃୄ୅୆େୈ୉୊ୋୌ୍୎୏୐୑୒୓୔୕ୖୗ୘୙୚୛୞ୢୣ୤୥୰୸୹୺୻୼୽୾୿஀஁ஂ஄஋஌஍஑஖஗஘஛஝஠஡஢஥஦஧஫஬஭஺஻஼஽ாிீுூ௃௄௅ெேை௉ொோௌ்௎௏௑௒௓௔௕" +
+        "௖ௗ௘௙௚௛௜௝௞௟௠௡௢௣௤௥௳௴௵௶௷௸௹௺௻௼௽௾௿ఀఁంఃఄ఍఑఩఺఻఼ాిీుూృౄ౅ెేై౉ొోౌ్౎౏౐౑౒౓౔ౕౖ౗౛౜ౝ౞౟ౢౣ౤౥౰౱౲౳౴౵౶౷౿ಁಂಃ಄಍಑಩಴಺಻಼ಾಿೀುೂೃೄ೅ೆೇೈ೉ೊೋೌ್೎೏೐೑೒೓೔ೕೖ೗೘೙೚೛೜ೝ೟" +
+        "ೢೣ೤೥೰ೳ೴೵೶೷೸೹೺೻೼೽೾೿ഀഁംഃ഍഑഻഼ാിീുൂൃൄ൅െേൈ൉ൊോൌ്൏൐൑൒൓ൗൢൣ൤൥൹඀ඁංඃ඄඗඘඙඲඼඾඿෇෈෉්෋෌෍෎ාැෑිීු෕ූ෗ෘෙේෛොෝෞෟ෠෡෢෣෤෥෰෱ෲෳ෴෵෶෷෸෹෺෻෼෽෾෿฀ัิีึืฺุู฻฼฽฾฿็่" +
+        "้๊๋์ํ๎๏๚๛๜๝๞๟๠๡๢๣๤๥๦๧๨๩๪๫๬๭๮๯๰๱๲๳๴๵๶๷๸๹๺๻๼๽๾๿຀຃຅຋຤຦ັິີຶື຺ຸູົຼ຾຿໅໇່້໊໋໌ໍ໎໏໚໛໠໡໢໣໤໥໦໧໨໩໪໫໬໭໮໯໰໱໲໳໴໵໶໷໸໹໺໻໼໽໾໿༁༂༃༄༅༆༇༈༉༊་༌།༎༏༐༑༒༓༔༕" +
+        "༖༗༘༙༚༛༜༝༞༟༴༵༶༷༸༹༺༻༼༽༾༿཈཭཮཯཰ཱཱཱིིུུྲྀཷླྀཹེཻོཽཾཿ྄ཱྀྀྂྃ྅྆྇ྍྎྏྐྑྒྒྷྔྕྖྗ྘ྙྚྛྜྜྷྞྟྠྡྡྷྣྤྥྦྦྷྨྩྪྫྫྷྭྮྯྰྱྲླྴྵྶྷྸྐྵྺྻྼ྽྾྿࿀࿁࿂࿃࿄࿅࿆࿇࿈࿉࿊࿋࿌࿍࿎࿏࿐࿑࿒࿓࿔࿕࿖࿗࿘࿙࿚" +
+        "࿛࿜࿝࿞࿟࿠࿡࿢࿣࿤࿥࿦࿧࿨࿩࿪࿫࿬࿭࿮࿯࿰࿱࿲࿳࿴࿵࿶࿷࿸࿹࿺࿻࿼࿽࿾࿿ါာိီုူေဲဳဴဵံ့း္်ျြွှ၊။၌၍၎၏ၖၗၘၙၞၟၠၢၣၤၧၨၩၪၫၬၭၱၲၳၴႂႃႄႅႆႇႈႉႊႋႌႍႏႚႛႜႝ႞႟჆჈჉჊჋჌჎჏჻቉቎቏቗቙቞቟኉኎኏኱኶኷኿዁዆" +
+        "዇዗጑጖጗፛፜፝፞፟፠፡።፣፤፥፦፧፨፽፾፿᎐᎑᎒᎓᎔᎕᎖᎗᎘᎙᎚᎛᎜᎝᎞᎟᏶᏷᏾᏿᐀᙭᙮ ᚛᚜᚝᚞᚟᛫᛬᛭᛹᛺᛻᛼᛽᛾᛿ᜍᜒᜓ᜔᜕᜖᜗᜘᜙᜚᜛᜜᜝᜞ᜟᜲᜳ᜴᜵᜶᜷᜸᜹᜺᜻᜼᜽᜾᜿ᝒᝓ᝔᝕᝖᝗᝘᝙᝚᝛᝜᝝᝞᝟᝭᝱ᝲᝳ᝴᝵᝶᝷᝸᝹᝺᝻᝼᝽᝾᝿឴឵ាិីឹឺុ" +
+        "ូួើឿៀេែៃោៅំះៈ៉៊់៌៍៎៏័៑្៓។៕៖៘៙៚៛៝៞៟៪៫៬៭៮៯៺៻៼៽៾៿᠀᠁᠂᠃᠄᠅᠆᠇᠈᠉᠊᠋᠌᠍᠎᠏᠚᠛᠜᠝᠞᠟᡹᡺᡻᡼᡽᡾᡿ᢅᢆᢩ᢫᢬᢭᢮᢯᣶᣷᣸᣹᣺᣻᣼᣽᣾᣿᤟ᤠᤡᤢᤣᤤᤥᤦᤧᤨᤩᤪᤫ᤬᤭᤮᤯ᤰᤱᤲᤳᤴᤵᤶᤷᤸ᤻᤹᤺᤼᤽᤾᤿᥀᥁" +
+        "᥂᥃᥄᥅᥮᥯᥵᥶᥷᥸᥹᥺᥻᥼᥽᥾᥿᦬᦭᦮᦯᧊᧋᧌᧍᧎᧏᧛᧜᧝᧞᧟᧠᧡᧢᧣᧤᧥᧦᧧᧨᧩᧪᧫᧬᧭᧮᧯᧰᧱᧲᧳᧴᧵᧶᧷᧸᧹᧺᧻᧼᧽᧾᧿ᨘᨗᨙᨚᨛ᨜᨝᨞᨟ᩕᩖᩗᩘᩙᩚᩛᩜᩝᩞ᩟᩠ᩡᩢᩣᩤᩥᩦᩧᩨᩩᩪᩫᩬᩭᩮᩯᩰᩱᩲᩳᩴ᩵᩶᩷᩸᩹᩺᩻᩼᩽᩾᩿᪊᪋᪌᪍᪎᪏᪚᪛᪜᪝᪞᪟" +
+        "᪠᪡᪢᪣᪤᪥᪦᪨᪩᪪᪫᪬᪭᪮᪯᪵᪶᪷᪸᪹᪺᪽᪰᪱᪲᪳᪴᪻᪼᪾ᪿᫀ᫃᫄᫊᫁᫂᫅᫆᫇᫈᫉᫋ᫌᫍᫎ᫏᫐᫑᫒᫓᫔᫕᫖᫗᫘᫙᫚᫛᫜᫝᫞᫟᫠᫡᫢᫣᫤᫥᫦᫧᫨᫩᫪᫫᫬᫭᫮᫯᫰᫱᫲᫳᫴᫵᫶᫷᫸᫹᫺᫻᫼᫽᫾᫿ᬀᬁᬂᬃᬄ᬴ᬵᬶᬷᬸᬹᬺᬻᬼᬽᬾᬿᭀᭁᭂᭃ᭄ᭌ᭍᭎᭏᭚᭛᭜᭝᭞᭟᭠" +
+        "᭡᭢᭣᭤᭥᭦᭧᭨᭩᭪᭬᭫᭭᭮᭯᭰᭱᭲᭳᭴᭵᭶᭷᭸᭹᭺᭻᭼᭽᭾᭿ᮀᮁᮂᮡᮢᮣᮤᮥᮦᮧᮨᮩ᮪᮫ᮬᮭ᯦ᯧᯨᯩᯪᯫᯬᯭᯮᯯᯰᯱ᯲᯳᯴᯵᯶᯷᯸᯹᯺᯻᯼᯽᯾᯿ᰤᰥᰦᰧᰨᰩᰪᰫᰬᰭᰮᰯᰰᰱᰲᰳᰴᰵᰶ᰷᰸᰹᰺᰻᰼᰽᰾᰿᱊᱋᱌᱾᱿Ᲊᲊ᲋᲌᲍᲎᲏᲻᲼᳀᳁᳂᳃᳄᳅᳆᳇᳈᳉᳊᳋᳌" +
+        "᳍᳎᳏᳐᳑᳒᳓᳔᳕᳖᳗᳘᳙᳜᳝᳞᳟᳚᳛᳠᳡᳢᳣᳤᳥᳦᳧᳨᳭᳴᳷᳸᳹᳻᳼᳽᳾᳿᷐᷎᷺᷂᷊᷏᷹᷽᷿᷷᷸᷀᷁᷃᷄᷅᷆᷇᷈᷉᷋᷌᷑᷒ᷓᷔᷕᷖᷗᷘᷙᷚᷛᷜᷝᷞᷟᷠᷡᷢᷣᷤᷥᷦᷧᷨᷩᷪᷫᷬᷭᷮᷯᷰᷱᷲᷳᷴ᷵᷻᷾᷶᷼᷍἖἗἞἟὆὇὎὏὘὚὜὞὾὿᾵᾽᾿῀῁῅῍῎῏῔῕῜" +
+        "῝῞῟῭΅`῰῱῵´῾῿           ​‌‍‎‏‐‑‒–—―‖‗‘’‚‛“”„‟†‡•‣․‥…‧  ‪‫‬‭‮ ‰‱′″‴‵‶‷‸‹›※‼‽‾‿⁀⁁⁂⁃⁄⁅⁆⁇⁈⁉⁊⁋⁌⁍⁎⁏⁐⁑⁒⁓⁔⁕⁖⁗⁘⁙⁚⁛⁜⁝⁞ ⁠⁡⁢⁣⁤⁥⁦⁧⁨⁩⁪⁫⁬⁭⁮⁯⁲⁳⁺⁻" +
+        "⁼⁽⁾₊₋₌₍₎₏₝₞₟₠₡₢₣₤₥₦₧₨₩₪₫€₭₮₯₰₱₲₳₴₵₶₷₸₹₺₻₼₽₾₿⃀⃁⃂⃃⃄⃅⃆⃇⃈⃉⃊⃋⃌⃍⃎⃏⃒⃓⃘⃙⃚⃐⃑⃔⃕⃖⃗⃛⃜⃝⃞⃟⃠⃡⃢⃣⃤⃥⃦⃪⃫⃨⃬⃭⃮⃯⃧⃩⃰⃱⃲⃳⃴⃵⃶⃷⃸⃹⃺⃻⃼⃽⃾⃿℀℁℃℄℅℆℈℉℔№℗℘℞℟℠℡™℣℥℧" +
+        "℩℮℺℻⅀⅁⅂⅃⅄⅊⅋⅌⅍⅏↊↋↌↍↎↏←↑→↓↔↕↖↗↘↙↚↛↜↝↞↟↠↡↢↣↤↥↦↧↨↩↪↫↬↭↮↯↰↱↲↳↴↵↶↷↸↹↺↻↼↽↾↿⇀⇁⇂⇃⇄⇅⇆⇇⇈⇉⇊⇋⇌⇍⇎⇏⇐⇑⇒⇓⇔⇕⇖⇗⇘⇙⇚⇛⇜⇝⇞⇟⇠⇡⇢⇣⇤⇥⇦⇧⇨⇩⇪⇫⇬⇭⇮⇯⇰⇱⇲⇳⇴⇵⇶⇷⇸⇹⇺⇻" +
+        "⇼⇽⇾⇿∀∁∂∃∄∅∆∇∈∉∊∋∌∍∎∏∐∑−∓∔∕∖∗∘∙√∛∜∝∞∟∠∡∢∣∤∥∦∧∨∩∪∫∬∭∮∯∰∱∲∳∴∵∶∷∸∹∺∻∼∽∾∿≀≁≂≃≄≅≆≇≈≉≊≋≌≍≎≏≐≑≒≓≔≕≖≗≘≙≚≛≜≝≞≟≠≡≢≣≤≥≦≧≨≩≪≫≬≭≮≯≰≱≲≳≴≵≶≷≸≹≺≻" +
+        "≼≽≾≿⊀⊁⊂⊃⊄⊅⊆⊇⊈⊉⊊⊋⊌⊍⊎⊏⊐⊑⊒⊓⊔⊕⊖⊗⊘⊙⊚⊛⊜⊝⊞⊟⊠⊡⊢⊣⊤⊥⊦⊧⊨⊩⊪⊫⊬⊭⊮⊯⊰⊱⊲⊳⊴⊵⊶⊷⊸⊹⊺⊻⊼⊽⊾⊿⋀⋁⋂⋃⋄⋅⋆⋇⋈⋉⋊⋋⋌⋍⋎⋏⋐⋑⋒⋓⋔⋕⋖⋗⋘⋙⋚⋛⋜⋝⋞⋟⋠⋡⋢⋣⋤⋥⋦⋧⋨⋩⋪⋫⋬⋭⋮⋯⋰⋱⋲⋳⋴⋵⋶⋷⋸⋹⋺⋻" +
+        "⋼⋽⋾⋿⌀⌁⌂⌃⌄⌅⌆⌇⌈⌉⌊⌋⌌⌍⌎⌏⌐⌑⌒⌓⌔⌕⌖⌗⌘⌙⌚⌛⌜⌝⌞⌟⌠⌡⌢⌣⌤⌥⌦⌧⌨〈〉⌫⌬⌭⌮⌯⌰⌱⌲⌳⌴⌵⌶⌷⌸⌹⌺⌻⌼⌽⌾⌿⍀⍁⍂⍃⍄⍅⍆⍇⍈⍉⍊⍋⍌⍍⍎⍏⍐⍑⍒⍓⍔⍕⍖⍗⍘⍙⍚⍛⍜⍝⍞⍟⍠⍡⍢⍣⍤⍥⍦⍧⍨⍩⍪⍫⍬⍭⍮⍯⍰⍱⍲⍳⍴⍵⍶⍷⍸⍹⍺⍻" +
+        "⍼⍽⍾⍿⎀⎁⎂⎃⎄⎅⎆⎇⎈⎉⎊⎋⎌⎍⎎⎏⎐⎑⎒⎓⎔⎕⎖⎗⎘⎙⎚⎛⎜⎝⎞⎟⎠⎡⎢⎣⎤⎥⎦⎧⎨⎩⎪⎫⎬⎭⎮⎯⎰⎱⎲⎳⎴⎵⎶⎷⎸⎹⎺⎻⎼⎽⎾⎿⏀⏁⏂⏃⏄⏅⏆⏇⏈⏉⏊⏋⏌⏍⏎⏏⏐⏑⏒⏓⏔⏕⏖⏗⏘⏙⏚⏛⏜⏝⏞⏟⏠⏡⏢⏣⏤⏥⏦⏧⏨⏩⏪⏫⏬⏭⏮⏯⏰⏱⏲⏳⏴⏵⏶⏷⏸⏹⏺⏻" +
+        "⏼⏽⏾⏿␀␁␂␃␄␅␆␇␈␉␊␋␌␍␎␏␐␑␒␓␔␕␖␗␘␙␚␛␜␝␞␟␠␡␢␣␤␥␦␧␨␩␪␫␬␭␮␯␰␱␲␳␴␵␶␷␸␹␺␻␼␽␾␿⑀⑁⑂⑃⑄⑅⑆⑇⑈⑉⑊⑋⑌⑍⑎⑏⑐⑑⑒⑓⑔⑕⑖⑗⑘⑙⑚⑛⑜⑝⑞⑟⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⒶⒷ" +
+        "ⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┄┅┆┇┈┉┊┋┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋╌╍" +
+        "╎╏═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬╭╮╯╰╱╲╳╴╵╶╷╸╹╺╻╼╽╾╿▀▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▐░▒▓▔▕▖▗▘▙▚▛▜▝▞▟■□▢▣▤▥▦▧▨▩▪▫▬▭▮▯▰▱▲△▴▵▶▷▸▹►▻▼▽▾▿◀◁◂◃◄◅◆◇◈◉◊○◌◍" +
+        "◎●◐◑◒◓◔◕◖◗◘◙◚◛◜◝◞◟◠◡◢◣◤◥◦◧◨◩◪◫◬◭◮◯◰◱◲◳◴◵◶◷◸◹◺◻◼◽◾◿☀☁☂☃☄★☆☇☈☉☊☋☌☍☎☏☐☑☒☓☔☕☖☗☘☙☚☛☜☝☞☟☠☡☢☣☤☥☦☧☨☩☪☫☬☭☮☯☰☱☲☳☴☵☶☷☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍" +
+        "♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♡♢♣♤♥♦♧♨♩♪♫♬♭♮♯♰♱♲♳♴♵♶♷♸♹♺♻♼♽♾♿⚀⚁⚂⚃⚄⚅⚆⚇⚈⚉⚊⚋⚌⚍⚎⚏⚐⚑⚒⚓⚔⚕⚖⚗⚘⚙⚚⚛⚜⚝⚞⚟⚠⚡⚢⚣⚤⚥⚦⚧⚨⚩⚪⚫⚬⚭⚮⚯⚰⚱⚲⚳⚴⚵⚶⚷⚸⚹⚺⚻⚼⚽⚾⚿⛀⛁⛂⛃⛄⛅⛆⛇⛈⛉⛊⛋⛌⛍" +
+        "⛎⛏⛐⛑⛒⛓⛔⛕⛖⛗⛘⛙⛚⛛⛜⛝⛞⛟⛠⛡⛢⛣⛤⛥⛦⛧⛨⛩⛪⛫⛬⛭⛮⛯⛰⛱⛲⛳⛴⛵⛶⛷⛸⛹⛺⛻⛼⛽⛾⛿✀✁✂✃✄✅✆✇✈✉✊✋✌✍✎✏✐✑✒✓✔✕✖✗✘✙✚✛✜✝✞✟✠✡✢✣✤✥✦✧✨✩✪✫✬✭✮✯✰✱✲✳✴✵✶✷✸✹✺✻✼✽✾✿❀❁❂❃❄❅❆❇❈❉❊❋❌❍";
+    
+    const (String, Number) => Number d = (str, index) => compressionTable.IndexOf(str.CharAt(index));
+    const Number => Number unwrap = value => (value * 2 - 4096) / 10;
+
+    pfLoadedMap = {
+        nodes: [],
+        neighbors: []
+    };
+
+    Number i1;
+    Number i2;
+
+    # Decompress nodes
+    for (i1 = 0; pfDecompress[0].Length; 1) {
+        String nodeString: pfDecompress[0][i1];
+        for (i2 = 0; nodeString.Length; 3) {
+            pfLoadedMap.nodes += Vector(
+                unwrap(d(nodeString, i2)),
+                unwrap(d(nodeString, i2 + 1)),
+                unwrap(d(nodeString, i2 + 2))
+            );
+            MinWait();
+        }
+    }
+
+    # Decompress neighbors
+    Number decompressionState;
+    PfPath[] currentNeighbors = [];
+
+    for (i1 = 0; pfDecompress[1].Length; 1) {
+        String neighborString: pfDecompress[1][i1];
+        for (i2 = 0; neighborString.Length; 1) {
+            Number next = d(neighborString, i2);
+
+            # Next is the neighbor.
+            if (decompressionState == 0) {
+                # Current node is terminated.
+                if (!next) {
+                    pfLoadedMap.neighbors += currentNeighbors;
+                    # Reset current neighbors array
+                    currentNeighbors = [];
+                }
+                # Next neighbor found.
+                else {
+                    decompressionState = 1;
+                    currentNeighbors += {
+                        neighbor: next - 1,
+                        attributes: []
+                    };
+                }
+            }
+            # Looking for attributes.
+            else if (decompressionState == 1) {
+                # Current neighbor is terminated
+                if (!next) {
+                    decompressionState = 0;
+                }
+                # Next attribute located
+                else {
+                    currentNeighbors[currentNeighbors.Length - 1] = {
+                        neighbor: currentNeighbors.Last.neighbor,
+                        attributes: currentNeighbors.Last.attributes.Append(next - 1)  
+                    };
+                }
+            }
+            if (!(i2 % 20))
+                MinWait();
+        }
+        MinWait();
+    }
+    compressionTable = null;
+    # Unlock pathfinder
+    pfIterationsThisTick = 0;
 }

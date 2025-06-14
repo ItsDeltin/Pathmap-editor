@@ -91,6 +91,17 @@ void showMessage(String objectiveDescription, MessageLine[] lines) 'Subroutine: 
                 Reevaluation: ProgressBarHudEvaluation.VisibleTo
             );
         }
+        # Text with input
+        else if (lines[i].Type == 4) {
+            msgHudTexts += CreateHudText(
+                HostPlayer(),
+                Text: '{0}: {1}'.Format([InputBindingString(lines[EvaluateOnce(i)].Content[2]), lines[EvaluateOnce(i)].Content[0]]),
+                TextColor: lines[i].Content[1],
+                Location: Location.Top,
+                SortOrder: i + 1,
+                Reevaluation: HudTextRev.VisibleToAndString
+            );
+        }
     }
 }
 
@@ -144,6 +155,13 @@ struct MessageLine
         return {
             Type: 1,
             Content: [content, color],
+        };
+    }
+
+    public static MessageLine Input(in String content, in Button button) {
+        return {
+            Type: 4,
+            Content: [content, Color.White, button]
         };
     }
 

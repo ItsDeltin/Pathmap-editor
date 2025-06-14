@@ -238,13 +238,13 @@ void openMirrorConfirmationScreen()
     SetMenuState(MenuState.ConfirmMirror);
     buttonCollectionMain += createButton(
         label: 'Are you sure you want to mirror the map?\nPlease save your map before continuing.\nThis may take a minute.',
-        posY: 0.15,
+        posY: 0.1,
         interactable: false
     );
     buttonCollectionMain += createButton(
         label: 'no',
         posX: -0.4,
-        posY: -0.25,
+        posY: -0.3,
         defaultColor: Color.Red,
         onClick: _ => {
             SetMenuState(MenuState.Main);
@@ -253,11 +253,19 @@ void openMirrorConfirmationScreen()
     buttonCollectionMain += createButton(
         label: 'yes',
         posX: 0.4,
-        posY: -0.25,
+        posY: -0.3,
         defaultColor: Color.Green,
         onClick: _ => {
             SetMenuState(MenuState.Main);
             enterMirroringMode();
         }
     );
+    createHelpButton(0, 0.7, null, [
+        MessageLine.Separator('Map mirroring', Color.Purple),
+        MessageLine.Text('\nThis tool can be used to mirror your map data for symmetrical Overwatch maps.' +
+            '\n\nTo use this tool, Go to the center of the map and draw a line indicating the axis\nthat the map will be mirrored across.\n\n'),
+        MessageLine.Input('Create mirror reflection line', Button.PrimaryFire),
+        MessageLine.Input('Cancel map mirroring', Button.SecondaryFire),
+        MessageLine.Text('\n\nEven though this operation can be reversed with the "undo" button, please\nsave your map beforehand.', Color.Yellow)
+    ]);
 }

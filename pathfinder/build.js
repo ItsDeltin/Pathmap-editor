@@ -20,20 +20,17 @@ async function decompile() {
         const text = fs.readFileSync(readFile, { encoding: "utf8" });
         let decompilation;
         try {
-            decompilation = overpy_standalone.decompileAllRules(
-                text,
-                "en-US",
-                { ignoreVariableIndex: true, ignoreSubroutineIndex: true }
-            );
-        }
-        catch (ex) {
+            decompilation = overpy_standalone.decompileAllRules(text, "en-US", {
+                ignoreVariableIndex: true,
+                ignoreSubroutineIndex: true,
+            });
+        } catch (ex) {
             console.log(`Error while decompiling ${readFile}: ${ex}`);
             return;
         }
-        fs.writeFileSync(writeFile, decompilation)
+        fs.writeFileSync(writeFile, decompilation);
         console.log(`${readFile} -> ${writeFile}`);
     }
 
     decompileFile("core.ow", "core.opy");
-    decompileFile("compression/compression.ow", "compression/compression.opy");
 }

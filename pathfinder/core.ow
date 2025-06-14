@@ -5,7 +5,13 @@ variables
         1: pfLoadedMap_neighbors
         2: pfIterationsThisTick
         3: pfExecOwner
-        4: i
+        4: pfI1
+        5: pfI2
+        6: pfDecompress
+        7: pfcompressionTable
+        8: pfdecompressionState
+        9: pfcurrentNeighbors
+        10: pfnext
     player:
         0: pfWait
         1: pfDestination
@@ -22,21 +28,21 @@ variables
         12: pfStuckOnNode
         13: pfWasBroadcasted
         14: pfIsStuck
-        15: goal
-        16: scores_gScore
-        17: scores_fScore
-        18: scores_parent
-        19: scores_nodeIndex
-        20: open
-        21: checkedNode
-        22: iter
-        23: current
-        24: currentInExistingPath
-        25: broadcastTo
-        26: neighbor
-        27: neighborI
-        28: scoreIndex
-        29: score
+        15: pfgoal
+        16: pfscores_gScore
+        17: pfscores_fScore
+        18: pfscores_parent
+        19: pfscores_nodeIndex
+        20: pfopen
+        21: pfcheckedNode
+        22: pfiter
+        23: pfcurrent
+        24: pfcurrentInExistingPath
+        25: pfbroadcastTo
+        26: pfneighbor
+        27: pfneighborI
+        28: pfscoreIndex
+        29: pfscore
 }
 
 subroutines
@@ -64,8 +70,8 @@ rule("【PF Core】Prepare loaded map")
 
     actions
     {
-        For Global Variable(i, 0, Count Of(Global.pfLoadedMap_nodes), 1);
-            Global.pfLoadedMap_nodes[Global.i] = Vector(X Component Of(Global.pfLoadedMap_nodes[Global.i]), Round To Integer(Y Component Of(Global.pfLoadedMap_nodes[Global.i]), Down) + Global.i / 1000 * (Y Component Of(Global.pfLoadedMap_nodes[Global.i]) < 0 ? -1 : 1), Z Component Of(Global.pfLoadedMap_nodes[Global.i]));
+        For Global Variable(pfI1, 0, Count Of(Global.pfLoadedMap_nodes), 1);
+            Global.pfLoadedMap_nodes[Global.pfI1] = Vector(X Component Of(Global.pfLoadedMap_nodes[Global.pfI1]), Round To Integer(Y Component Of(Global.pfLoadedMap_nodes[Global.pfI1]), Down) + Global.pfI1 / 1000 * (Y Component Of(Global.pfLoadedMap_nodes[Global.pfI1]) < 0 ? -1 : 1), Z Component Of(Global.pfLoadedMap_nodes[Global.pfI1]));
         End;
     }
 }
@@ -124,9 +130,6 @@ rule("【PF Core Subroutine】☞ Update node meta")
         If(Event Player.pfCurrentNodeIndex != -1);
             Event Player.pfActiveNode = Event Player.pfCurrentNodeIndex;
         End;
-        If(Event Player.pfStuckOnNode == 1);
-            Event Player.pfStuckOnNode = 0;
-        End;
         "Update the pathfinding start time."
         Event Player.pfStartTime = Total Time Elapsed;
         Event Player.pfWalkingFromPosition = Position Of(Event Player);
@@ -143,7 +146,7 @@ rule("☆【PF Core Subroutine】☞ Walk to destination")
 
     actions
     {
-        Start Throttle In Direction(Event Player, Direction Towards(Position Of(Event Player), Event Player.pfWalkingToPosition), Event Player.pfWalkingToPosition && (Event Player.pfCurrentNodeIndex != -1 || Distance Between(Position Of(Event Player), Event Player.pfWalkingToPosition) > 0.4), To World, Replace Existing Throttle, Direction And Magnitude);
+        Start Throttle In Direction(Event Player, Direction Towards(Position Of(Event Player), Event Player.pfCurrentNodeIndex == -1 ? Event Player.pfDestination : Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex]), Distance Between(Position Of(Event Player), Event Player.pfCurrentNodeIndex == -1 ? Event Player.pfDestination : Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex]) > 0.4 && (Event Player.pfCurrentNodeIndex != -1 || !(!Event Player.pfSavedTarget || Distance Between(Event Player.pfDestination, Event Player.pfSavedTarget) > 5)), To World, Replace Existing Throttle, Direction And Magnitude);
     }
 }
 
@@ -159,7 +162,6 @@ rule("【PF Core】Update & Execute")
     conditions
     {
         Event Player.pfDestination == True;
-        Distance Between(Event Player, Event Player.pfDestination) > 4;
         (!Event Player.pfSavedTarget || Distance Between(Event Player.pfDestination, Event Player.pfSavedTarget) > 5) == True;
     }
 
@@ -176,7 +178,7 @@ rule("【PF Core】Update & Execute")
         "Update saved destination"
         Event Player.pfSavedTarget = Event Player.pfDestination;
         If(!Event Player.pfWasBroadcasted);
-            Event Player.goal = Round To Integer(Absolute Value(Y Component Of(First Of(Sorted Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Event Player.pfSavedTarget)), 0, 5), !Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Event Player.pfSavedTarget + Vector(0, 2, 0), Barriers Do Not Block LOS))))) * 1000 % 1000, Down);
+            Event Player.pfgoal = Round To Integer(Absolute Value(Y Component Of(First Of(Sorted Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Event Player.pfSavedTarget)), 0, 5), !Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Event Player.pfSavedTarget + Vector(0, 2, 0), Barriers Do Not Block LOS))))) * 1000 % 1000, Down);
             Call Subroutine(pfTick);
             If(Event Player.pfIsPathfinding && Event Player.pfCurrentNodeIndex != -1);
                 Event Player.pfActiveNode = Event Player.pfCurrentNodeIndex;
@@ -184,73 +186,73 @@ rule("【PF Core】Update & Execute")
                 Event Player.pfActiveNode = Round To Integer(Absolute Value(Y Component Of(First Of(Sorted Array(Array Slice(Sorted Array(Global.pfLoadedMap_nodes, Distance Between(Current Array Element, Position Of(Event Player))), 0, 5), !Is In Line Of Sight(Current Array Element + Vector(0, 2, 0), Position Of(Event Player) + Vector(0, 2, 0), Barriers Do Not Block LOS))))) * 1000 % 1000, Down);
                 Call Subroutine(pfTick);
             End;
-            Event Player.scores_gScore = Array(0);
-            Event Player.scores_fScore = Array(0);
-            Event Player.scores_parent = Array(-1);
-            Event Player.scores_nodeIndex = Array(Event Player.goal);
-            Event Player.open = Array(0);
-            Event Player.checkedNode = Event Player.pfActiveNode;
-            Event Player.iter = 0;
-            While(Count Of(Event Player.open) || Event Player.iter > 30);
+            Event Player.pfscores_gScore = Array(0);
+            Event Player.pfscores_fScore = Array(0);
+            Event Player.pfscores_parent = Array(-1);
+            Event Player.pfscores_nodeIndex = Array(Event Player.pfgoal);
+            Event Player.pfopen = Array(0);
+            Event Player.pfcheckedNode = Event Player.pfActiveNode;
+            Event Player.pfiter = 0;
+            While(Count Of(Event Player.pfopen) || Event Player.pfiter > 30);
                 "The index of the current node in `scores`."
-                Event Player.current = First Of(Sorted Array(Event Player.open, Event Player.scores_fScore[Current Array Element]));
-                If(Event Player.checkedNode != Event Player.pfActiveNode);
-                    Event Player.checkedNode = Index Of Array Value(Event Player.scores_nodeIndex, Event Player.pfActiveNode);
-                    If(Event Player.checkedNode != -1);
-                        Event Player.current = Event Player.checkedNode;
-                        Event Player.checkedNode = -2;
+                Event Player.pfcurrent = First Of(Sorted Array(Event Player.pfopen, Event Player.pfscores_fScore[Current Array Element]));
+                If(Event Player.pfcheckedNode != Event Player.pfActiveNode);
+                    Event Player.pfcheckedNode = Index Of Array Value(Event Player.pfscores_nodeIndex, Event Player.pfActiveNode);
+                    If(Event Player.pfcheckedNode != -1);
+                        Event Player.pfcurrent = Event Player.pfcheckedNode;
+                        Event Player.pfcheckedNode = -2;
                     Else;
-                        Event Player.checkedNode = Event Player.pfActiveNode;
+                        Event Player.pfcheckedNode = Event Player.pfActiveNode;
                     End;
                 End;
-                Event Player.currentInExistingPath = Index Of Array Value(Event Player.pfPath, Event Player.scores_nodeIndex[Event Player.current]);
+                Event Player.pfcurrentInExistingPath = Index Of Array Value(Event Player.pfPath, Event Player.pfscores_nodeIndex[Event Player.pfcurrent]);
                 "If the goal was found, reconstruct the path."
-                If(Event Player.scores_nodeIndex[Event Player.current] == Event Player.pfActiveNode || Event Player.checkedNode == -2 || Event Player.currentInExistingPath != -1);
-                    If(Event Player.currentInExistingPath == -1);
+                If(Event Player.pfscores_nodeIndex[Event Player.pfcurrent] == Event Player.pfActiveNode || Event Player.pfcheckedNode == -2 || Event Player.pfcurrentInExistingPath != -1);
+                    If(Event Player.pfcurrentInExistingPath == -1);
                         Event Player.pfPath = Empty Array;
                     Else;
-                        Event Player.pfPath = Array Slice(Event Player.pfPath, 0, Event Player.currentInExistingPath);
+                        Event Player.pfPath = Array Slice(Event Player.pfPath, 0, Event Player.pfcurrentInExistingPath);
                     End;
-                    While(Event Player.current != -1);
-                        Modify Player Variable(Event Player, pfPath, Append To Array, Event Player.scores_nodeIndex[Event Player.current]);
-                        Event Player.current = Event Player.scores_parent[Event Player.current];
+                    While(Event Player.pfcurrent != -1);
+                        Modify Player Variable(Event Player, pfPath, Append To Array, Event Player.pfscores_nodeIndex[Event Player.pfcurrent]);
+                        Event Player.pfcurrent = Event Player.pfscores_parent[Event Player.pfcurrent];
                     End;
                     Modify Player Variable(Event Player, pfPath, Append To Array, Array(-1));
-                    Event Player.broadcastTo = Filtered Array(Players Within Radius(Position Of(Event Player) + Up, 4, All Teams, Off), Current Array Element != Event Player && Current Array Element.pfWait && Distance Between(Current Array Element.pfDestination, Event Player.pfDestination) < 4 && Current Array Element.pfPlayerAttributes == Event Player.pfPlayerAttributes);
-                    Event Player.broadcastTo.pfPath = Event Player.pfPath;
-                    Event Player.broadcastTo.pfWasBroadcasted = True;
+                    Event Player.pfbroadcastTo = Filtered Array(Players Within Radius(Position Of(Event Player) + Up, 4, All Teams, Off), Current Array Element != Event Player && Current Array Element.pfWait && Distance Between(Current Array Element.pfDestination, Event Player.pfDestination) < 4 && Current Array Element.pfPlayerAttributes == Event Player.pfPlayerAttributes);
+                    Event Player.pfbroadcastTo.pfPath = Event Player.pfPath;
+                    Event Player.pfbroadcastTo.pfWasBroadcasted = True;
                     Skip(27);
                 End;
-                Modify Player Variable(Event Player, open, Remove From Array By Value, Event Player.current);
+                Modify Player Variable(Event Player, pfopen, Remove From Array By Value, Event Player.pfcurrent);
                 "Check each neighbor to the current node."
-                For Player Variable(Event Player, neighbor, 0, Count Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]]), 1);
+                For Player Variable(Event Player, pfneighbor, 0, Count Of(Global.pfLoadedMap_neighbors[Event Player.pfscores_nodeIndex[Event Player.pfcurrent]]), 1);
                     "The neighbor index to be used like `pfLoadedMap.nodes[neighborI]`."
-                    Event Player.neighborI = First Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor]);
-                    Event Player.scoreIndex = Index Of Array Value(Event Player.scores_nodeIndex, Event Player.neighborI);
+                    Event Player.pfneighborI = First Of(Global.pfLoadedMap_neighbors[Event Player.pfscores_nodeIndex[Event Player.pfcurrent]][Event Player.pfneighbor]);
+                    Event Player.pfscoreIndex = Index Of Array Value(Event Player.pfscores_nodeIndex, Event Player.pfneighborI);
                     "Ensure that the path to the neighbor is enabled."
-                    If(Count Of(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor][1]) == 0 || Is True For Any(Global.pfLoadedMap_neighbors[Event Player.scores_nodeIndex[Event Player.current]][Event Player.neighbor][1], Array Contains(Event Player.pfPlayerAttributes, Current Array Element)));
-                        Event Player.score = Event Player.scores_gScore[Event Player.current] + Distance Between(Global.pfLoadedMap_nodes[Event Player.scores_nodeIndex[Event Player.current]], Global.pfLoadedMap_nodes[Event Player.neighborI]);
+                    If(Count Of(Global.pfLoadedMap_neighbors[Event Player.pfscores_nodeIndex[Event Player.pfcurrent]][Event Player.pfneighbor][1]) == 0 || Is True For Any(Global.pfLoadedMap_neighbors[Event Player.pfscores_nodeIndex[Event Player.pfcurrent]][Event Player.pfneighbor][1], Array Contains(Event Player.pfPlayerAttributes, Current Array Element)));
+                        Event Player.pfscore = Event Player.pfscores_gScore[Event Player.pfcurrent] + Distance Between(Global.pfLoadedMap_nodes[Event Player.pfscores_nodeIndex[Event Player.pfcurrent]], Global.pfLoadedMap_nodes[Event Player.pfneighborI]);
                         "Get neighbor index in scores.
 If -1, the neighbor was not added to the score list yet."
-                        If(Event Player.scoreIndex == -1);
-                            Modify Player Variable(Event Player, open, Append To Array, Count Of(Event Player.scores_gScore));
-                            Modify Player Variable(Event Player, scores_gScore, Append To Array, Event Player.score);
-                            Modify Player Variable(Event Player, scores_fScore, Append To Array, Event Player.score + Distance Between(Global.pfLoadedMap_nodes[Event Player.neighborI], Global.pfLoadedMap_nodes[Event Player.pfActiveNode]) * 20);
-                            Modify Player Variable(Event Player, scores_parent, Append To Array, Event Player.current);
-                            Modify Player Variable(Event Player, scores_nodeIndex, Append To Array, Event Player.neighborI);
-                        Else If(Event Player.score < Event Player.scores_gScore[Event Player.scoreIndex]);
-                            Event Player.scores_gScore[Event Player.scoreIndex] = Event Player.score;
-                            Event Player.scores_fScore[Event Player.scoreIndex] = Event Player.score + Distance Between(Global.pfLoadedMap_nodes[Event Player.neighborI], Global.pfLoadedMap_nodes[Event Player.pfActiveNode]) * 20;
-                            Event Player.scores_parent[Event Player.scoreIndex] = Event Player.current;
-                            Event Player.scores_nodeIndex[Event Player.scoreIndex] = Event Player.neighborI;
-                            If(!Array Contains(Event Player.open, Event Player.scoreIndex));
-                                Modify Player Variable(Event Player, open, Append To Array, Event Player.scoreIndex);
+                        If(Event Player.pfscoreIndex == -1);
+                            Modify Player Variable(Event Player, pfopen, Append To Array, Count Of(Event Player.pfscores_gScore));
+                            Modify Player Variable(Event Player, pfscores_gScore, Append To Array, Event Player.pfscore);
+                            Modify Player Variable(Event Player, pfscores_fScore, Append To Array, Event Player.pfscore + Distance Between(Global.pfLoadedMap_nodes[Event Player.pfneighborI], Global.pfLoadedMap_nodes[Event Player.pfActiveNode]) * 20);
+                            Modify Player Variable(Event Player, pfscores_parent, Append To Array, Event Player.pfcurrent);
+                            Modify Player Variable(Event Player, pfscores_nodeIndex, Append To Array, Event Player.pfneighborI);
+                        Else If(Event Player.pfscore < Event Player.pfscores_gScore[Event Player.pfscoreIndex]);
+                            Event Player.pfscores_gScore[Event Player.pfscoreIndex] = Event Player.pfscore;
+                            Event Player.pfscores_fScore[Event Player.pfscoreIndex] = Event Player.pfscore + Distance Between(Global.pfLoadedMap_nodes[Event Player.pfneighborI], Global.pfLoadedMap_nodes[Event Player.pfActiveNode]) * 20;
+                            Event Player.pfscores_parent[Event Player.pfscoreIndex] = Event Player.pfcurrent;
+                            Event Player.pfscores_nodeIndex[Event Player.pfscoreIndex] = Event Player.pfneighborI;
+                            If(!Array Contains(Event Player.pfopen, Event Player.pfscoreIndex));
+                                Modify Player Variable(Event Player, pfopen, Append To Array, Event Player.pfscoreIndex);
                             End;
                         End;
                     End;
                     Call Subroutine(pfTick);
                 End;
-                Event Player.iter += 1;
+                Event Player.pfiter += 1;
             End;
             Global.pfExecOwner = Null;
         End;
@@ -292,7 +294,7 @@ rule("【PF Core Subroutine】☞ Progress event player")
         "Go to the next node in the path."
         Event Player.pfCurrentNodeIndex = First Of(Event Player.pfPath);
         "Set the position that the player is currently walking towards."
-        Event Player.pfWalkingToPosition = Event Player.pfCurrentNodeIndex == -1 ? (Distance Between(Event Player.pfDestination, Event Player.pfSavedTarget) <= 4 ? Event Player.pfDestination : Position Of(Event Player)) : Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex];
+        Event Player.pfWalkingToPosition = Event Player.pfCurrentNodeIndex == -1 ? Event Player.pfDestination : Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex];
         Call Subroutine(pfUpdateNodeMeta);
     }
 }
@@ -365,7 +367,7 @@ rule("【PF Core Subroutine】☞ Recalibrate")
         Event Player.pfCurrentNodeIndex = -1;
         Event Player.pfSavedTarget = Null;
         Event Player.pfIsPathfinding = False;
-        Event Player.pfWalkingToPosition = Position Of(Event Player);
+        Event Player.pfPath = 0;
     }
 }
 
@@ -386,29 +388,46 @@ rule("【PF Core】Insurance")
 
     actions
     {
-        "Recalibrate"
-        If(Distance Between((Event Player.pfWalkingFromPosition + Event Player.pfWalkingToPosition) / 2, Event Player) > (Distance Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) + 2) * 1.2);
-            Call Subroutine(pfRecalibrate);
         "Smooth step"
-        Else If(Count Of(Event Player.pfPath) == 2 && Distance Between(Event Player, Event Player.pfSavedTarget) < Distance Between(Event Player.pfWalkingToPosition, Event Player.pfSavedTarget) && Is In Line Of Sight(Position Of(Event Player) + Vector(0, 0.25, 0), Event Player.pfSavedTarget + Vector(0, 0.25, 0), Barriers Do Not Block LOS));
+        If(Count Of(Event Player.pfPath) == 2 && Distance Between(Event Player, Event Player.pfSavedTarget) < Distance Between(Event Player.pfWalkingToPosition, Event Player.pfSavedTarget) && Is In Line Of Sight(Position Of(Event Player) + Vector(0, 0.25, 0), Event Player.pfSavedTarget + Vector(0, 0.25, 0), Barriers Do Not Block LOS));
             Call Subroutine(pfProgressEventPlayer);
+        "Shift destination"
+        Else If(Event Player.pfWalkingToPosition != Event Player.pfDestination && Event Player.pfCurrentNodeIndex == -1 && Distance Between(Event Player.pfSavedTarget, Event Player.pfDestination) < 5 && Is In Line Of Sight(Event Player.pfSavedTarget + Up, Event Player.pfDestination + Up, Barriers Do Not Block LOS));
+            Event Player.pfWalkingToPosition = Event Player.pfDestination;
         "Recovery"
-        Else If(Distance Between(Event Player, Event Player.pfWalkingToPosition) > 0.25 && Event Player.pfIsStuck || Distance Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) - 4.95 * (Total Time Elapsed - Event Player.pfStartTime) < 0 && !Has Status(Event Player, Rooted) && !Has Status(Event Player, Frozen) && !Has Status(Event Player, Asleep) && !Has Status(Event Player, Knocked Down) && !Has Status(Event Player, Stunned));
-            If(Event Player.pfCurrentNodeIndex == -1);
-                Event Player.pfWalkingToPosition = Null;
-            Else If(Event Player.pfStuckOnNode - 2 == Event Player.pfCurrentNodeIndex);
+        Else If(Distance Between(Event Player, Event Player.pfWalkingToPosition) > 0.4 && !(!Event Player.pfSavedTarget || Distance Between(Event Player.pfDestination, Event Player.pfSavedTarget) > 5) && (Event Player.pfIsStuck || Distance Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) - 4.95 * (Total Time Elapsed - Event Player.pfStartTime) < 0) && !Has Status(Event Player, Rooted) && !Has Status(Event Player, Frozen) && !Has Status(Event Player, Asleep) && !Has Status(Event Player, Knocked Down) && !Has Status(Event Player, Stunned));
+            If(Event Player.pfStuckOnNode - 2 == Event Player.pfCurrentNodeIndex);
                 Log To Inspector(Custom String("Pathfinder {0} struggled to reach node {1} at {2}. Try adjusting your map in the editor.", Event Player, Event Player.pfCurrentNodeIndex, Global.pfLoadedMap_nodes[Event Player.pfCurrentNodeIndex]));
                 Teleport(Event Player, Event Player.pfWalkingToPosition);
             Else;
                 Event Player.pfStuckOnNode = Event Player.pfCurrentNodeIndex + 2;
                 Call Subroutine(pfRecalibrate);
             End;
-        "Shift destination"
-        Else If(Event Player.pfWalkingToPosition != Event Player.pfDestination && Event Player.pfCurrentNodeIndex == -1 && Distance Between(Event Player.pfSavedTarget, Event Player.pfDestination) < 5 && Is In Line Of Sight(Event Player.pfSavedTarget + Up, Event Player.pfDestination + Up, Barriers Do Not Block LOS));
-            Event Player.pfWalkingToPosition = Event Player.pfDestination;
         End;
         Wait(2, Ignore Condition);
         Loop If Condition Is True;
+    }
+}
+
+rule("【PF Core】Recalibrate when off path")
+{
+    event
+    {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+
+    conditions
+    {
+        Event Player.pfIsPathfinding == True;
+        Event Player.pfWalkingToPosition == True;
+        Distance Between((Event Player.pfWalkingFromPosition + Event Player.pfWalkingToPosition) / 2, Event Player) > (Distance Between(Event Player.pfWalkingFromPosition, Event Player.pfWalkingToPosition) + 4) * 1.2;
+    }
+
+    actions
+    {
+        Call Subroutine(pfRecalibrate);
     }
 }
 
@@ -433,6 +452,72 @@ rule("【PF Core】Check throttle")
         Event Player.pfIsStuck = True;
         Wait Until(!Event Player.pfWalkingToPosition || !Event Player.pfIsPathfinding || Magnitude Of(Velocity Of(Event Player)) >= 3, 9999);
         Event Player.pfIsStuck = False;
+    }
+}
+
+rule("【PF Decompress】Decompress map")
+{
+    event
+    {
+        Ongoing - Global;
+    }
+
+    conditions
+    {
+        Global.pfDecompress == True;
+    }
+
+    actions
+    {
+        "Lock pathfinder until compression is completed."
+        Global.pfIterationsThisTick = -99;
+        Global.pfcompressionTable = Custom String("{0}{1}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String("{0}{1}{2}", Custom String(" !#$%&'()*+,-./:;<=>?@[]^_`|~ ¡¢£¤¥¦§¨©«¬­®¯°±´¶·¸»¿×÷˂˃˄˅˒˓˔˕˖˗˘˙˚˛˜˝˞˟˥˦˧˨˩˪˫˭˯˰˱˲˳˴˵˶˷˸˹˺˻˼˽"), Custom String("˾˿̴̵̶̷̸̡̢̧̨̛̖̗̘̙̜̝̞̟̠̣̤̥̦̩̪̫̬̭̮̯̰̱̲̳̹̺̻̼͇͈͉͍͎̀́̂̃̄̅̆̇̈̉̊̋̌̍̎̏̐̑̒̓̔̽̾̿̀́͂̓̈́͆͊͋͌̕̚ͅ͏͓͔͕͖͙͚͐͑͒͗͛ͣͤͥͦͧͨͩͪͫͬͭͮͯ͘͜͟͢͝͞͠͡͵͸͹;΀΁΂΃΄΅·΋΍΢"), Custom String("϶҂҃҄҅҆҇҈҉԰՗՘՚՛՜՝՞՟։֊֋֌֍֎֏֐ְֱֲֳִֵֶַָֹֺֻּֽ֑֖֛֢֣֤֥֦֧֪֚֭֮֒֓֔֕֗֘֙֜֝֞֟֠֡֨֩֫֬֯־ֿ׀ׁׂ׃ׅׄ׆ׇ׈׉׊׋׌׍׎׏׫׬׭׮׳״׵׶׷׸׹׺׻׼׽׾׿؀؁؂؃؄؅؆؇؈؉؊؋،؍؎؏ؐؑؒؓؔؕ")), Custom String("ؘؙؚؖؗ؛؜؝؞؟ًٌٍَُِّْٕٖٜٟٓٔٗ٘ٙٚٛٝٞ٪٫٬٭ٰ۔ۖۗۘۙۚۛۜ۝۞ۣ۟۠ۡۢۤۧۨ۩۪ۭ۫۬۽۾܀܁܂܃܄܅܆܇܈܉܊܋܌܍܎܏ܑܱܴܷܸܹܻܼܾ݂݄݆݈ܰܲܳܵܶܺܽܿ݀݁݃݅݇݉݊݋݌ަާިީުޫެޭޮޯް޲޳޴޵޶޷޸޹޺޻"), Custom String("޼޽޾޿߲߫߬߭߮߯߰߱߳߶߷߸߹߻߼߽߾߿ࠖࠗ࠘࠙ࠛࠜࠝࠞࠟࠠࠡࠢࠣࠥࠦࠧࠩࠪࠫࠬ࠭࠮࠯࠰࠱࠲࠳࠴࠵࠶࠷࠸࠹࠺࠻࠼࠽࠾࠿࡙࡚࡛࡜࡝࡞࡟࡫࡬࡭࡮࡯ࡰࡱࡲࡳࡴࡵࡶࡷࡸࡹࡺࡻࡼࡽࡾࡿࢀࢁࢂࢃࢄࢅࢆࢇ࢈ࢉࢊࢋࢌࢍࢎ࢏࢐࢑࢒࢓࢔࢕࢖࢙࢚࢛ࢗ࢘࢜࢝࢞࢟ࢵࣈࣉ࣊࣋࣌࣍")), Custom String("࣏࣐࣑࣒࣓࣎ࣔࣕࣖࣗࣘࣙࣚࣛࣜࣝࣞࣟ࣠࣡࣢ࣰࣱࣲࣣࣦࣩ࣭࣮࣯ࣶࣹࣺࣤࣥࣧࣨ࣪࣫࣬ࣳࣴࣵࣷࣸࣻࣼࣽࣾࣿऀँंःऺऻ़ािीुूृॄॅॆेैॉॊोौ्ॎॏ॒॑॓॔ॕॖॗॢॣ।॥॰ঁংঃ঄঍঎঑঒঩঱঳঴঵঺঻়ািীুূৃৄ৅৆েৈ৉৊োৌ্৏৐৑৒৓৔৕৖ৗ"), Custom String("৘৙৚৛৞ৢৣ৤৥৲৳৺৻৽৾৿਀ਁਂਃ਄਋਌਍਎਑਒਩਱਴਷਺਻਼਽ਾਿੀੁੂ੃੄੅੆ੇੈ੉੊ੋੌ੍੎੏੐ੑ੒੓੔੕੖੗੘੝੟੠੡੢੣੤੥ੰੱੵ੶੷੸੹੺੻੼੽੾੿઀ઁંઃ઄઎઒઩઱઴઺઻઼ાિીુૂૃૄૅ૆ેૈૉ૊ોૌ્૎૏૑૒૓૔૕૖૗૘૙૚૛૜૝૞")), Custom String("૟ૢૣ૤૥૰૱૲૳૴૵૶૷૸ૺૻૼ૽૾૿଀ଁଂଃ଄଍଎଑଒଩଱଴଺଻଼ାିୀୁୂୃୄ୅୆େୈ୉୊ୋୌ୍୎୏୐୑୒୓୔୕ୖୗ୘୙୚୛୞ୢୣ୤୥୰୸୹୺୻୼୽୾୿஀஁ஂ஄஋஌஍஑஖஗஘஛஝஠஡஢஥஦஧஫஬஭஺஻஼஽ாிீுூ௃௄௅ெேை௉ொோௌ்௎௏௑௒௓௔௕"), Custom String("௖ௗ௘௙௚௛௜௝௞௟௠௡௢௣௤௥௳௴௵௶௷௸௹௺௻௼௽௾௿ఀఁంఃఄ఍఑఩఺఻఼ాిీుూృౄ౅ెేై౉ొోౌ్౎౏౐౑౒౓౔ౕౖ౗౛౜ౝ౞౟ౢౣ౤౥౰౱౲౳౴౵౶౷౿ಁಂಃ಄಍಑಩಴಺಻಼ಾಿೀುೂೃೄ೅ೆೇೈ೉ೊೋೌ್೎೏೐೑೒೓೔ೕೖ೗೘೙೚೛೜ೝ೟")), Custom String("ೢೣ೤೥೰ೳ೴೵೶೷೸೹೺೻೼೽೾೿ഀഁംഃ഍഑഻഼ാിീുൂൃൄ൅െേൈ൉ൊോൌ്൏൐൑൒൓ൗൢൣ൤൥൹඀ඁංඃ඄඗඘඙඲඼඾඿෇෈෉්෋෌෍෎ාැෑිීු෕ූ෗ෘෙේෛොෝෞෟ෠෡෢෣෤෥෰෱ෲෳ෴෵෶෷෸෹෺෻෼෽෾෿฀ัิีึืฺุู฻฼฽฾฿็่"), Custom String("้๊๋์ํ๎๏๚๛๜๝๞๟๠๡๢๣๤๥๦๧๨๩๪๫๬๭๮๯๰๱๲๳๴๵๶๷๸๹๺๻๼๽๾๿຀຃຅຋຤຦ັິີຶື຺ຸູົຼ຾຿໅໇່້໊໋໌ໍ໎໏໚໛໠໡໢໣໤໥໦໧໨໩໪໫໬໭໮໯໰໱໲໳໴໵໶໷໸໹໺໻໼໽໾໿༁༂༃༄༅༆༇༈༉༊་༌།༎༏༐༑༒༓༔༕")), Custom String("༖༗༘༙༚༛༜༝༞༟༴༵༶༷༸༹༺༻༼༽༾༿཈཭཮཯཰ཱཱཱིིུུྲྀཷླྀཹེཻོཽཾཿ྄ཱྀྀྂྃ྅྆྇ྍྎྏྐྑྒྒྷྔྕྖྗ྘ྙྚྛྜྜྷྞྟྠྡྡྷྣྤྥྦྦྷྨྩྪྫྫྷྭྮྯྰྱྲླྴྵྶྷྸྐྵྺྻྼ྽྾྿࿀࿁࿂࿃࿄࿅࿆࿇࿈࿉࿊࿋࿌࿍࿎࿏࿐࿑࿒࿓࿔࿕࿖࿗࿘࿙࿚"), Custom String("࿛࿜࿝࿞࿟࿠࿡࿢࿣࿤࿥࿦࿧࿨࿩࿪࿫࿬࿭࿮࿯࿰࿱࿲࿳࿴࿵࿶࿷࿸࿹࿺࿻࿼࿽࿾࿿ါာိီုူေဲဳဴဵံ့း္်ျြွှ၊။၌၍၎၏ၖၗၘၙၞၟၠၢၣၤၧၨၩၪၫၬၭၱၲၳၴႂႃႄႅႆႇႈႉႊႋႌႍႏႚႛႜႝ႞႟჆჈჉჊჋჌჎჏჻቉቎቏቗቙቞቟኉኎኏኱኶኷኿዁዆")), Custom String("዇዗጑጖጗፛፜፝፞፟፠፡።፣፤፥፦፧፨፽፾፿᎐᎑᎒᎓᎔᎕᎖᎗᎘᎙᎚᎛᎜᎝᎞᎟᏶᏷᏾᏿᐀᙭᙮ ᚛᚜᚝᚞᚟᛫᛬᛭᛹᛺᛻᛼᛽᛾᛿ᜍᜒᜓ᜔᜕᜖᜗᜘᜙᜚᜛᜜᜝᜞ᜟᜲᜳ᜴᜵᜶᜷᜸᜹᜺᜻᜼᜽᜾᜿ᝒᝓ᝔᝕᝖᝗᝘᝙᝚᝛᝜᝝᝞᝟᝭᝱ᝲᝳ᝴᝵᝶᝷᝸᝹᝺᝻᝼᝽᝾᝿឴឵ាិីឹឺុ"), Custom String("ូួើឿៀេែៃោៅំះៈ៉៊់៌៍៎៏័៑្៓។៕៖៘៙៚៛៝៞៟៪៫៬៭៮៯៺៻៼៽៾៿᠀᠁᠂᠃᠄᠅᠆᠇᠈᠉᠊᠋᠌᠍᠎᠏᠚᠛᠜᠝᠞᠟᡹᡺᡻᡼᡽᡾᡿ᢅᢆᢩ᢫᢬᢭᢮᢯᣶᣷᣸᣹᣺᣻᣼᣽᣾᣿᤟ᤠᤡᤢᤣᤤᤥᤦᤧᤨᤩᤪᤫ᤬᤭᤮᤯ᤰᤱᤲᤳᤴᤵᤶᤷᤸ᤻᤹᤺᤼᤽᤾᤿᥀᥁")), Custom String("᥂᥃᥄᥅᥮᥯᥵᥶᥷᥸᥹᥺᥻᥼᥽᥾᥿᦬᦭᦮᦯᧊᧋᧌᧍᧎᧏᧛᧜᧝᧞᧟᧠᧡᧢᧣᧤᧥᧦᧧᧨᧩᧪᧫᧬᧭᧮᧯᧰᧱᧲᧳᧴᧵᧶᧷᧸᧹᧺᧻᧼᧽᧾᧿ᨘᨗᨙᨚᨛ᨜᨝᨞᨟ᩕᩖᩗᩘᩙᩚᩛᩜᩝᩞ᩟᩠ᩡᩢᩣᩤᩥᩦᩧᩨᩩᩪᩫᩬᩭᩮᩯᩰᩱᩲᩳᩴ᩵᩶᩷᩸᩹᩺᩻᩼᩽᩾᩿᪊᪋᪌᪍᪎᪏᪚᪛᪜᪝᪞᪟"), Custom String("᪠᪡᪢᪣᪤᪥᪦᪨᪩᪪᪫᪬᪭᪮᪯᪵᪶᪷᪸᪹᪺᪽᪰᪱᪲᪳᪴᪻᪼᪾ᪿᫀ᫃᫄᫊᫁᫂᫅᫆᫇᫈᫉᫋ᫌᫍᫎ᫏᫐᫑᫒᫓᫔᫕᫖᫗᫘᫙᫚᫛᫜᫝᫞᫟᫠᫡᫢᫣᫤᫥᫦᫧᫨᫩᫪᫫᫬᫭᫮᫯᫰᫱᫲᫳᫴᫵᫶᫷᫸᫹᫺᫻᫼᫽᫾᫿ᬀᬁᬂᬃᬄ᬴ᬵᬶᬷᬸᬹᬺᬻᬼᬽᬾᬿᭀᭁᭂᭃ᭄ᭌ᭍᭎᭏᭚᭛᭜᭝᭞᭟᭠")), Custom String("᭡᭢᭣᭤᭥᭦᭧᭨᭩᭪᭬᭫᭭᭮᭯᭰᭱᭲᭳᭴᭵᭶᭷᭸᭹᭺᭻᭼᭽᭾᭿ᮀᮁᮂᮡᮢᮣᮤᮥᮦᮧᮨᮩ᮪᮫ᮬᮭ᯦ᯧᯨᯩᯪᯫᯬᯭᯮᯯᯰᯱ᯲᯳᯴᯵᯶᯷᯸᯹᯺᯻᯼᯽᯾᯿ᰤᰥᰦᰧᰨᰩᰪᰫᰬᰭᰮᰯᰰᰱᰲᰳᰴᰵᰶ᰷᰸᰹᰺᰻᰼᰽᰾᰿᱊᱋᱌᱾᱿Ᲊᲊ᲋᲌᲍᲎᲏᲻᲼᳀᳁᳂᳃᳄᳅᳆᳇᳈᳉᳊᳋᳌"), Custom String("᳍᳎᳏᳐᳑᳒᳓᳔᳕᳖᳗᳘᳙᳜᳝᳞᳟᳚᳛᳠᳡᳢᳣᳤᳥᳦᳧᳨᳭᳴᳷᳸᳹᳻᳼᳽᳾᳿᷐᷎᷺᷂᷊᷏᷹᷽᷿᷷᷸᷀᷁᷃᷄᷅᷆᷇᷈᷉᷋᷌᷑᷒ᷓᷔᷕᷖᷗᷘᷙᷚᷛᷜᷝᷞᷟᷠᷡᷢᷣᷤᷥᷦᷧᷨᷩᷪᷫᷬᷭᷮᷯᷰᷱᷲᷳᷴ᷵᷻᷾᷶᷼᷍἖἗἞἟὆὇὎὏὘὚὜὞὾὿᾵᾽᾿῀῁῅῍῎῏῔῕῜")), Custom String("῝῞῟῭΅`῰῱῵´῾῿           ​‌‍‎‏‐‑‒–—―‖‗‘’‚‛“”„‟†‡•‣․‥…‧  ‪‫‬‭‮ ‰‱′″‴‵‶‷‸‹›※‼‽‾‿⁀⁁⁂⁃⁄⁅⁆⁇⁈⁉⁊⁋⁌⁍⁎⁏⁐⁑⁒⁓⁔⁕⁖⁗⁘⁙⁚⁛⁜⁝⁞ ⁠⁡⁢⁣⁤⁥⁦⁧⁨⁩⁪⁫⁬⁭⁮⁯⁲⁳⁺⁻"), Custom String("⁼⁽⁾₊₋₌₍₎₏₝₞₟₠₡₢₣₤₥₦₧₨₩₪₫€₭₮₯₰₱₲₳₴₵₶₷₸₹₺₻₼₽₾₿⃀⃁⃂⃃⃄⃅⃆⃇⃈⃉⃊⃋⃌⃍⃎⃏⃒⃓⃘⃙⃚⃐⃑⃔⃕⃖⃗⃛⃜⃝⃞⃟⃠⃡⃢⃣⃤⃥⃦⃪⃫⃨⃬⃭⃮⃯⃧⃩⃰⃱⃲⃳⃴⃵⃶⃷⃸⃹⃺⃻⃼⃽⃾⃿℀℁℃℄℅℆℈℉℔№℗℘℞℟℠℡™℣℥℧")), Custom String("℩℮℺℻⅀⅁⅂⅃⅄⅊⅋⅌⅍⅏↊↋↌↍↎↏←↑→↓↔↕↖↗↘↙↚↛↜↝↞↟↠↡↢↣↤↥↦↧↨↩↪↫↬↭↮↯↰↱↲↳↴↵↶↷↸↹↺↻↼↽↾↿⇀⇁⇂⇃⇄⇅⇆⇇⇈⇉⇊⇋⇌⇍⇎⇏⇐⇑⇒⇓⇔⇕⇖⇗⇘⇙⇚⇛⇜⇝⇞⇟⇠⇡⇢⇣⇤⇥⇦⇧⇨⇩⇪⇫⇬⇭⇮⇯⇰⇱⇲⇳⇴⇵⇶⇷⇸⇹⇺⇻"), Custom String("⇼⇽⇾⇿∀∁∂∃∄∅∆∇∈∉∊∋∌∍∎∏∐∑−∓∔∕∖∗∘∙√∛∜∝∞∟∠∡∢∣∤∥∦∧∨∩∪∫∬∭∮∯∰∱∲∳∴∵∶∷∸∹∺∻∼∽∾∿≀≁≂≃≄≅≆≇≈≉≊≋≌≍≎≏≐≑≒≓≔≕≖≗≘≙≚≛≜≝≞≟≠≡≢≣≤≥≦≧≨≩≪≫≬≭≮≯≰≱≲≳≴≵≶≷≸≹≺≻")), Custom String("≼≽≾≿⊀⊁⊂⊃⊄⊅⊆⊇⊈⊉⊊⊋⊌⊍⊎⊏⊐⊑⊒⊓⊔⊕⊖⊗⊘⊙⊚⊛⊜⊝⊞⊟⊠⊡⊢⊣⊤⊥⊦⊧⊨⊩⊪⊫⊬⊭⊮⊯⊰⊱⊲⊳⊴⊵⊶⊷⊸⊹⊺⊻⊼⊽⊾⊿⋀⋁⋂⋃⋄⋅⋆⋇⋈⋉⋊⋋⋌⋍⋎⋏⋐⋑⋒⋓⋔⋕⋖⋗⋘⋙⋚⋛⋜⋝⋞⋟⋠⋡⋢⋣⋤⋥⋦⋧⋨⋩⋪⋫⋬⋭⋮⋯⋰⋱⋲⋳⋴⋵⋶⋷⋸⋹⋺⋻"), Custom String("⋼⋽⋾⋿⌀⌁⌂⌃⌄⌅⌆⌇⌈⌉⌊⌋⌌⌍⌎⌏⌐⌑⌒⌓⌔⌕⌖⌗⌘⌙⌚⌛⌜⌝⌞⌟⌠⌡⌢⌣⌤⌥⌦⌧⌨〈〉⌫⌬⌭⌮⌯⌰⌱⌲⌳⌴⌵⌶⌷⌸⌹⌺⌻⌼⌽⌾⌿⍀⍁⍂⍃⍄⍅⍆⍇⍈⍉⍊⍋⍌⍍⍎⍏⍐⍑⍒⍓⍔⍕⍖⍗⍘⍙⍚⍛⍜⍝⍞⍟⍠⍡⍢⍣⍤⍥⍦⍧⍨⍩⍪⍫⍬⍭⍮⍯⍰⍱⍲⍳⍴⍵⍶⍷⍸⍹⍺⍻")), Custom String("⍼⍽⍾⍿⎀⎁⎂⎃⎄⎅⎆⎇⎈⎉⎊⎋⎌⎍⎎⎏⎐⎑⎒⎓⎔⎕⎖⎗⎘⎙⎚⎛⎜⎝⎞⎟⎠⎡⎢⎣⎤⎥⎦⎧⎨⎩⎪⎫⎬⎭⎮⎯⎰⎱⎲⎳⎴⎵⎶⎷⎸⎹⎺⎻⎼⎽⎾⎿⏀⏁⏂⏃⏄⏅⏆⏇⏈⏉⏊⏋⏌⏍⏎⏏⏐⏑⏒⏓⏔⏕⏖⏗⏘⏙⏚⏛⏜⏝⏞⏟⏠⏡⏢⏣⏤⏥⏦⏧⏨⏩⏪⏫⏬⏭⏮⏯⏰⏱⏲⏳⏴⏵⏶⏷⏸⏹⏺⏻"), Custom String("⏼⏽⏾⏿␀␁␂␃␄␅␆␇␈␉␊␋␌␍␎␏␐␑␒␓␔␕␖␗␘␙␚␛␜␝␞␟␠␡␢␣␤␥␦␧␨␩␪␫␬␭␮␯␰␱␲␳␴␵␶␷␸␹␺␻␼␽␾␿⑀⑁⑂⑃⑄⑅⑆⑇⑈⑉⑊⑋⑌⑍⑎⑏⑐⑑⑒⑓⑔⑕⑖⑗⑘⑙⑚⑛⑜⑝⑞⑟⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵ⒶⒷ")), Custom String("ⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ─━│┃┄┅┆┇┈┉┊┋┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋╌╍"), Custom String("╎╏═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬╭╮╯╰╱╲╳╴╵╶╷╸╹╺╻╼╽╾╿▀▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▐░▒▓▔▕▖▗▘▙▚▛▜▝▞▟■□▢▣▤▥▦▧▨▩▪▫▬▭▮▯▰▱▲△▴▵▶▷▸▹►▻▼▽▾▿◀◁◂◃◄◅◆◇◈◉◊○◌◍")), Custom String("◎●◐◑◒◓◔◕◖◗◘◙◚◛◜◝◞◟◠◡◢◣◤◥◦◧◨◩◪◫◬◭◮◯◰◱◲◳◴◵◶◷◸◹◺◻◼◽◾◿☀☁☂☃☄★☆☇☈☉☊☋☌☍☎☏☐☑☒☓☔☕☖☗☘☙☚☛☜☝☞☟☠☡☢☣☤☥☦☧☨☩☪☫☬☭☮☯☰☱☲☳☴☵☶☷☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍"), Custom String("♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♡♢♣♤♥♦♧♨♩♪♫♬♭♮♯♰♱♲♳♴♵♶♷♸♹♺♻♼♽♾♿⚀⚁⚂⚃⚄⚅⚆⚇⚈⚉⚊⚋⚌⚍⚎⚏⚐⚑⚒⚓⚔⚕⚖⚗⚘⚙⚚⚛⚜⚝⚞⚟⚠⚡⚢⚣⚤⚥⚦⚧⚨⚩⚪⚫⚬⚭⚮⚯⚰⚱⚲⚳⚴⚵⚶⚷⚸⚹⚺⚻⚼⚽⚾⚿⛀⛁⛂⛃⛄⛅⛆⛇⛈⛉⛊⛋⛌⛍")), Custom String("⛎⛏⛐⛑⛒⛓⛔⛕⛖⛗⛘⛙⛚⛛⛜⛝⛞⛟⛠⛡⛢⛣⛤⛥⛦⛧⛨⛩⛪⛫⛬⛭⛮⛯⛰⛱⛲⛳⛴⛵⛶⛷⛸⛹⛺⛻⛼⛽⛾⛿✀✁✂✃✄✅✆✇✈✉✊✋✌✍✎✏✐✑✒✓✔✕✖✗✘✙✚✛✜✝✞✟✠✡✢✣✤✥✦✧✨✩✪✫✬✭✮✯✰✱✲✳✴✵✶✷✸✹✺✻✼✽✾✿❀❁❂❃❄❅❆❇❈❉❊❋❌❍"));
+        Global.pfLoadedMap_nodes = Empty Array;
+        Global.pfLoadedMap_neighbors = Empty Array;
+        "Decompress nodes"
+        For Global Variable(pfI1, 0, Count Of(First Of(Global.pfDecompress)), 1);
+            For Global Variable(pfI2, 0, String Length(First Of(Global.pfDecompress)[Global.pfI1]), 3);
+                Modify Global Variable(pfLoadedMap_nodes, Append To Array, Vector((Index Of String Char(Global.pfcompressionTable, Char In String(First Of(Global.pfDecompress)[Global.pfI1], Global.pfI2)) * 2 - 4096) / 10, (Index Of String Char(Global.pfcompressionTable, Char In String(First Of(Global.pfDecompress)[Global.pfI1], Global.pfI2 + 1)) * 2 - 4096) / 10, (Index Of String Char(Global.pfcompressionTable, Char In String(First Of(Global.pfDecompress)[Global.pfI1], Global.pfI2 + 2)) * 2 - 4096) / 10));
+                Wait(0.016, Ignore Condition);
+            End;
+        End;
+        "Decompress neighbors"
+        Global.pfdecompressionState = 0;
+        Global.pfcurrentNeighbors = Empty Array;
+        For Global Variable(pfI1, 0, Count Of(Global.pfDecompress[1]), 1);
+            For Global Variable(pfI2, 0, String Length(Global.pfDecompress[1][Global.pfI1]), 1);
+                Global.pfnext = Index Of String Char(Global.pfcompressionTable, Char In String(Global.pfDecompress[1][Global.pfI1], Global.pfI2));
+                "Next is the neighbor."
+                If(Global.pfdecompressionState == 0);
+                    "Current node is terminated."
+                    If(!Global.pfnext);
+                        Modify Global Variable(pfLoadedMap_neighbors, Append To Array, Array(Global.pfcurrentNeighbors));
+                        "Reset current neighbors array"
+                        Global.pfcurrentNeighbors = Empty Array;
+                    "Next neighbor found."
+                    Else;
+                        Global.pfdecompressionState = 1;
+                        Modify Global Variable(pfcurrentNeighbors, Append To Array, Array(Array(Global.pfnext - 1, Empty Array)));
+                    End;
+                "Looking for attributes."
+                Else If(Global.pfdecompressionState == 1);
+                    "Current neighbor is terminated"
+                    If(!Global.pfnext);
+                        Global.pfdecompressionState = 0;
+                    "Next attribute located"
+                    Else;
+                        Global.pfcurrentNeighbors[Count Of(Global.pfcurrentNeighbors) - 1] = Array(First Of(Last Of(Global.pfcurrentNeighbors)), Append To Array(Last Of(Global.pfcurrentNeighbors)[1], Global.pfnext - 1));
+                    End;
+                End;
+                If(!(Global.pfI2 % 20));
+                    Wait(0.016, Ignore Condition);
+                End;
+            End;
+            Wait(0.016, Ignore Condition);
+        End;
+        Global.pfcompressionTable = Null;
+        "Unlock pathfinder"
+        Global.pfIterationsThisTick = 0;
     }
 }
 

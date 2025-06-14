@@ -11,6 +11,7 @@ single struct PfPath {
     public Number[] attributes;
 }
 
+# Data type used in pathing algorithm
 struct PfNode {
     public Number gScore;
     public Number fScore;
@@ -20,9 +21,15 @@ struct PfNode {
 
 # The currently loaded map
 globalvar PfMap pfLoadedMap;
+# The pathfinder's budget for the current tick.
 globalvar Number pfIterationsThisTick;
 # Current pathfinder execution owner.
 globalvar Player pfExecOwner;
+
+# General-use global variable for map setup (1)
+globalvar Number pfI1;
+# General-use global variable for map setup (2)
+globalvar Number pfI2;
 
 # The timestamp where a player requests a pathfind.
 playervar Number pfWait;
@@ -66,11 +73,11 @@ rule: '【PF Core】Prepare loaded map'
 if (pfLoadedMap.nodes)
 if (pfIterationsThisTick != -99)
 {
-    for (Number i = 0; pfLoadedMap.nodes.Length; 1) {
-        pfLoadedMap.nodes[i] = Vector(
-            pfLoadedMap.nodes[i].X,
-            pfLoadedMap.nodes[i].Y.Floor() + (i / 1000) * (pfLoadedMap.nodes[i].Y < 0 ? -1 : 1),
-            pfLoadedMap.nodes[i].Z
+    for (pfI1 = 0; pfLoadedMap.nodes.Length; 1) {
+        pfLoadedMap.nodes[pfI1] = Vector(
+            pfLoadedMap.nodes[pfI1].X,
+            pfLoadedMap.nodes[pfI1].Y.Floor() + (pfI1 / 1000) * (pfLoadedMap.nodes[pfI1].Y < 0 ? -1 : 1),
+            pfLoadedMap.nodes[pfI1].Z
         );
     }
 }
@@ -398,6 +405,7 @@ void reconstructPath(in PfNode[] scores, ref Number current, in Number currentIn
     broadcastTo.pfWasBroadcasted = true;
 }
 
+# Compressed map data.
 globalvar String[][] pfDecompress;
 
 rule: '【PF Decompress】Decompress map'
@@ -447,17 +455,14 @@ if (pfDecompress)
         neighbors: []
     };
 
-    Number i1;
-    Number i2;
-
     # Decompress nodes
-    for (i1 = 0; pfDecompress[0].Length; 1) {
-        String nodeString: pfDecompress[0][i1];
-        for (i2 = 0; nodeString.Length; 3) {
+    for (pfI1 = 0; pfDecompress[0].Length; 1) {
+        String nodeString: pfDecompress[0][pfI1];
+        for (pfI2 = 0; nodeString.Length; 3) {
             pfLoadedMap.nodes += Vector(
-                unwrap(d(nodeString, i2)),
-                unwrap(d(nodeString, i2 + 1)),
-                unwrap(d(nodeString, i2 + 2))
+                unwrap(d(nodeString, pfI2)),
+                unwrap(d(nodeString, pfI2 + 1)),
+                unwrap(d(nodeString, pfI2 + 2))
             );
             MinWait();
         }
@@ -467,10 +472,10 @@ if (pfDecompress)
     Number decompressionState;
     PfPath[] currentNeighbors = [];
 
-    for (i1 = 0; pfDecompress[1].Length; 1) {
-        String neighborString: pfDecompress[1][i1];
-        for (i2 = 0; neighborString.Length; 1) {
-            Number next = d(neighborString, i2);
+    for (pfI1 = 0; pfDecompress[1].Length; 1) {
+        String neighborString: pfDecompress[1][pfI1];
+        for (pfI2 = 0; neighborString.Length; 1) {
+            Number next = d(neighborString, pfI2);
 
             # Next is the neighbor.
             if (decompressionState == 0) {
@@ -503,7 +508,7 @@ if (pfDecompress)
                     };
                 }
             }
-            if (!(i2 % 20))
+            if (!(pfI2 % 20))
                 MinWait();
         }
         MinWait();

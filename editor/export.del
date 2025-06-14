@@ -15,11 +15,13 @@ enum OutputLanguage
 globalvar persist Number outputLanguage;
 
 # Determines which components get built.
+# 
 # `[0]`: The map itself. (default: true)
+# 
 # `[1]`: The custom rules. (default: true)
-# `[2]`: The core pathfinding code. (default: false)
-# `[3]`: A compressed map. (default: false)
-globalvar Boolean[] buildToggles = [true, true, false, false];
+# 
+# `[2]`: A compressed map. (default: true)
+globalvar Boolean[] buildToggles = [true, true, true];
 
 globalvar Number selectWorkshopButton!;
 globalvar Number selectOstwButton!;
@@ -38,9 +40,8 @@ void ExportMenu() 'EXPORT: create export menu'
             MessageLine.Text(<'If enabled, the nav mesh you created for <0> will be generated.\n\n', CurrentMap()>, Color.White),
             MessageLine.Separator('Export Custom Rules', Color.Green),
             MessageLine.Text('If enabled, the custom rules in the rule menu will be compiled into the specified workshop language.\n\n', Color.White),
-            MessageLine.Separator('Core pathfinding code', Color.Yellow),
-            MessageLine.Text('If enabled, the core pathfinding algorithm will be generated.\n' +
-            'This only needs to be added to your project once.', Color.White)
+            MessageLine.Separator('Compress map', Color.Green),
+            MessageLine.Text('If enabled, the exported map data will be compressed.', Color.White)
         ]);
     buttonCollectionMain += createButton(
         label: "┏━ Export Settings ━┓",
@@ -51,8 +52,7 @@ void ExportMenu() 'EXPORT: create export menu'
     );
     CreateToggle(0, 'Export Map', posX: -1.25, posY: .3);
     CreateToggle(1, 'Export Custom Rules', posX: -1.25, posY: .1);
-    CreateToggle(2, 'Core Pathfinding Code', posX: -1.25, posY: -.1);
-    CreateToggle(3, 'Compress map', posX: -1.25, posY: -.3);
+    CreateToggle(2, 'Compress map', posX: -1.25, posY: -.1);
     
     createHelpButton(posX: 1.5, posY: .8,
         'Pathmaps can be compiled into several workshop languages.   ', [
@@ -126,7 +126,7 @@ string splitting, better syntax, etc.', Color.White),
         defaultColor: Color.Green,
         onClick: left => {
             # Do nothing if nothing is going to be exported.
-            if (!buildToggles[0] && !buildToggles[1] && !buildToggles[2]) {
+            if (!buildToggles[0] && !buildToggles[1]) {
                 showMessage('Error', [MessageLine.Text('\n\nAll exporting options disabled, nothing to export.', Color.Rose)]);
             } else {
                 Export();
@@ -183,15 +183,14 @@ void Export() playervar 'Subroutine: Generate map code.'
     # Export introduction.
     LogToInspector(<'Place the following text into your <0> script:<1>\n/*', ['workshop', 'ostw', 'overpy'][outputLanguage], sep>);
 
-    # 1. Export the core pathfinding code.
-    if (buildToggles[2]) {
-        ExportCore();
-    }
-    # 2. Export the rules.
+    String coreMessage! = '\nIn order to pathfind, you must add the core pathfinding code to your gamemode from the following link:
+https://github.com/Its' + $'Deltin/Pathmap-editor/blob/main/pathfinder/core.{['ow', 'ostw', 'opy'][outputLanguage]}';
+
+    # 1. Export the rules.
     if (buildToggles[1]) {
         ExportRules();
     }
-    # 3. Export the map.
+    # 2. Export the map.
     if (buildToggles[0]) {
         # Export map to workshop.
         if (outputLanguage == 0)
@@ -203,6 +202,8 @@ void Export() playervar 'Subroutine: Generate map code.'
         else if (outputLanguage == 2)
             ExportMapToOverpy();
     }
+    
+    LogToInspector(sep + coreMessage);
 
     # Disable inspector.
     DisableInspector();
@@ -215,24 +216,12 @@ void Export() playervar 'Subroutine: Generate map code.'
         MessageLine.Text(
             'Open the inspector and click the "Copy To Workshop All Log" button to copy the generated code to your clipboard.\n' +
             <'Paste the contents into a text editor<0>\n\n', outputLanguage == 0 ?
-            '. Remove the first timestamp and then you can paste the workshop\ncode directly into your game.' : ', then follow the instructions in the text to use the pathfinder.'>),
+            '. Remove the first timestamp and then you can paste the workshop\ncode directly into your game.' : ', then follow the instructions in the text to use the pathfinder.\n'> +
+            coreMessage),
         MessageLine.Separator(''),
         MessageLine.Text('It is recommended to restart the game instance before doing another export\n' +
             'because the copy will include *all* exports. Remember to save your map beforehand\nby copying the action set code!')
     ]);
-}
-
-void ExportCore() 'Subroutine: Export: Core'
-{
-    # Export core code to workshop.
-    if (outputLanguage == 0)
-        PrintFileToWorkshopLog('../pathfinder/core.ow', []);
-    # Export core code to ostw.
-    else if (outputLanguage == 1)
-        PrintFileToWorkshopLog('../pathfinder/core.ostw', []);
-    # Export core code to overpy.
-    else if (outputLanguage == 2)
-        PrintFileToWorkshopLog('../pathfinder/core.opy', []);
 }
 
 void ExportRules() playervar 'EXPORT: Export'
@@ -455,8 +444,8 @@ void ExportRules() playervar 'EXPORT: Export'
 void ExportMapToWorkshop()
 {
     # Compressed
-    if (buildToggles[3]) {
-        ExportMapBlock('compressed', () => {
+    if (buildToggles[2]) {
+        ExportMapBlock('compressed', false, () => {
             # Set pfDecompress
             LogToInspector('*/     global.pfDecompress = Array(Array( /*');
             LoadCompressionTable();
@@ -474,7 +463,7 @@ void ExportMapToWorkshop()
     # Uncompressed
     else 
     {
-        ExportMapBlock('nodes', () => {
+        ExportMapBlock('nodes', true, () => {
             # Set loadedMap_segments
             LogToInspector('*/     global.pfLoadedMap_nodes = Array( /*');
             # For each attribute
@@ -482,7 +471,7 @@ void ExportMapToWorkshop()
             # End pathfinder segments
             LogToInspector('*/ ); /*');
         });
-        ExportMapBlock('neighbors', () => {
+        ExportMapBlock('neighbors', false, () => {
             # Set loadedMap_neighors
             LogToInspector('*/     global.pfLoadedMap_neighbors = Array( /*');
             ExportNeighborsPattern('Array(', ')', 'Empty Array');
@@ -495,21 +484,21 @@ void ExportMapToWorkshop()
 void ExportMapToOstw()
 {
     # This exported code should be placed in the ostw file.
-    if (buildToggles[3])
+    if (buildToggles[2])
     {
-        LogToInspector('*/' + ExportOstwDataSet("compressed", "pfDecompress", "") + '/*');
+        LogToInspector('*/' + ExportOstwDataSet("compressed", "pfDecompress", "") + sep);
     }
     else
     {
         LogToInspector('*/' + ExportOstwDataSet("nodes", "pfLoadedMap.nodes", ".nodes") + '/*');
-        LogToInspector('*/' + ExportOstwDataSet("neighbors", "pfLoadedMap.neighbors", ".neighbors") + '/*');
+        LogToInspector('*/' + ExportOstwDataSet("neighbors", "pfLoadedMap.neighbors", ".neighbors") + sep);
     }
 
     # Introduction message
-    LogToInspector(<'Place the following text into a file named \"<0>.jsonc\":', CurrentMap()> + sep + '\n/*');
+    LogToInspector(<'Place the following text into a file named \"<0>.jsonc\":<1>\n/*', CurrentMap(), sep>);
 
 
-    if (buildToggles[3])
+    if (buildToggles[2])
     {
         LogToInspector('*/ [[ /*');
         LoadCompressionTable();
@@ -517,7 +506,7 @@ void ExportMapToOstw()
         LogToInspector('*/ ], [ /*');
         PrintCompressedNeighbors();
         UnloadCompressionTable();
-        LogToInspector('*/ ]]' + sep);
+        LogToInspector('*/ ]]');
     }
     else
     {
@@ -528,20 +517,20 @@ void ExportMapToOstw()
         LogToInspector('*/ ], "neighbors": [ /*');
         ExportNeighborsPattern('[', ']', '[]');
         # Conclude JSON
-        LogToInspector('*/ ] }' + sep);
+        LogToInspector('*/ ] }');
     }
 }
 
 void ExportMapToOverpy()
 {
-    if (buildToggles[3]) {
+    if (buildToggles[2]) {
         ExportOverpyMapBlock('compressed', 'pfDecompress = [[');
         LoadCompressionTable();
         PrintCompressedNodes();
         LogToInspector(<'*/ ], [ /*'>);
         PrintCompressedNeighbors();
         UnloadCompressionTable();
-        LogToInspector('*/ ]]' + sep);
+        LogToInspector('*/ ]]');
         return;
     }
 
@@ -634,7 +623,7 @@ String StringJoin<T>(in T[] array, in String joinValue, const T => Any tToString
     return joinStringResult;
 }
 
-void ExportMapBlock(in String blockName, const () => void exportActions)
+void ExportMapBlock(in String blockName, in Boolean terminate, const () => void exportActions)
 {
     # Attributes rule
     LogToInspector('*/ rule(\"【Map】{0} ({1})\") { event { Ongoing - Global; } /*'.Format([CurrentMap(), blockName]));
@@ -647,7 +636,7 @@ void ExportMapBlock(in String blockName, const () => void exportActions)
     # Export inner actions
     exportActions();
     # End action & rule block
-    LogToInspector('*/ } } /*');
+    LogToInspector('*/ } }' + (terminate ? ' /*' : ''));
 }
 
 void ExportOverpyMapBlock(in String blockName, in String initialLine) {
